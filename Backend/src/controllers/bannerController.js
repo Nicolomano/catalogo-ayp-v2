@@ -1,4 +1,7 @@
 import Banner from "../services/models/bannerModel.js";
+import sharp from "sharp";
+import { v4 as uuidv4 } from "uuid";
+import { uploadToR2 } from "../utils/r2.js";
 
 export const listPublicBanners = async (req, res) => {
   try {
@@ -38,8 +41,15 @@ export const createBanner = async (req, res) => {
       order = 0,
       active = true,
     } = req.body;
-    // multer-storage-cloudinary deja la URL en file.path
-    const image = req.file?.path || req.body.image;
+    let image = req.body.image || null;
+    if (req.file?.buffer) {
+      const filename = `banners/${uuidv4()}.webp`;
+      const buffer = await sharp(req.file.buffer)
+        .resize(1500, 500, { fit: "cover", position: "attention" })
+        .webp({ quality: 85 })
+        .toBuffer();
+      image = await uploadToR2(buffer, filename, "image/webp");
+    }
     if (!image) return res.status(400).json({ message: "Imagen requerida" });
 
     const banner = await Banner.create({
@@ -61,7 +71,14 @@ export const updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
     const data = { ...req.body };
-    if (req.file?.path) data.image = req.file.path;
+    if (req.file?.buffer) {
+      const filename = `banners/${uuidv4()}.webp`;
+      const buffer = await sharp(req.file.buffer)
+        .resize(1500, 500, { fit: "cover", position: "attention" })
+        .webp({ quality: 85 })
+        .toBuffer();
+      data.image = await uploadToR2(buffer, filename, "image/webp");
+    }
     const updated = await Banner.findByIdAndUpdate(id, data, { new: true });
     res.json(updated);
   } catch (e) {

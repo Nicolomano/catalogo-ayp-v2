@@ -69,7 +69,7 @@ function Cart() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() =>
-                    updateQuantity(item.productCode, item.quantity - 1)
+                    updateQuantity(item._id, item.quantity - 1)
                   }
                   className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded"
                 >
@@ -78,7 +78,7 @@ function Cart() {
                 <span className="px-4 text-lg font-bold">{item.quantity}</span>
                 <button
                   onClick={() =>
-                    updateQuantity(item.productCode, item.quantity + 1)
+                    updateQuantity(item._id, item.quantity + 1)
                   }
                   className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded"
                 >

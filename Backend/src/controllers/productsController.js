@@ -4,6 +4,9 @@ import Category from "../services/models/category.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
+import { v4 as uuidv4 } from "uuid";
+import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
 /* ----------------------- CREAR PRODUCTO ----------------------- */
 export async function createProduct(req, res) {
   try {
@@ -21,7 +24,15 @@ export async function createProduct(req, res) {
         ? [req.body.subcategories]
         : req.body.subcategories || [];
 
-    const image = req.file ? req.file.secure_url || req.file.path : null;
+    let image = null;
+    if (req.file?.buffer) {
+      const filename = `products/${uuidv4()}.webp`;
+      const buffer = await sharp(req.file.buffer)
+        .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+      image = await uploadToR2(buffer, filename, "image/webp");
+    }
 
     if (!name || !description || !productCode)
       return res.status(400).json({ message: "Faltan campos obligatorios" });
@@ -64,7 +75,17 @@ export async function createProduct(req, res) {
 /* ----------------------- SUBIR IMAGEN ----------------------- */
 export async function uploadImage(req, res) {
   if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-  res.json({ imageUrl: req.file.secure_url });
+  try {
+    const filename = `products/${uuidv4()}.webp`;
+    const buffer = await sharp(req.file.buffer)
+      .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    const imageUrl = await uploadToR2(buffer, filename, "image/webp");
+    res.json({ imageUrl });
+  } catch (error) {
+    res.status(500).json({ message: "Error subiendo imagen", error: error.message });
+  }
 }
 
 /* ----------------------- ACTUALIZAR PRODUCTO ----------------------- */
@@ -101,7 +122,14 @@ export async function updateProduct(req, res) {
       subcategories,
     };
 
-    if (req.file?.path) updateData.image = req.file.path;
+    if (req.file?.buffer) {
+      const filename = `products/${uuidv4()}.webp`;
+      const buffer = await sharp(req.file.buffer)
+        .resize(800, 800, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+      updateData.image = await uploadToR2(buffer, filename, "image/webp");
+    }
 
     // Manejo de precios
     const priceUSD = req.body.priceUSD ? Number(req.body.priceUSD) : undefined;
@@ -166,12 +194,11 @@ export const getProductsByCategory = async (req, res) => {
       maxPrice,
       sort,
       page = 1,
-      limit = 0,
+      limit = 24,
     } = req.query;
 
     const filter = { active: true };
 
-    // ✅ Filtro directo por nombre (no busca en Category)
     if (category && category !== "all") {
       filter.categories = { $in: [category] };
     }
@@ -180,7 +207,10 @@ export const getProductsByCategory = async (req, res) => {
       filter.subcategories = { $in: [subcategory] };
     }
 
-    if (search) filter.name = { $regex: search, $options: "i" };
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.name = { $regex: escaped, $options: "i" };
+    }
 
     if (minPrice || maxPrice) {
       filter.priceARS = {};
@@ -188,7 +218,8 @@ export const getProductsByCategory = async (req, res) => {
       if (maxPrice) filter.priceARS.$lte = Number(maxPrice);
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const parsedLimit = Math.max(1, Math.min(100, Number(limit)));
+    const skip = (Number(page) - 1) * parsedLimit;
     const sortOption = {};
 
     if (sort) {
@@ -200,7 +231,7 @@ export const getProductsByCategory = async (req, res) => {
       .find(filter)
       .sort(sortOption)
       .skip(skip)
-      .limit(Number(limit))
+      .limit(parsedLimit)
       .lean();
 
     const total = await productModel.countDocuments(filter);
@@ -208,7 +239,8 @@ export const getProductsByCategory = async (req, res) => {
     res.status(200).json({
       total,
       page: Number(page),
-      pages: limit ? Math.ceil(total / limit) : 1,
+      pages: Math.ceil(total / parsedLimit),
+      hasMore: Number(page) * parsedLimit < total,
       products,
     });
   } catch (error) {

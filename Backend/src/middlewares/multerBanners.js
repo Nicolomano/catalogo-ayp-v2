@@ -1,16 +1,20 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../utils/cloudinary.js";
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "banners",
-    allowed_formats: ["jpg", "png", "jpeg"],
-    // normalizamos a 3:1 para tu faja
-    transformation: [{ crop: "fill", gravity: "auto", aspect_ratio: "3:1" }],
-  },
+const storage = multer.memoryStorage();
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Solo se permiten imágenes JPG, PNG o WEBP"), false);
+  }
+};
+
+const uploadBanner = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 15 * 1024 * 1024 },
 });
 
-const uploadBanner = multer({ storage });
 export default uploadBanner;
