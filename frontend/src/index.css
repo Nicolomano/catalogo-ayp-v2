@@ -1,39 +1,90 @@
 @import "tailwindcss";
 
+/* ── Colores de marca ──────────────────────────────────── */
 @theme {
-  --color-ayp: #0033cc; /* azul principal */
-  --color-ayp-dark: #001a80; /* azul oscuro */
+  --color-ayp:      #0033CC;
+  --color-ayp-dark: #001A80;
 }
 
-/* Fondo del input */
+/* ── Variables para modo claro / oscuro ────────────────── */
+:root {
+  --bg:           #F0F4F8;
+  --surface:      #FFFFFF;
+  --surface2:     #F8FAFC;
+  --border:       #E2E8F0;
+  --text:         #111827;
+  --text2:        #374151;
+  --muted:        #6B7280;
+  --muted2:       #9CA3AF;
+  --brand:        #0033CC;
+  --brand-h:      #0029A8;
+  --brand-tint:   #EEF0FF;
+  --brand-tint-t: #C7D0FF;
+  --hero-grad:    linear-gradient(135deg, #001A80 0%, #0033CC 60%, #1a4de8 100%);
+  --dark-card:    #001A80;
+  --shadow:       0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg:    0 8px 32px rgba(0,51,204,0.12);
+}
+
+html.dark {
+  --bg:           #0B0F1A;
+  --surface:      #111827;
+  --surface2:     #1C2333;
+  --border:       #1F2D45;
+  --text:         #F1F5F9;
+  --text2:        #CBD5E1;
+  --muted:        #94A3B8;
+  --muted2:       #64748B;
+  --brand-tint:   #0D1A40;
+  --brand-tint-t: #3355AA;
+  --hero-grad:    linear-gradient(135deg, #000D40 0%, #001A80 60%, #0033CC 100%);
+  --dark-card:    #000D40;
+  --shadow:       0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* ── Base ──────────────────────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.25s, color 0.25s;
+}
+
+/* ── Utilidades de variables ───────────────────────────── */
+.bg-surface   { background: var(--surface); }
+.bg-surface2  { background: var(--surface2); }
+.bg-page      { background: var(--bg); }
+.text-default { color: var(--text); }
+.text-muted   { color: var(--muted); }
+.border-theme { border-color: var(--border); }
+
+/* ── Bento card ────────────────────────────────────────── */
+.bento {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bento:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track  { background: var(--bg); }
+::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 3px; }
+
+/* ── Inputs de búsqueda (compatibilidad) ───────────────── */
 .search-input {
   background-color: transparent;
   color: white;
   border: 1px solid white;
 }
-
-.search-input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Cuando el input está enfocado: cambia a fondo blanco y texto oscuro */
-.search-input:focus {
-  background-color: white;
-  color: black;
-  border-color: white;
-}
-
-.search-input:focus::placeholder {
-  color: #666;
-}
-
-/* Estilo para el select */
-.search-select {
-  background-color: white;
-  color: black;
-  border: 1px solid #ccc;
-}
-
-.search-select option {
-  color: black;
-}
+.search-input::placeholder { color: rgba(255,255,255,0.7); }
+.search-input:focus { background-color: white; color: black; border-color: white; }
+.search-input:focus::placeholder { color: #666; }
+.search-select { background-color: white; color: black; border: 1px solid #ccc; }
+.search-select option { color: black; }

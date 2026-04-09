@@ -1,124 +1,152 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { FolderTree } from "lucide-react";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import {
+  Package, Image, Wrench, FolderTree, ClipboardList,
+  Settings, Users, Home, LogOut, ChevronRight, LayoutDashboard,
+} from "lucide-react";
 
-function MenuItem({ to, icon, label }) {
+const NAV_GROUPS = [
+  {
+    label: "Contenido",
+    items: [
+      { to: "/admin/landing",     icon: Home,          label: "Página de inicio" },
+      { to: "/admin/banners",     icon: Image,         label: "Banners / Slider" },
+    ],
+  },
+  {
+    label: "Catálogo",
+    items: [
+      { to: "/admin/products",    icon: Package,       label: "Productos" },
+      { to: "/admin/categories",  icon: FolderTree,    label: "Categorías" },
+      { to: "/admin/install-kit", icon: Wrench,        label: "Kit de instalación" },
+    ],
+  },
+  {
+    label: "Gestión",
+    items: [
+      { to: "/admin/orders",      icon: ClipboardList, label: "Órdenes" },
+      { to: "/admin/users",       icon: Users,         label: "Servicios" },
+      { to: "/admin/config",      icon: Settings,      label: "Configuración" },
+    ],
+  },
+];
+
+function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink
       to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-2 px-4 py-2 rounded-md hover:bg-gray-800 transition-colors ${
-          isActive ? "bg-gray-800 text-white" : "text-gray-300"
-        }`
-      }
+      end={to === "/admin/landing"}
+      style={({ isActive }) => ({
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        padding: "8px 12px",
+        borderRadius: "10px",
+        fontSize: "14px",
+        fontWeight: isActive ? "600" : "400",
+        background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
+        color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
+        transition: "all 0.15s ease",
+        textDecoration: "none",
+      })}
     >
-      {icon}
-      <span>{label}</span>
+      <Icon size={16} strokeWidth={1.8} />
+      <span className="flex-1">{label}</span>
     </NavLink>
   );
 }
 
 function AdminLayout() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
   const logout = () => {
     localStorage.removeItem("token");
     navigate("/admin/login");
   };
 
-  const linkBase =
-    "block px-3 py-2 rounded hover:bg-white/10 transition-colors";
-  const linkActive = "bg-white/15 font-semibold underline";
+  const allItems  = NAV_GROUPS.flatMap((g) => g.items);
+  const current   = allItems.find((item) => location.pathname.startsWith(item.to));
+  const pageTitle = current?.label ?? "Panel de administración";
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-ayp text-white flex flex-col">
-        <div className="p-6 text-2xl font-bold border-b border-white/20">
-          A&P Admin
+    <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
+
+      {/* ── Sidebar ── */}
+      <aside
+        className="w-60 flex flex-col fixed top-0 left-0 h-full z-30"
+        style={{ background: "linear-gradient(180deg, #001A80 0%, #0033CC 100%)" }}
+      >
+        {/* Logo */}
+        <div className="px-5 py-5 border-b" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <p className="text-white font-black text-lg tracking-tight">A&P</p>
+          <p className="text-white/50 text-xs font-medium tracking-wider uppercase mt-0.5">Panel admin</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {/* Si tenés dashboard real, descomenta este bloque
-          <NavLink
-            to="/admin/dashboard"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : ""}`
-            }
-          >
-            🧭 Dashboard
-          </NavLink>
-          */}
-          <NavLink
-            to="/admin/products"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : ""}`
-            }
-          >
-            📦 Productos
-          </NavLink>
-
-          <NavLink
-            to="/admin/banners"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : ""}`
-            }
-          >
-            🖼️ Banners / Slider
-          </NavLink>
-          <NavLink to="/admin/install-kit" className="...">
-            🛠Kit de Instalación
-          </NavLink>
-          <MenuItem
-            to="/admin/categories"
-            icon={<FolderTree size={18} />}
-            label="Categorías"
-          />
-
-          <NavLink
-            to="/admin/orders"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : ""}`
-            }
-          >
-            📋 Órdenes
-          </NavLink>
-
-          <NavLink
-            to="/admin/config"
-            className={({ isActive }) =>
-              `${linkBase} ${isActive ? linkActive : ""}`
-            }
-          >
-            ⚙️Configuración
-          </NavLink>
-          <NavLink
-            to="/"
-            className="ml-4 bg-white text-blue-800 px-3 py-1 rounded-md font-semibold hover:bg-blue-100 transition"
-          >
-            catálogo
-          </NavLink>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p
+                className="text-xs font-bold uppercase tracking-widest px-3 mb-1.5"
+                style={{ color: "rgba(255,255,255,0.3)" }}
+              >
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavItem key={item.to} {...item} />
+                ))}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <button
-          onClick={logout}
-          className="m-4 mt-2 rounded bg-red-600 hover:bg-red-700 text-white px-4 py-2"
-        >
-          Cerrar sesión
-        </button>
+        {/* Footer */}
+        <div className="px-3 pb-4 space-y-1 border-t pt-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-sm transition-colors"
+            style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}
+          >
+            <LayoutDashboard size={15} strokeWidth={1.8} />
+            Ver catálogo
+          </a>
+          <button
+            onClick={logout}
+            className="flex items-center gap-2.5 w-full px-3 py-2 rounded-[10px] text-sm text-left transition-colors"
+            style={{ color: "rgba(255,120,120,0.85)", background: "transparent", border: "none", cursor: "pointer" }}
+          >
+            <LogOut size={15} strokeWidth={1.8} />
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col">
-        <header className="bg-white shadow p-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-ayp">
-            Panel de administración
-          </h1>
+      {/* ── Main area ── */}
+      <div className="flex-1 flex flex-col" style={{ marginLeft: "240px" }}>
+
+        {/* Header */}
+        <header
+          className="sticky top-0 z-20 px-6 py-4 flex items-center gap-2 border-b"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            boxShadow: "0 1px 0 var(--border)",
+          }}
+        >
+          <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>Admin</span>
+          <ChevronRight size={14} style={{ color: "var(--muted)" }} />
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{pageTitle}</span>
         </header>
 
-        <section className="flex-1 p-6">
+        {/* Content */}
+        <main className="flex-1 px-6 py-6">
           <Outlet />
-        </section>
-      </main>
+        </main>
+      </div>
+
     </div>
   );
 }

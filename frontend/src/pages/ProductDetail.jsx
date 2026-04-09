@@ -1,19 +1,21 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { ChevronLeft } from "lucide-react";
 import API from "../api/axios";
 import { useCart } from "../Context/CartContext";
+import { useAuth } from "../Context/AuthContext";
 import toast from "react-hot-toast";
 
-const SITE_URL = "https://catalogoayp.vercel.app";
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://catalogoayp.vercel.app";
 
 function ProductDetail() {
-  const { productCode } = useParams();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-
-  const { addToCart } = useCart();
+  const { productCode }                   = useParams();
+  const [product, setProduct]             = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [quantity, setQuantity]           = useState(1);
+  const { addToCart }                     = useCart();
+  const { isServiceApproved, servicePrice } = useAuth();
 
   useEffect(() => {
     API.get(`/products/code/${productCode}`)
@@ -22,154 +24,136 @@ function ProductDetail() {
       .finally(() => setLoading(false));
   }, [productCode]);
 
-  const calcCuota6 = (priceARS) => {
-    if (!priceARS || isNaN(priceARS)) return null;
-    const cuota = (priceARS * 1.27) / 6;
-    return Math.round(cuota);
-  };
+  const calcCuota6 = (price) => price ? Math.round((price * 1.27) / 6) : null;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-ayp">
-        <p className="text-white text-xl">Cargando producto...</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-[50vh]">
+      <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full"
+        style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+    </div>
+  );
 
-  if (!product) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-ayp">
-        <p className="text-white text-xl">Producto no encontrado</p>
-      </div>
-    );
-  }
+  if (!product) return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+      <p className="text-lg" style={{ color: "var(--muted)" }}>Producto no encontrado</p>
+      <Link to="/catalogo" className="text-sm font-medium" style={{ color: "var(--brand)" }}>
+        ← Volver al catálogo
+      </Link>
+    </div>
+  );
 
-  const pageUrl = `${SITE_URL}/product/${product.productCode}`;
+  const pageUrl    = `${SITE_URL}/product/${product.productCode}`;
   const description = product.description?.slice(0, 155) || "";
+  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
 
   return (
     <>
       <Helmet>
-        {/* Primary */}
         <title>{`${product.name} | A&P Refrigeración`}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={pageUrl} />
-
-        {/* Open Graph — para preview en WhatsApp y redes */}
-        <meta property="og:type" content="product" />
-        <meta property="og:title" content={product.name} />
+        <meta property="og:type"        content="product" />
+        <meta property="og:title"       content={product.name} />
         <meta property="og:description" content={description} />
-        <meta property="og:image" content={product.image} />
-        <meta property="og:image:width" content="800" />
-        <meta property="og:image:height" content="800" />
-        <meta property="og:url" content={pageUrl} />
-        <meta property="og:site_name" content="A&P Refrigeración" />
-        <meta property="og:locale" content="es_AR" />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={product.name} />
-        <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={product.image} />
-
-        {/* JSON-LD Structured Data */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: product.name,
-            description: product.description,
-            image: product.image,
-            sku: product.productCode,
-            url: pageUrl,
-            brand: {
-              "@type": "Brand",
-              name: "A&P Refrigeración",
-            },
-            ...(product.priceARS && {
-              offers: {
-                "@type": "Offer",
-                priceCurrency: "ARS",
-                price: product.priceARS,
-                availability: "https://schema.org/InStock",
-                url: pageUrl,
-              },
-            }),
-          })}
-        </script>
+        <meta property="og:image"       content={product.image} />
+        <meta property="og:url"         content={pageUrl} />
+        <meta property="og:site_name"   content="A&P Refrigeración" />
+        <meta name="twitter:card"       content="summary_large_image" />
+        <meta name="twitter:image"      content={product.image} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org", "@type": "Product",
+          name: product.name, description: product.description,
+          image: product.image, sku: product.productCode, url: pageUrl,
+          brand: { "@type": "Brand", name: "A&P Refrigeración" },
+          ...(product.priceARS && {
+            offers: { "@type": "Offer", priceCurrency: "ARS", price: product.priceARS,
+              availability: "https://schema.org/InStock", url: pageUrl }
+          }),
+        })}</script>
       </Helmet>
 
-      <div className="min-h-screen bg-ayp p-8 flex justify-center">
-        <div className="bg-white rounded-2xl shadow-lg max-w-4xl w-full p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        {/* Breadcrumb */}
+        <Link to="/catalogo"
+          className="inline-flex items-center gap-1 text-sm mb-6 transition-colors"
+          style={{ color: "var(--muted)" }}>
+          <ChevronLeft className="h-4 w-4" /> Volver al catálogo
+        </Link>
+
+        <div className="bento p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8" style={{ borderRadius: "24px" }}>
           {/* Imagen */}
-          <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="object-contain max-h-96"
-            />
+          <div className="flex items-center justify-center rounded-2xl p-6 min-h-64"
+            style={{ background: "var(--surface2)" }}>
+            {product.image
+              ? <img src={product.image} alt={product.name} className="object-contain max-h-80 w-full" />
+              : <div className="text-6xl opacity-20">📦</div>
+            }
           </div>
 
           {/* Info */}
-          <div className="flex flex-col justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {product.name}
-              </h1>
-              {product.description && (
-                <p className="text-gray-600 mb-6">{product.description}</p>
-              )}
-              {product.priceARS && (
-                <p className="text-3xl font-bold text-blue-700 mb-8">
-                  {product.priceARS.toLocaleString("es-AR")} ARS
+          <div className="flex flex-col">
+            {product.brand && (
+              <p className="text-sm font-semibold mb-2 uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+                {product.brand}
+              </p>
+            )}
+            <h1 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: "var(--text)" }}>
+              {product.name}
+            </h1>
+
+            {!product.inStock && (
+              <span className="inline-block self-start text-xs font-semibold px-3 py-1 rounded-full mb-4"
+                style={{ background: "#FEF2F2", color: "#DC2626" }}>
+                Sin stock
+              </span>
+            )}
+
+            {product.description && (
+              <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>
+                {product.description}
+              </p>
+            )}
+
+            {displayPrice ? (
+              <div className="mb-6">
+                <p className="text-3xl font-black" style={{ color: "var(--brand)" }}>
+                  ${displayPrice.toLocaleString("es-AR")}
+                  {isServiceApproved && (
+                    <span className="ml-2 text-base font-semibold" style={{ color: "#16A34A" }}>service</span>
+                  )}
                 </p>
-              )}
-              {product.priceARS && (
-                <p className="text-[11px] sm:text-xs text-gray-500 text-center -mt-2 mb-3">
-                  ó 6 cuotas de{" "}
-                  <strong className="font-semibold text-gray-600">
-                    ${calcCuota6(product.priceARS)?.toLocaleString("es-AR")}
-                  </strong>{" "}
-                  <span className="whitespace-nowrap"></span>
+                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                  ó 6 cuotas de ${calcCuota6(displayPrice)?.toLocaleString("es-AR")}
                 </p>
-              )}
+                {isServiceApproved && product.priceARS && (
+                  <p className="text-xs mt-0.5 line-through" style={{ color: "var(--muted2)" }}>
+                    Precio público: ${product.priceARS.toLocaleString("es-AR")}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-base italic mb-6" style={{ color: "var(--muted)" }}>Consultar precio</p>
+            )}
+
+            {/* Cantidad */}
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-colors"
+                style={{ background: "var(--surface2)", color: "var(--text)" }}>−</button>
+              <span className="w-10 text-center text-xl font-bold" style={{ color: "var(--brand)" }}>{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-colors"
+                style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
             </div>
 
-            {/* Controles cantidad */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <button
-                onClick={() => setQuantity(quantity > 1 ? quantity - 1 : 1)}
-                className="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded text-lg"
-              >
-                −
-              </button>
-              <span className="text-xl font-bold text-blue-700">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded text-lg"
-              >
-                +
-              </button>
-            </div>
-
-            {/* Botón agregar */}
             <button
-              onClick={() => {
-                addToCart(product, quantity);
-                toast.success("Producto agregado al carrito");
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center gap-3 text-lg font-semibold"
+              onClick={() => { addToCart(product, quantity); toast.success("Agregado al pedido"); }}
+              disabled={!product.inStock}
+              className="w-full py-3 rounded-xl text-white font-semibold text-base transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "var(--brand)" }}
             >
-              🛒 Agregar al pedido
+              {product.inStock ? "🛒 Agregar al pedido" : "Sin stock"}
             </button>
-
-            {/* Volver */}
-            <Link
-              to="/"
-              className="mt-6 text-blue-600 hover:underline text-sm text-center"
-            >
-              ← Volver al catálogo
-            </Link>
           </div>
         </div>
       </div>
