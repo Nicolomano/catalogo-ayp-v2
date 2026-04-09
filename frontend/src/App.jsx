@@ -20,6 +20,7 @@ import KitInstalacion from "./pages/KitInstalacion.jsx";
 import AdminInstallKit from "./pages/AdminInstallKit.jsx";
 import AdminCategories from "./pages/AdminCategories.jsx";
 import Register from "./pages/Register.jsx";
+import Login from "./pages/Login.jsx";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="kit-instalacion" element={<KitInstalacion />} />
           <Route path="contacto" element={<Contacto />} />
           <Route path="register" element={<Register />} />
+          <Route path="login" element={<Login />} />
         </Route>
 
         {/* Admin: login público */}
