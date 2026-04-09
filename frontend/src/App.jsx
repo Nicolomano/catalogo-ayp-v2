@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
+import Landing from "./pages/Landing.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import ProductDetail from "./pages/ProductDetail.jsx";
 import Cart from "./pages/Cart.jsx";
@@ -13,9 +14,12 @@ import AdminConfig from "./pages/AdminConfig.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminOrders from "./components/AdminOrders.jsx";
 import AdminBanners from "./pages/AdminBanners.jsx";
+import AdminLanding from "./pages/AdminLanding.jsx";
+import AdminUsers from "./pages/AdminUsers.jsx";
 import KitInstalacion from "./pages/KitInstalacion.jsx";
 import AdminInstallKit from "./pages/AdminInstallKit.jsx";
 import AdminCategories from "./pages/AdminCategories.jsx";
+import Register from "./pages/Register.jsx";
 
 function App() {
   return (
@@ -23,12 +27,13 @@ function App() {
       <Routes>
         {/* Público */}
         <Route path="/" element={<Layout />}>
-          <Route index element={<Catalogo />} />
+          <Route index element={<Landing />} />
+          <Route path="catalogo" element={<Catalogo />} />
           <Route path="product/:productCode" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
           <Route path="kit-instalacion" element={<KitInstalacion />} />
-
           <Route path="contacto" element={<Contacto />} />
+          <Route path="register" element={<Register />} />
         </Route>
 
         {/* Admin: login público */}
@@ -43,17 +48,16 @@ function App() {
             </PrivateRoute>
           }
         >
-          <Route index element={<AdminDashboard />} /> {/* /admin */}
-          <Route path="orders" element={<AdminOrders />} />{" "}
-          <Route path="dashboard" element={<AdminDashboard />} />{" "}
-          {/* /admin/dashboard */}
-          <Route path="products" element={<AdminProducts />} />{" "}
-          {/* /admin/products */}
-          <Route path="banners" element={<AdminBanners />} />{" "}
-          <Route path="config" element={<AdminConfig />} />{" "}
+          <Route index element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="banners" element={<AdminBanners />} />
+          <Route path="config" element={<AdminConfig />} />
           <Route path="install-kit" element={<AdminInstallKit />} />
           <Route path="categories" element={<AdminCategories />} />
-          {/* /admin/config */}
+          <Route path="landing" element={<AdminLanding />} />
+          <Route path="users" element={<AdminUsers />} />
         </Route>
       </Routes>
     </BrowserRouter>
