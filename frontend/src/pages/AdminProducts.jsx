@@ -481,6 +481,7 @@ function AdminProducts() {
                   formData.append("name", norm(editingProduct.name));
                   formData.append("description", norm(editingProduct.description));
                   formData.append("productCode", norm(editingProduct.productCode));
+                  if (editingProduct.brand) formData.append("brand", editingProduct.brand.trim());
 
                   if (editingProduct.fixedInARS) {
                     if (editingProduct.priceARS) formData.append("priceARS", editingProduct.priceARS);
@@ -523,6 +524,7 @@ function AdminProducts() {
               {[
                 { label: "Nombre", key: "name", type: "text", required: true },
                 { label: "Código", key: "productCode", type: "text", required: true },
+                { label: "Marca (opcional)", key: "brand", type: "text", required: false },
               ].map(({ label, key, type, required }) => (
                 <label key={key} className="block">
                   <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>

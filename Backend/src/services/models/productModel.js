@@ -29,6 +29,8 @@ const productSchema = new mongoose.Schema(
     priceARS: { type: Number },
     fixedInARS: { type: Boolean, default: false },
 
+    brand: { type: String, trim: true, default: null },
+
     // ✅ categorías y subcategorías como strings (no ObjectId)
     categories: [{ type: String, trim: true }],
     subcategories: [{ type: String, trim: true }],

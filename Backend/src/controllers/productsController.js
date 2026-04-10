@@ -10,7 +10,7 @@ import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
 /* ----------------------- CREAR PRODUCTO ----------------------- */
 export async function createProduct(req, res) {
   try {
-    const { name, description, priceUSD, priceARS, fixedInARS, productCode } =
+    const { name, description, priceUSD, priceARS, fixedInARS, productCode, brand } =
       req.body;
 
     // Normalizar arrays
@@ -53,6 +53,7 @@ export async function createProduct(req, res) {
       name,
       description,
       productCode,
+      brand: brand?.trim() || null,
       priceUSD: priceUSDFinal,
       priceARS: priceARSFinal,
       fixedInARS: fixedFlag,
@@ -117,6 +118,7 @@ export async function updateProduct(req, res) {
       name: req.body.name ?? current.name,
       description: req.body.description ?? current.description,
       productCode: req.body.productCode ?? current.productCode,
+      brand: req.body.brand !== undefined ? (req.body.brand?.trim() || null) : current.brand,
       fixedInARS: fixedFlag,
       categories,
       subcategories,
@@ -197,6 +199,12 @@ export const getProductsByCategory = async (req, res) => {
       limit = 24,
     } = req.query;
 
+    const brand = req.query.brand
+      ? Array.isArray(req.query.brand)
+        ? req.query.brand
+        : [req.query.brand]
+      : [];
+
     const filter = { active: true };
 
     if (category && category !== "all") {
@@ -207,9 +215,16 @@ export const getProductsByCategory = async (req, res) => {
       filter.subcategories = { $in: [subcategory] };
     }
 
+    if (brand.length > 0) {
+      filter.brand = { $in: brand };
+    }
+
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.name = { $regex: escaped, $options: "i" };
+      filter.$or = [
+        { name: { $regex: escaped, $options: "i" } },
+        { productCode: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     if (minPrice || maxPrice) {
@@ -488,6 +503,7 @@ export const importProductsExcel = async (req, res) => {
       const rawARS = row["Precio (ARS)"];
       const rawUSD = row["Precio (USD)"];
       const rawStock = row["Stock"];
+      const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
 
       const priceARS = rawARS !== undefined && rawARS !== "" ? Number(rawARS) : null;
       const priceUSD = rawUSD !== undefined && rawUSD !== "" ? Number(rawUSD) : null;
@@ -515,6 +531,7 @@ export const importProductsExcel = async (req, res) => {
         }
 
         if (inStock !== undefined) update.inStock = inStock;
+        if (rawBrand !== undefined) update.brand = String(rawBrand).trim() || null;
 
         if (Object.keys(update).length > 0) {
           await productModel.updateOne({ _id: existing._id }, { $set: update });
@@ -528,10 +545,14 @@ export const importProductsExcel = async (req, res) => {
           row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code
         ).trim();
 
+        const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? null;
+        const brandVal = rawBrand ? String(rawBrand).trim() : null;
+
         const newProd = {
           name:        nombre,
           description: nombre,
           productCode: code,
+          brand:       brandVal,
           active:      true,
           inStock:     inStock !== undefined ? inStock : true,
         };
@@ -573,13 +594,14 @@ export const exportProductsExcel = async (req, res) => {
     const products = await productModel
       .find(
         {},
-        "productCode name priceARS priceUSD active categories subcategories"
+        "productCode name brand priceARS priceUSD active categories subcategories"
       )
       .lean();
 
     const data = products.map((p) => ({
       Código: p.productCode,
       Nombre: p.name,
+      Marca: p.brand || "",
       "Precio (ARS)": p.priceARS || "",
       "Precio (USD)": p.priceUSD || "",
       Estado: p.active ? "Activo" : "Inactivo",
