@@ -15,6 +15,7 @@ import {
   importProductsExcel,
   getLandingProducts,
   getProductBrands,
+  migrateCategories,
 } from "../controllers/productsController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import uploadCloud from "../middlewares/multer.js";
@@ -31,8 +32,9 @@ productRouter.get("/code/:productCode", getProductByCode);
 productRouter.get("/export/excel",    exportProductsExcel);
 
 // Admin
-productRouter.get("/admin/all",       protect, getProductsAdmin);
-productRouter.post("/import/excel",   protect, uploadCloud.single("file"), importProductsExcel);
+productRouter.get("/admin/all",             protect, getProductsAdmin);
+productRouter.post("/admin/migrate-categories", protect, migrateCategories);
+productRouter.post("/import/excel",         protect, uploadCloud.single("file"), importProductsExcel);
 productRouter.post("/upload",         protect, uploadCloud.single("image"), uploadImage);
 productRouter.post("/",               protect, uploadCloud.single("image"), createProduct);
 productRouter.put("/:id",             protect, uploadCloud.single("image"), updateProduct);

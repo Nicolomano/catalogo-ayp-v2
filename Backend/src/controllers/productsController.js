@@ -544,6 +544,16 @@ export const importProductsExcel = async (req, res) => {
       const rawStock = row["Stock"];
       const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
 
+      // Categorías y subcategorías desde Excel (coma-separadas)
+      const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
+      const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
+      const parsedCats = rawCats
+        ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
+      const parsedSubs = rawSubs
+        ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
+
       const priceARS = rawARS !== undefined && rawARS !== "" ? Number(rawARS) : null;
       const priceUSD = rawUSD !== undefined && rawUSD !== "" ? Number(rawUSD) : null;
       const inStock  = rawStock !== undefined
@@ -571,6 +581,8 @@ export const importProductsExcel = async (req, res) => {
 
         if (inStock !== undefined) update.inStock = inStock;
         if (rawBrand !== undefined) update.brand = String(rawBrand).trim() || null;
+        if (parsedCats !== undefined) update.categories = parsedCats;
+        if (parsedSubs !== undefined) update.subcategories = parsedSubs;
 
         if (Object.keys(update).length > 0) {
           await productModel.updateOne({ _id: existing._id }, { $set: update });
@@ -584,16 +596,17 @@ export const importProductsExcel = async (req, res) => {
           row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code
         ).trim();
 
-        const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? null;
         const brandVal = rawBrand ? String(rawBrand).trim() : null;
 
         const newProd = {
-          name:        nombre,
-          description: nombre,
-          productCode: code,
-          brand:       brandVal,
-          active:      true,
-          inStock:     inStock !== undefined ? inStock : true,
+          name:         nombre,
+          description:  nombre,
+          productCode:  code,
+          brand:        brandVal,
+          categories:   parsedCats ?? [],
+          subcategories: parsedSubs ?? [],
+          active:       true,
+          inStock:      inStock !== undefined ? inStock : true,
         };
 
         if (priceUSD !== null && !isNaN(priceUSD)) {
@@ -673,5 +686,34 @@ export const exportProductsExcel = async (req, res) => {
   } catch (error) {
     console.error("❌ Error exportando Excel:", error);
     res.status(500).json({ message: "Error exportando Excel" });
+  }
+};
+
+/* ---- MIGRACIÓN: normalizar campo category (string) → categories (array) ---- */
+export const migrateCategories = async (req, res) => {
+  try {
+    // Buscar productos que tienen el campo viejo "category" (string) en MongoDB
+    // usando $exists + $type string, y cuyo categories array está vacío
+    const candidates = await productModel
+      .find({ $and: [{ category: { $exists: true } }, { $or: [{ categories: { $size: 0 } }, { categories: { $exists: false } }] }] })
+      .lean();
+
+    let migrated = 0;
+    for (const doc of candidates) {
+      if (!doc.category) continue;
+      await productModel.updateOne(
+        { _id: doc._id },
+        { $set: { categories: [doc.category] } }
+      );
+      migrated++;
+    }
+
+    res.json({
+      message: `Migración completada: ${migrated} productos actualizados`,
+      migrated,
+    });
+  } catch (error) {
+    console.error("Error en migración de categorías:", error);
+    res.status(500).json({ message: "Error en migración", error: error.message });
   }
 };

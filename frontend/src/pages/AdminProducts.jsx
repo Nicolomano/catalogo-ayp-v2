@@ -152,6 +152,21 @@ function AdminProducts() {
 
   const importInputRef = useRef(null);
   const [importing, setImporting] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+
+  const handleMigrateCategories = async () => {
+    if (!window.confirm("¿Migrar el campo 'category' (string) a 'categories' (array) en todos los productos que lo necesiten?")) return;
+    setMigrating(true);
+    try {
+      const res = await API.post("/products/admin/migrate-categories", {}, { headers: AUTH_HEADER() });
+      toast.success(res.data.message);
+      fetchProducts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error en migración");
+    } finally {
+      setMigrating(false);
+    }
+  };
 
   const handleImportExcel = async (e) => {
     const file = e.target.files?.[0];
@@ -222,6 +237,15 @@ function AdminProducts() {
               className="hidden"
               onChange={handleImportExcel}
             />
+            <button
+              onClick={handleMigrateCategories}
+              disabled={migrating}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: "rgba(99,102,241,0.12)", color: "#4F46E5" }}
+              title="Normaliza productos con campo 'category' (string) al nuevo formato 'categories' (array)"
+            >
+              {migrating ? "Migrando…" : "Migrar categorías"}
+            </button>
           </div>
         </div>
 
