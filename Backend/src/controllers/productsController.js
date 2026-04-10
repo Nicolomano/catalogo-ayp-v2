@@ -206,9 +206,17 @@ export const getProductsByCategory = async (req, res) => {
       : [];
 
     const filter = { active: true };
+    // Condiciones que requieren $or propios — se combinarán con $and al final
+    const andConditions = [];
 
     if (category && category !== "all") {
-      filter.categories = { $in: [category] };
+      // Compatibilidad con documentos que aún usan el campo singular "category"
+      andConditions.push({
+        $or: [
+          { categories: { $in: [category] } },
+          { category: category },
+        ],
+      });
     }
 
     if (subcategory && subcategory !== "all") {
@@ -221,10 +229,16 @@ export const getProductsByCategory = async (req, res) => {
 
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.$or = [
-        { name: { $regex: escaped, $options: "i" } },
-        { productCode: { $regex: escaped, $options: "i" } },
-      ];
+      andConditions.push({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { productCode: { $regex: escaped, $options: "i" } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      filter.$and = andConditions;
     }
 
     if (minPrice || maxPrice) {
@@ -324,12 +338,24 @@ export const getProductsAdmin = async (req, res) => {
 
     const filter = {};
 
+    const adminAnd = [];
+
     if (search) {
       const term = new RegExp(search.trim(), "i");
-      filter.$or = [{ name: term }, { productCode: term }];
+      adminAnd.push({ $or: [{ name: term }, { productCode: term }] });
     }
 
-    if (category) filter.categories = { $in: [category] };
+    if (category) {
+      adminAnd.push({
+        $or: [
+          { categories: { $in: [category] } },
+          { category: category },
+        ],
+      });
+    }
+
+    if (adminAnd.length > 0) filter.$and = adminAnd;
+
     if (subcategory) filter.subcategories = { $in: [subcategory] };
     if (active === "true") filter.active = true;
     if (active === "false") filter.active = false;
@@ -379,7 +405,20 @@ export const getCategoriesMeta = async (req, res) => {
       { $match: match },
       {
         $project: {
-          categories: { $ifNull: ["$categories", []] },
+          // Normalizar: si categories está vacío o no existe, intentar con el campo singular "category"
+          categories: {
+            $cond: {
+              if: { $and: [{ $isArray: "$categories" }, { $gt: [{ $size: { $ifNull: ["$categories", []] } }, 0] }] },
+              then: "$categories",
+              else: {
+                $cond: {
+                  if: { $and: [{ $ifNull: ["$category", false] }, { $ne: ["$category", ""] }] },
+                  then: ["$category"],
+                  else: [],
+                },
+              },
+            },
+          },
           subcategories: { $ifNull: ["$subcategories", []] },
         },
       },
