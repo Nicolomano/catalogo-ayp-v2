@@ -1,16 +1,26 @@
-import AdminProducts from "./AdminProducts.jsx";
-import AdminConfig from "./AdminConfig.jsx";
 import DashboardData from "../components/DashboardData.jsx";
+import AdminProducts from "./AdminProducts.jsx";
+
 export default function AdminDashboard() {
   return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-3xl font-bold mb-6 text-ayp">
-        Panel de Administración
-      </h1>
+    <div className="space-y-8">
+      {/* Métricas */}
+      <section className="space-y-3">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>
+            Panel de Administración
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
+            Resumen general del catálogo
+          </p>
+        </div>
+        <DashboardData />
+      </section>
 
-      <DashboardData></DashboardData>
       {/* Gestión de productos */}
-      <AdminProducts />
+      <section>
+        <AdminProducts />
+      </section>
     </div>
   );
 }

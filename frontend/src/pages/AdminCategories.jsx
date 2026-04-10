@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, FolderTree, ChevronRight } from "lucide-react";
+
+const inputCls =
+  "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
+const inputStyle = {
+  background: "var(--surface2)",
+  borderColor: "var(--border)",
+  color: "var(--text)",
+};
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newCat, setNewCat] = useState({ name: "", slug: "", parent: "" });
 
-  /* -------------------- CARGAR CATEGORÍAS -------------------- */
   const fetchCategories = async () => {
     setLoading(true);
     try {
@@ -21,19 +28,14 @@ export default function AdminCategories() {
     }
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchCategories(); }, []);
 
-  /* -------------------- CREAR CATEGORÍA -------------------- */
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newCat.name || !newCat.slug)
-      return toast.error("Completá nombre y slug");
-
+    if (!newCat.name || !newCat.slug) return toast.error("Completá nombre y slug");
     try {
       await API.post("/categories", newCat);
-      toast.success("Categoría creada con éxito");
+      toast.success("Categoría creada");
       setNewCat({ name: "", slug: "", parent: "" });
       fetchCategories();
     } catch (err) {
@@ -41,7 +43,6 @@ export default function AdminCategories() {
     }
   };
 
-  /* -------------------- ELIMINAR CATEGORÍA -------------------- */
   const handleDelete = async (id) => {
     if (!confirm("¿Eliminar esta categoría?")) return;
     try {
@@ -49,99 +50,132 @@ export default function AdminCategories() {
       toast.success("Categoría eliminada");
       fetchCategories();
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "No se pudo eliminar la categoría"
-      );
+      toast.error(err.response?.data?.message || "No se pudo eliminar");
     }
   };
 
-  /* -------------------- RENDERIZAR ÁRBOL -------------------- */
-  const renderTree = (nodes, level = 0) => {
-    return nodes.map((cat) => (
-      <div
-        key={cat._id}
-        className="pl-3 border-l border-gray-300 mb-1 ml-2"
-        style={{ marginLeft: `${level * 10}px` }}
-      >
-        <div className="flex items-center justify-between py-1">
+  const renderTree = (nodes, level = 0) =>
+    nodes.map((cat) => (
+      <div key={cat._id} style={{ marginLeft: level * 16 }}>
+        <div
+          className="flex items-center justify-between py-2 px-3 rounded-xl transition-colors"
+          style={{ background: level === 0 ? "var(--brand-tint)" : "transparent" }}
+        >
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-800">{cat.name}</span>
-            <span className="text-sm text-gray-500">/{cat.slug}</span>
+            {level > 0 && (
+              <ChevronRight size={12} style={{ color: "var(--muted)" }} />
+            )}
+            <span
+              className="font-medium text-sm"
+              style={{ color: "var(--text)" }}
+            >
+              {cat.name}
+            </span>
+            <span
+              className="text-xs px-1.5 py-0.5 rounded font-mono"
+              style={{ background: "var(--surface2)", color: "var(--muted)" }}
+            >
+              /{cat.slug}
+            </span>
           </div>
           <button
             onClick={() => handleDelete(cat._id)}
-            className="text-red-500 hover:text-red-700"
+            className="p-1 rounded-lg transition-colors"
+            style={{ color: "#DC2626" }}
             title="Eliminar"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
         </div>
-        {cat.children?.length > 0 && renderTree(cat.children, level + 1)}
+        {cat.children?.length > 0 && (
+          <div
+            className="ml-4 mt-1 mb-1 pl-3"
+            style={{ borderLeft: "2px solid var(--border)" }}
+          >
+            {renderTree(cat.children, level + 1)}
+          </div>
+        )}
       </div>
     ));
-  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Categorías y Subcategorías</h1>
-      <p className="text-gray-600">
-        Crea y organiza categorías jerárquicamente. Las subcategorías se crean
-        eligiendo una categoría padre.
-      </p>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>
+          Categorías y Subcategorías
+        </h1>
+        <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
+          Creá y organizá categorías de forma jerárquica. Las subcategorías se crean eligiendo una categoría padre.
+        </p>
+      </div>
 
-      {/* FORMULARIO */}
-      <form
-        onSubmit={handleCreate}
-        className="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row gap-3 items-center"
-      >
-        <input
-          type="text"
-          placeholder="Nombre"
-          className="border rounded px-3 py-2 flex-1"
-          value={newCat.name}
-          onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Slug (sin espacios, en minúscula)"
-          className="border rounded px-3 py-2 flex-1"
-          value={newCat.slug}
-          onChange={(e) => setNewCat({ ...newCat, slug: e.target.value })}
-        />
-        <select
-          className="border rounded px-3 py-2"
-          value={newCat.parent}
-          onChange={(e) => setNewCat({ ...newCat, parent: e.target.value })}
-        >
-          <option value="">Sin categoría padre</option>
-          {categories.flatMap((c) => [
-            <option key={c._id} value={c._id}>
-              {c.name}
-            </option>,
-            ...(c.children || []).map((sc) => (
-              <option key={sc._id} value={sc._id}>
-                └ {sc.name}
-              </option>
-            )),
-          ])}
-        </select>
-        <button
-          type="submit"
-          className="bg-blue-600 text-white rounded px-4 py-2 flex items-center gap-1 hover:bg-blue-700"
-        >
-          <PlusCircle size={18} /> Crear
-        </button>
+      {/* Formulario nueva categoría */}
+      <form onSubmit={handleCreate} className="bento p-5 space-y-4">
+        <h2 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+          Nueva categoría
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input
+            type="text"
+            placeholder="Nombre"
+            className={inputCls}
+            style={inputStyle}
+            value={newCat.name}
+            onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Slug (ej: compresores)"
+            className={inputCls}
+            style={inputStyle}
+            value={newCat.slug}
+            onChange={(e) => setNewCat({ ...newCat, slug: e.target.value })}
+          />
+          <select
+            className={inputCls}
+            style={inputStyle}
+            value={newCat.parent}
+            onChange={(e) => setNewCat({ ...newCat, parent: e.target.value })}
+          >
+            <option value="">Sin categoría padre</option>
+            {categories.flatMap((c) => [
+              <option key={c._id} value={c._id}>{c.name}</option>,
+              ...(c.children || []).map((sc) => (
+                <option key={sc._id} value={sc._id}>└ {sc.name}</option>
+              )),
+            ])}
+          </select>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
+            style={{ background: "var(--brand)", color: "#fff" }}
+          >
+            <PlusCircle size={15} /> Crear categoría
+          </button>
+        </div>
       </form>
 
-      {/* LISTA */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-lg font-semibold mb-2">Estructura actual</h2>
+      {/* Árbol de categorías */}
+      <div className="bento p-5">
+        <h2
+          className="text-sm font-semibold mb-4 flex items-center gap-2"
+          style={{ color: "var(--text)" }}
+        >
+          <FolderTree size={16} style={{ color: "var(--brand)" }} />
+          Estructura actual
+        </h2>
         {loading ? (
-          <div className="text-gray-500">Cargando categorías...</div>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            Cargando categorías…
+          </p>
         ) : categories.length ? (
           <div className="space-y-1">{renderTree(categories)}</div>
         ) : (
-          <div className="text-gray-500">No hay categorías creadas</div>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            No hay categorías creadas todavía.
+          </p>
         )}
       </div>
     </div>
