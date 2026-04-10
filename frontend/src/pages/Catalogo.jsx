@@ -242,7 +242,7 @@ function Catalogo() {
                     </Link>
 
                     <div className="px-3 pb-3 flex flex-col gap-2 mt-auto">
-                      {!p.inStock && (
+                      {p.inStock === false && (
                         <span className="text-xs text-center rounded-full px-2 py-0.5"
                           style={{ background: "#FEF2F2", color: "#DC2626" }}>
                           Sin stock
@@ -275,11 +275,11 @@ function Catalogo() {
 
                       <button
                         onClick={() => { addToCart(p, qty); toast.success("Agregado al pedido"); }}
-                        disabled={!p.inStock}
+                        disabled={p.inStock === false}
                         className="w-full text-white text-xs py-2 rounded-lg font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: p.inStock ? "var(--brand)" : "var(--muted2)" }}
+                        style={{ background: p.inStock !== false ? "var(--brand)" : "var(--muted2)" }}
                       >
-                        {p.inStock ? "Agregar" : "Sin stock"}
+                        {p.inStock !== false ? "Agregar" : "Sin stock"}
                       </button>
                     </div>
                   </div>

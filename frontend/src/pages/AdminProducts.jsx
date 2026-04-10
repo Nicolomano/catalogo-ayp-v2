@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Package, PlusCircle, Download, Search } from "lucide-react";
+import { Package, PlusCircle, Download, Search, Upload, Star } from "lucide-react";
 
 const AUTH_HEADER = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -130,6 +130,49 @@ function AdminProducts() {
     }
   };
 
+  const handleToggleFeatured = async (id) => {
+    try {
+      const res = await API.patch(`/products/${id}/featured`, {}, { headers: AUTH_HEADER() });
+      setProducts((prev) => prev.map((p) => (p._id === id ? res.data.product : p)));
+      toast.success(res.data.message);
+    } catch {
+      toast.error("No se pudo cambiar destacado");
+    }
+  };
+
+  const handleToggleStock = async (id) => {
+    try {
+      const res = await API.patch(`/products/${id}/stock`, {}, { headers: AUTH_HEADER() });
+      setProducts((prev) => prev.map((p) => (p._id === id ? res.data.product : p)));
+      toast.success(res.data.message);
+    } catch {
+      toast.error("No se pudo cambiar el stock");
+    }
+  };
+
+  const importInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+
+  const handleImportExcel = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await API.post("/products/import/excel", fd, {
+        headers: { ...AUTH_HEADER(), "Content-Type": "multipart/form-data" },
+      });
+      toast.success(res.data.message);
+      fetchProducts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error al importar");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   /* -------------------- UI -------------------- */
   return (
     <div className="space-y-6">
@@ -162,8 +205,23 @@ function AdminProducts() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
               style={{ background: "rgba(22,163,74,0.12)", color: "#16A34A" }}
             >
-              <Download size={15} /> Exportar CSV
+              <Download size={15} /> Exportar Excel
             </button>
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: "rgba(234,179,8,0.12)", color: "#B45309" }}
+            >
+              <Upload size={15} /> {importing ? "Importando…" : "Importar Excel"}
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
           </div>
         </div>
 
@@ -254,15 +312,29 @@ function AdminProducts() {
                 ) : (
                   <Package size={36} style={{ color: "var(--muted)" }} />
                 )}
-                <span
-                  className="absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{
-                    background: p.active ? "rgba(22,163,74,0.15)" : "rgba(220,38,38,0.12)",
-                    color: p.active ? "#16A34A" : "#DC2626",
-                  }}
-                >
-                  {p.active ? "Activo" : "Inactivo"}
-                </span>
+                <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{
+                      background: p.active ? "rgba(22,163,74,0.85)" : "rgba(220,38,38,0.75)",
+                      color: "#fff",
+                    }}
+                  >
+                    {p.active ? "Activo" : "Inactivo"}
+                  </span>
+                  {p.inStock === false && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
+                      Sin stock
+                    </span>
+                  )}
+                  {p.featured && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                      style={{ background: "rgba(234,179,8,0.9)", color: "#fff" }}>
+                      <Star size={10} fill="currentColor" /> Destacado
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Info */}
@@ -329,7 +401,7 @@ function AdminProducts() {
                   )}
                 </div>
 
-                {/* Acciones */}
+                {/* Acciones — fila 1 */}
                 <div className="flex gap-1.5 pt-1">
                   <button
                     onClick={() => setEditingProduct(p)}
@@ -354,6 +426,32 @@ function AdminProducts() {
                     style={{ background: "rgba(220,38,38,0.10)", color: "#DC2626" }}
                   >
                     Eliminar
+                  </button>
+                </div>
+                {/* Acciones — fila 2 */}
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => handleToggleFeatured(p._id)}
+                    className="flex-1 text-xs py-1 rounded-lg font-medium flex items-center justify-center gap-1 transition-colors"
+                    style={{
+                      background: p.featured ? "rgba(234,179,8,0.15)" : "var(--surface2)",
+                      color: p.featured ? "#B45309" : "var(--muted)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <Star size={10} fill={p.featured ? "currentColor" : "none"} />
+                    {p.featured ? "Destacado" : "Destacar"}
+                  </button>
+                  <button
+                    onClick={() => handleToggleStock(p._id)}
+                    className="flex-1 text-xs py-1 rounded-lg font-medium transition-colors"
+                    style={{
+                      background: p.inStock === false ? "rgba(220,38,38,0.10)" : "var(--surface2)",
+                      color: p.inStock === false ? "#DC2626" : "var(--muted)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    {p.inStock === false ? "Sin stock" : "Con stock"}
                   </button>
                 </div>
               </div>

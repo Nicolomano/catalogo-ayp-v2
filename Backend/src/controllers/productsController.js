@@ -401,6 +401,173 @@ export const getCategoriesMeta = async (req, res) => {
   }
 };
 
+/* ----------------------- PRODUCTOS LANDING ----------------------- */
+export const getLandingProducts = async (req, res) => {
+  try {
+    const [featured, newArrivals] = await Promise.all([
+      productModel
+        .find({ active: true, featured: true })
+        .sort({ soldCount: -1 })
+        .limit(8)
+        .lean(),
+      productModel
+        .find({ active: true })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .lean(),
+    ]);
+    res.json({ featured, newArrivals });
+  } catch (error) {
+    res.status(500).json({ message: "Error obteniendo productos landing", error: error.message });
+  }
+};
+
+/* ----------------------- MARCAS (BRANDS) ----------------------- */
+export const getProductBrands = async (req, res) => {
+  try {
+    const brands = await productModel.distinct("brand", {
+      active: true,
+      brand: { $exists: true, $ne: null, $ne: "" },
+    });
+    res.json(brands.filter(Boolean).sort());
+  } catch (error) {
+    res.status(500).json({ message: "Error obteniendo marcas", error: error.message });
+  }
+};
+
+/* ----------------------- TOGGLE DESTACADO ----------------------- */
+export const toggleFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    product.featured = !product.featured;
+    await product.save();
+    res.json({ message: `Producto ${product.featured ? "destacado" : "quitado de destacados"}`, product });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cambiar destacado", error: error.message });
+  }
+};
+
+/* ----------------------- TOGGLE STOCK ----------------------- */
+export const toggleStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    product.inStock = !product.inStock;
+    await product.save();
+    res.json({ message: `Stock ${product.inStock ? "disponible" : "agotado"}`, product });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cambiar stock", error: error.message });
+  }
+};
+
+/* ----------------------- IMPORTAR EXCEL ----------------------- */
+export const importProductsExcel = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
+
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    const cfg = await Config.findOne();
+    const exchangeRate = Number(cfg?.exchangeRate || 1);
+
+    let updated = 0, created = 0, skipped = 0;
+    const errors = [];
+
+    for (const row of rows) {
+      // Aceptar columnas en español (como las exporta el sistema) o en inglés
+      const code = String(
+        row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? ""
+      ).trim();
+      if (!code) { skipped++; continue; }
+
+      const rawARS = row["Precio (ARS)"];
+      const rawUSD = row["Precio (USD)"];
+      const rawStock = row["Stock"];
+
+      const priceARS = rawARS !== undefined && rawARS !== "" ? Number(rawARS) : null;
+      const priceUSD = rawUSD !== undefined && rawUSD !== "" ? Number(rawUSD) : null;
+      const inStock  = rawStock !== undefined
+        ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
+        : undefined;
+
+      const existing = await productModel.findOne({ productCode: code });
+
+      if (existing) {
+        // ── Producto existente: actualizar SOLO precios e inStock
+        // No tocar: active (respetar desactivación manual), name, categories, etc.
+        const update = {};
+
+        if (existing.fixedInARS) {
+          if (priceARS !== null) update.priceARS = priceARS;
+          if (priceUSD !== null) update.priceUSD = priceUSD;
+        } else {
+          if (priceUSD !== null) {
+            update.priceUSD = priceUSD;
+            update.priceARS = priceUSD * exchangeRate;
+          } else if (priceARS !== null) {
+            update.priceARS = priceARS;
+          }
+        }
+
+        if (inStock !== undefined) update.inStock = inStock;
+
+        if (Object.keys(update).length > 0) {
+          await productModel.updateOne({ _id: existing._id }, { $set: update });
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        // ── Producto nuevo: crear con datos mínimos
+        const nombre = String(
+          row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code
+        ).trim();
+
+        const newProd = {
+          name:        nombre,
+          description: nombre,
+          productCode: code,
+          active:      true,
+          inStock:     inStock !== undefined ? inStock : true,
+        };
+
+        if (priceUSD !== null && !isNaN(priceUSD)) {
+          newProd.priceUSD = priceUSD;
+          newProd.priceARS = priceUSD * exchangeRate;
+        }
+        if (priceARS !== null && !isNaN(priceARS)) {
+          newProd.priceARS = priceARS;
+          if (priceUSD === null) newProd.fixedInARS = true;
+        }
+
+        try {
+          await productModel.create(newProd);
+          created++;
+        } catch (e) {
+          errors.push(`${code}: ${e.message}`);
+          skipped++;
+        }
+      }
+    }
+
+    res.json({
+      message: `Importación completada: ${updated} actualizados, ${created} creados, ${skipped} omitidos`,
+      updated,
+      created,
+      skipped,
+      errors,
+    });
+  } catch (error) {
+    console.error("Error importando Excel:", error);
+    res.status(500).json({ message: "Error importando Excel", error: error.message });
+  }
+};
+
 export const exportProductsExcel = async (req, res) => {
   try {
     const products = await productModel

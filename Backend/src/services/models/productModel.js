@@ -34,8 +34,10 @@ const productSchema = new mongoose.Schema(
     subcategories: [{ type: String, trim: true }],
 
     // 📊 estado y métricas
-    active: { type: Boolean, default: true },
-    views: { type: Number, default: 0 },
+    active:    { type: Boolean, default: true },
+    inStock:   { type: Boolean, default: true },
+    featured:  { type: Boolean, default: false },
+    views:     { type: Number, default: 0 },
     soldCount: { type: Number, default: 0 },
   },
   {
