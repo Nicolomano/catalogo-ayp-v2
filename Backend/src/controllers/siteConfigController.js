@@ -17,9 +17,11 @@ export const getConfig = async (req, res) => {
 
 export const updateConfig = async (req, res) => {
   try {
+    // Eliminar campos que MongoDB no permite actualizar (_id, __v, timestamps, singleton_key)
+    const { _id, __v, createdAt, updatedAt, singleton_key, ...updateData } = req.body;
     const config = await SiteConfig.findOneAndUpdate(
       SINGLETON,
-      { $set: req.body },
+      { $set: updateData },
       { new: true, upsert: true, runValidators: true }
     );
     res.json(config);

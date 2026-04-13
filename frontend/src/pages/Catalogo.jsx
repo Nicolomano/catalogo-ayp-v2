@@ -12,10 +12,13 @@ const PAGE_SIZE = 24;
 
 function Catalogo() {
   const [allProducts, setAllProducts] = useState([]);
-  const [isFetching, setIsFetching]   = useState(false);
+  const [isFetching, setIsFetching]   = useState(true);  // true inicial → evita que el observer dispare antes de la 1ª carga
   const [hasMore, setHasMore]         = useState(true);
   const [page, setPage]               = useState(1);
   const [isPending, startTransition]  = useTransition();
+
+  // Ref para que el observer siempre lea el valor actual sin recrearse
+  const isFetchingRef = useRef(true);
 
   const { addToCart }                           = useCart();
   const { isServiceApproved, servicePrice }     = useAuth();
@@ -67,11 +70,14 @@ function Catalogo() {
   }, [categories, params]);
 
   useEffect(() => {
+    isFetchingRef.current = true;  // bloquear observer durante el reset
+    setIsFetching(true);
     setPage(1); setAllProducts([]); setHasMore(true);
   }, [category, subcategory, sort, debouncedSearch, selectedBrands]);
 
   useEffect(() => {
     const controller = new AbortController();
+    isFetchingRef.current = true;
     setIsFetching(true);
     const qs = new URLSearchParams();
     qs.set("limit", PAGE_SIZE); qs.set("page", page); qs.set("sort", sort);
@@ -92,7 +98,7 @@ function Catalogo() {
         if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED")
           console.error("Error cargando productos:", err);
       })
-      .finally(() => setIsFetching(false));
+      .finally(() => { isFetchingRef.current = false; setIsFetching(false); });
 
     return () => controller.abort();
   }, [category, subcategory, sort, debouncedSearch, selectedBrands, page]);
@@ -101,12 +107,14 @@ function Catalogo() {
     const el = loaderRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && hasMore && !isFetching) setPage((p) => p + 1); },
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isFetchingRef.current) setPage((p) => p + 1);
+      },
       { rootMargin: "200px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, isFetching]);
+  }, [hasMore]); // ya no depende de isFetching (usa el ref)
 
   const handleIncrease = (code) => setQuantities((prev) => ({ ...prev, [code]: (prev[code] || 1) + 1 }));
   const handleDecrease = (code) => setQuantities((prev) => ({ ...prev, [code]: Math.max(1, (prev[code] || 1) - 1) }));
