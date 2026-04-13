@@ -95,8 +95,10 @@ function Catalogo() {
         );
       })
       .catch((err) => {
-        if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED")
+        if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
           console.error("Error cargando productos:", err);
+          setHasMore(false); // cortar el loop del observer cuando el servidor no responde
+        }
       })
       .finally(() => { isFetchingRef.current = false; setIsFetching(false); });
 
