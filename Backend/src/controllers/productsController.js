@@ -520,12 +520,13 @@ export const toggleStock = async (req, res) => {
 /* ──────────────── helpers para parsear el nuevo formato ──────────────── */
 
 /**
- * Parsea precios en formato contable argentino:
- *   "(34,00) $"  → 34
+ * Parsea un número en formato contable argentino:
+ *   "(34,00) $"    → 34        (stock o precio con paréntesis)
  *   "(1.234,56) $" → 1234.56
- *   34            → 34  (número directo)
+ *   "14066,3952"   → 14066.3952 (precio_venta con coma decimal)
+ *   14066.3952     → 14066.3952 (número nativo JS)
  */
-function parseARPrice(raw) {
+function parseARNumber(raw) {
   if (raw === undefined || raw === null || raw === "") return null;
   if (typeof raw === "number") return raw;
   const str = String(raw)
@@ -540,12 +541,12 @@ function parseARPrice(raw) {
 
 /**
  * Detecta si una fila pertenece al nuevo formato del sistema contable.
- * Criterio: tiene columna "Codigo_ze" o "Codigo_Ze".
+ * Criterio: tiene columna "Codigo_catalogo" o "Codigo_ze" (variantes del sistema contable).
  */
 function detectFormat(rows) {
   if (!rows.length) return "unknown";
   const keys = Object.keys(rows[0]);
-  if (keys.some((k) => /^Codigo_ze$/i.test(k))) return "new";
+  if (keys.some((k) => /^Codigo_catalogo$/i.test(k) || /^Codigo_ze$/i.test(k))) return "new";
   if (keys.some((k) => /^C[oó]digo$/.test(k) || k === "productCode")) return "old";
   return "unknown";
 }
@@ -564,7 +565,7 @@ export const importProductsExcel = async (req, res) => {
     const format = detectFormat(rows);
     if (format === "unknown") {
       return res.status(400).json({
-        message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_ze' (nuevo) o 'Código' (clásico).",
+        message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_catalogo' (sistema contable) o 'Código' (exportación clásica).",
       });
     }
 
@@ -577,9 +578,12 @@ export const importProductsExcel = async (req, res) => {
     for (const row of rows) {
       let code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag;
 
-      // ── NUEVO FORMATO (sistema contable: Codigo_ze, Descripcion, Rubro, Cotizacion, Moneda) ──
+      // ── NUEVO FORMATO del sistema contable (Tango/similar) ──────────────
+      // Columnas: Codigo_catalogo | precio_venta | Cotizador | Rubro | SubRubro
       if (format === "new") {
+        // productCode: primero Codigo_catalogo, luego Codigo_ze como fallback
         code = String(
+          row["Codigo_catalogo"] ?? row["Codigo_catalogo"] ??
           row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
         ).trim();
         if (!code) { skipped++; continue; }
@@ -592,20 +596,16 @@ export const importProductsExcel = async (req, res) => {
         parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
         parsedSubs = subrubro ? [subrubro] : [];
 
-        // Precio en ARS desde columna Cotizacion: "(34,00) $" → 34
-        priceARS = parseARPrice(row["Cotizacion"] ?? row["cotizacion"]);
+        // Precio en ARS desde columna precio_venta (número directo, ej: 14066,3952)
+        priceARS = parseARNumber(row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"]);
         priceUSD = null;
-        fixedFlag = priceARS !== null; // si hay precio ARS lo guardamos como fijo
+        fixedFlag = priceARS !== null;
 
-        // Stock desde columna Moneda:
-        // Vacío / 0 / "FALSO" / "NO" = sin stock; cualquier otro valor = con stock
-        const monedaRaw = row["Moneda"] ?? row["moneda"];
-        if (monedaRaw !== undefined && monedaRaw !== null) {
-          const m = String(monedaRaw).trim().toUpperCase();
-          inStock = m !== "" && m !== "0" && m !== "FALSO" && m !== "FALSE" && m !== "NO";
-        } else {
-          inStock = true; // si no hay columna Moneda, asumir en stock
-        }
+        // Stock desde columna Cotizador: "(34,00) $" → cantidad=34 → inStock = cantidad > 0
+        // Los paréntesis son formato contable, el número es el stock actual
+        const cotizRaw = row["Cotizador"] ?? row["cotizador"] ?? row["Cotizacion"] ?? row["cotizacion"];
+        const stockQty = parseARNumber(cotizRaw);
+        inStock = stockQty !== null ? stockQty > 0 : true;
 
         brandVal = null; // el nuevo formato no tiene columna de marca
 
