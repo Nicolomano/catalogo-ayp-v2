@@ -22,10 +22,11 @@ export const updateConfig = async (req, res) => {
     const config = await SiteConfig.findOneAndUpdate(
       SINGLETON,
       { $set: updateData },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, upsert: true }
     );
     res.json(config);
   } catch (e) {
+    console.error("Error en updateConfig:", e);
     res.status(500).json({ message: "Error guardando config", error: e.message });
   }
 };

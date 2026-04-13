@@ -517,6 +517,39 @@ export const toggleStock = async (req, res) => {
   }
 };
 
+/* ──────────────── helpers para parsear el nuevo formato ──────────────── */
+
+/**
+ * Parsea precios en formato contable argentino:
+ *   "(34,00) $"  → 34
+ *   "(1.234,56) $" → 1234.56
+ *   34            → 34  (número directo)
+ */
+function parseARPrice(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw === "number") return raw;
+  const str = String(raw)
+    .replace(/\$/g, "")    // quitar signo $
+    .replace(/[()]/g, "")  // quitar paréntesis contables
+    .trim()
+    .replace(/\./g, "")    // quitar separadores de miles (. en AR)
+    .replace(",", ".");    // convertir decimal , → .
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Detecta si una fila pertenece al nuevo formato del sistema contable.
+ * Criterio: tiene columna "Codigo_ze" o "Codigo_Ze".
+ */
+function detectFormat(rows) {
+  if (!rows.length) return "unknown";
+  const keys = Object.keys(rows[0]);
+  if (keys.some((k) => /^Codigo_ze$/i.test(k))) return "new";
+  if (keys.some((k) => /^C[oó]digo$/.test(k) || k === "productCode")) return "old";
+  return "unknown";
+}
+
 /* ----------------------- IMPORTAR EXCEL ----------------------- */
 export const importProductsExcel = async (req, res) => {
   try {
@@ -526,6 +559,15 @@ export const importProductsExcel = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+    if (!rows.length) return res.json({ message: "Archivo vacío", updated: 0, created: 0, skipped: 0, errors: [] });
+
+    const format = detectFormat(rows);
+    if (format === "unknown") {
+      return res.status(400).json({
+        message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_ze' (nuevo) o 'Código' (clásico).",
+      });
+    }
+
     const cfg = await Config.findOne();
     const exchangeRate = Number(cfg?.exchangeRate || 1);
 
@@ -533,56 +575,104 @@ export const importProductsExcel = async (req, res) => {
     const errors = [];
 
     for (const row of rows) {
-      // Aceptar columnas en español (como las exporta el sistema) o en inglés
-      const code = String(
-        row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? ""
-      ).trim();
-      if (!code) { skipped++; continue; }
+      let code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag;
 
-      const rawARS = row["Precio (ARS)"];
-      const rawUSD = row["Precio (USD)"];
-      const rawStock = row["Stock"];
-      const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
+      // ── NUEVO FORMATO (sistema contable: Codigo_ze, Descripcion, Rubro, Cotizacion, Moneda) ──
+      if (format === "new") {
+        code = String(
+          row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
+        ).trim();
+        if (!code) { skipped++; continue; }
 
-      // Categorías y subcategorías desde Excel (coma-separadas)
-      const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
-      const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
-      const parsedCats = rawCats
-        ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean)
-        : undefined;
-      const parsedSubs = rawSubs
-        ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean)
-        : undefined;
+        nombre = String(row["Descripcion"] ?? row["descripcion"] ?? code).trim();
 
-      const priceARS = rawARS !== undefined && rawARS !== "" ? Number(rawARS) : null;
-      const priceUSD = rawUSD !== undefined && rawUSD !== "" ? Number(rawUSD) : null;
-      const inStock  = rawStock !== undefined
-        ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
-        : undefined;
+        // Categoría desde Rubro (ignorar "TODOS" = sin categoría)
+        const rubro = String(row["Rubro"] ?? row["rubro"] ?? "").trim();
+        const subrubro = String(row["SubRubro"] ?? row["Subrubro"] ?? row["subrubro"] ?? "").trim();
+        parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
+        parsedSubs = subrubro ? [subrubro] : [];
 
+        // Precio en ARS desde columna Cotizacion: "(34,00) $" → 34
+        priceARS = parseARPrice(row["Cotizacion"] ?? row["cotizacion"]);
+        priceUSD = null;
+        fixedFlag = priceARS !== null; // si hay precio ARS lo guardamos como fijo
+
+        // Stock desde columna Moneda:
+        // Vacío / 0 / "FALSO" / "NO" = sin stock; cualquier otro valor = con stock
+        const monedaRaw = row["Moneda"] ?? row["moneda"];
+        if (monedaRaw !== undefined && monedaRaw !== null) {
+          const m = String(monedaRaw).trim().toUpperCase();
+          inStock = m !== "" && m !== "0" && m !== "FALSO" && m !== "FALSE" && m !== "NO";
+        } else {
+          inStock = true; // si no hay columna Moneda, asumir en stock
+        }
+
+        brandVal = null; // el nuevo formato no tiene columna de marca
+
+      // ── FORMATO CLÁSICO (exportación del sistema: Código, Precio (ARS), Stock, Marca, etc.) ──
+      } else {
+        code = String(row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? "").trim();
+        if (!code) { skipped++; continue; }
+
+        nombre = String(row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code).trim();
+
+        const rawARSv = row["Precio (ARS)"];
+        const rawUSDv = row["Precio (USD)"];
+        const rawStock = row["Stock"];
+        const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
+
+        const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
+        const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
+
+        priceARS = rawARSv !== undefined && rawARSv !== "" ? Number(rawARSv) : null;
+        priceUSD = rawUSDv !== undefined && rawUSDv !== "" ? Number(rawUSDv) : null;
+        fixedFlag = priceARS !== null && priceUSD === null;
+        inStock = rawStock !== undefined
+          ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
+          : undefined;
+        brandVal = rawBrand ? String(rawBrand).trim() || null : undefined;
+        parsedCats = rawCats ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+        parsedSubs = rawSubs ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+      }
+
+      // ── Guardar en BD ──────────────────────────────────────────────────────────
       const existing = await productModel.findOne({ productCode: code });
 
       if (existing) {
-        // ── Producto existente: actualizar SOLO precios e inStock
-        // No tocar: active (respetar desactivación manual), name, categories, etc.
         const update = {};
 
-        if (existing.fixedInARS) {
-          if (priceARS !== null) update.priceARS = priceARS;
-          if (priceUSD !== null) update.priceUSD = priceUSD;
-        } else {
-          if (priceUSD !== null) {
-            update.priceUSD = priceUSD;
-            update.priceARS = priceUSD * exchangeRate;
-          } else if (priceARS !== null) {
+        if (format === "new") {
+          // Nuevo formato: solo actualizar precio ARS y stock (no tocar categorías existentes si ya las tiene)
+          if (priceARS !== null) {
             update.priceARS = priceARS;
+            update.fixedInARS = true;
           }
+          update.inStock = inStock;
+          // Actualizar categorías solo si el producto no tiene ninguna aún
+          if (parsedCats.length > 0 && (!existing.categories || existing.categories.length === 0)) {
+            update.categories = parsedCats;
+          }
+          if (parsedSubs.length > 0 && (!existing.subcategories || existing.subcategories.length === 0)) {
+            update.subcategories = parsedSubs;
+          }
+        } else {
+          // Formato clásico: respetar lógica de fixedInARS
+          if (existing.fixedInARS) {
+            if (priceARS !== null) update.priceARS = priceARS;
+            if (priceUSD !== null) update.priceUSD = priceUSD;
+          } else {
+            if (priceUSD !== null) {
+              update.priceUSD = priceUSD;
+              update.priceARS = priceUSD * exchangeRate;
+            } else if (priceARS !== null) {
+              update.priceARS = priceARS;
+            }
+          }
+          if (inStock !== undefined) update.inStock = inStock;
+          if (brandVal !== undefined) update.brand = brandVal;
+          if (parsedCats !== undefined) update.categories = parsedCats;
+          if (parsedSubs !== undefined) update.subcategories = parsedSubs;
         }
-
-        if (inStock !== undefined) update.inStock = inStock;
-        if (rawBrand !== undefined) update.brand = String(rawBrand).trim() || null;
-        if (parsedCats !== undefined) update.categories = parsedCats;
-        if (parsedSubs !== undefined) update.subcategories = parsedSubs;
 
         if (Object.keys(update).length > 0) {
           await productModel.updateOne({ _id: existing._id }, { $set: update });
@@ -591,31 +681,25 @@ export const importProductsExcel = async (req, res) => {
           skipped++;
         }
       } else {
-        // ── Producto nuevo: crear con datos mínimos
-        const nombre = String(
-          row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code
-        ).trim();
-
-        const brandVal = rawBrand ? String(rawBrand).trim() : null;
-
+        // ── Producto nuevo ─────────────────────────────────────────────────────
         const newProd = {
-          name:         nombre,
-          description:  nombre,
-          productCode:  code,
-          brand:        brandVal,
-          categories:   parsedCats ?? [],
+          name:          nombre,
+          description:   nombre,
+          productCode:   code,
+          brand:         brandVal ?? null,
+          categories:    parsedCats ?? [],
           subcategories: parsedSubs ?? [],
-          active:       true,
-          inStock:      inStock !== undefined ? inStock : true,
+          active:        true,
+          inStock:       inStock !== undefined ? inStock : true,
         };
 
-        if (priceUSD !== null && !isNaN(priceUSD)) {
-          newProd.priceUSD = priceUSD;
-          newProd.priceARS = priceUSD * exchangeRate;
-        }
         if (priceARS !== null && !isNaN(priceARS)) {
           newProd.priceARS = priceARS;
-          if (priceUSD === null) newProd.fixedInARS = true;
+          if (fixedFlag) newProd.fixedInARS = true;
+        }
+        if (priceUSD !== null && priceUSD !== undefined && !isNaN(priceUSD)) {
+          newProd.priceUSD = priceUSD;
+          if (!fixedFlag) newProd.priceARS = priceUSD * exchangeRate;
         }
 
         try {
@@ -629,7 +713,8 @@ export const importProductsExcel = async (req, res) => {
     }
 
     res.json({
-      message: `Importación completada: ${updated} actualizados, ${created} creados, ${skipped} omitidos`,
+      message: `Importación (${format === "new" ? "nuevo formato" : "formato clásico"}) completada: ${updated} actualizados, ${created} creados, ${skipped} omitidos`,
+      format,
       updated,
       created,
       skipped,

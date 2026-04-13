@@ -53,6 +53,8 @@ const siteConfigSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Campo interno para garantizar documento único (singleton pattern)
+siteConfigSchema.add({ singleton_key: { type: String, default: "main", select: false } });
 siteConfigSchema.index({ singleton_key: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model("siteConfig", siteConfigSchema);
