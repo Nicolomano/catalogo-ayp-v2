@@ -92,7 +92,7 @@ export default function HeroCarousel({ type = "home", slides: slidesProp, fillCo
                 <img
                   src={s.image}
                   alt={s.title || `banner-${idx}`}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
                   loading={idx === 0 ? "eager" : "lazy"}
                   decoding="async"
                 />

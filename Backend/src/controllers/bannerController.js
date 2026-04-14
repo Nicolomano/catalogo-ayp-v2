@@ -45,7 +45,7 @@ export const createBanner = async (req, res) => {
     if (req.file?.buffer) {
       const filename = `banners/${uuidv4()}.webp`;
       const buffer = await sharp(req.file.buffer)
-        .resize(1500, 500, { fit: "cover", position: "attention" })
+        .resize(900, 900, { fit: "cover", position: "attention" })
         .webp({ quality: 85 })
         .toBuffer();
       image = await uploadToR2(buffer, filename, "image/webp");
@@ -74,7 +74,7 @@ export const updateBanner = async (req, res) => {
     if (req.file?.buffer) {
       const filename = `banners/${uuidv4()}.webp`;
       const buffer = await sharp(req.file.buffer)
-        .resize(1500, 500, { fit: "cover", position: "attention" })
+        .resize(900, 900, { fit: "cover", position: "attention" })
         .webp({ quality: 85 })
         .toBuffer();
       data.image = await uploadToR2(buffer, filename, "image/webp");
