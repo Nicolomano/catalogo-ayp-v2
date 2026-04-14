@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap } from "lucide-react";
 import API from "../api/axios";
+import HeroCarousel from "../components/HeroCarousel.jsx";
 
 /* Íconos fijos para las 4 tarjetas de info */
 const INFO_ICONS = [
@@ -222,6 +223,9 @@ function Landing() {
 
           </div>
         </section>
+
+        {/* ── BANNER CAROUSEL ── */}
+        <HeroCarousel type="home" />
 
         {/* ── INFO CARDS ── */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">

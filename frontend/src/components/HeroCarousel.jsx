@@ -71,7 +71,7 @@ export default function HeroCarousel({ type = "home" }) {
       const sub = s.targetSubcategory
         ? `&sub=${encodeURIComponent(s.targetSubcategory)}`
         : "";
-      return `/?cat=${cat}${sub}`;
+      return `/catalogo?cat=${cat}${sub}`;
     }
     if (!s.linkUrl) return null;
 

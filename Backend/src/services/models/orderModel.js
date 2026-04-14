@@ -10,6 +10,7 @@ const orderSchema = new mongoose.Schema(
           required: true,
         },
         name: String,
+        productCode: String,
         quantity: { type: Number, required: true },
         priceUSD: Number,
         priceARS: Number,
@@ -21,7 +22,7 @@ const orderSchema = new mongoose.Schema(
     customerPhone: { type: String, required: true },
     status: {
       type: String,
-      enum: ["pendiente", "contestado"],
+      enum: ["pendiente", "contestada"],
       default: "pendiente",
     },
   },

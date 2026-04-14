@@ -24,7 +24,7 @@ function ProductDetail() {
       .finally(() => setLoading(false));
   }, [productCode]);
 
-  const calcCuota6 = (price) => price ? Math.round((price * 1.27) / 6) : null;
+  const calcCuota6 = (price) => price ? Math.round((price * 1.3) / 6) : null;
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[50vh]">

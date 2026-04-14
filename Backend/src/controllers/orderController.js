@@ -149,7 +149,7 @@ export const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["pendiente", "contestada"].includes(status)) {
+    if (!["pendiente", "contestada"].includes(status)) {  // debe coincidir con el enum del modelo
       return res.status(400).json({ message: "Estado inválido" });
     }
 

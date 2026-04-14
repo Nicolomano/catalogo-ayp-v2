@@ -104,6 +104,7 @@ export const toggleBanner = async (req, res) => {
   try {
     const { id } = req.params;
     const banner = await Banner.findById(id);
+    if (!banner) return res.status(404).json({ message: "Banner no encontrado" });
     banner.active = !banner.active;
     await banner.save();
     res.json({ message: "Estado actualizado", banner });
