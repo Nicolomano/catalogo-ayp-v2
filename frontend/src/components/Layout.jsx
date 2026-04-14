@@ -3,6 +3,7 @@ import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
+import WhatsappFloat from "./WhatsappFloat.jsx";
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
@@ -199,6 +200,8 @@ function Layout() {
       <main className="flex-grow w-full">
         <Outlet />
       </main>
+
+      <WhatsappFloat />
 
       {/* FOOTER */}
       <footer className="py-12 mt-8" style={{ background: "var(--dark-card)" }}>

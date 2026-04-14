@@ -16,7 +16,7 @@ const DEFAULT = {
     { title: "Horario", desc: "Lun-Vie 8 a 18hs" },
   ],
   aboutTitle: "¿Quiénes somos?", aboutText: "",
-  address: "", phone: "", hours: "",
+  address: "", phone: "", whatsapp: "", hours: "",
   kitTitle: "Kit de instalación", kitSubtitle: "", kitCTA: "Armar mi kit →",
 };
 
@@ -222,7 +222,15 @@ export default function AdminLanding() {
       {/* CONTACTO */}
       <Section title="Información de contacto">
         <Field label="Dirección"><input className={inputCls} style={inputStyle} value={config.address} onChange={(e) => set("address", e.target.value)} /></Field>
-        <Field label="Teléfono / WhatsApp"><input className={inputCls} style={inputStyle} value={config.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="Teléfono (display)"><input className={inputCls} style={inputStyle} value={config.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="WhatsApp (botón flotante)" hint="Número limpio para wa.me, sin +, sin espacios. Ej: 5491112345678">
+          <input
+            className={inputCls} style={inputStyle}
+            placeholder="5491112345678"
+            value={config.whatsapp}
+            onChange={(e) => set("whatsapp", e.target.value.replace(/\D/g, ""))}
+          />
+        </Field>
         <Field label="Horario"><input className={inputCls} style={inputStyle} value={config.hours} onChange={(e) => set("hours", e.target.value)} /></Field>
       </Section>
 
