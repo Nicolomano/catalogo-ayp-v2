@@ -101,6 +101,8 @@ function Landing() {
   const [landingData, setLandingData] = useState({ featured: [], newArrivals: [] });
   const [categories, setCategories]   = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
+  // null = cargando (evita parpadeo), [] = sin banners, [...] = hay banners
+  const [banners, setBanners]         = useState(null);
 
   useEffect(() => {
     API.get("/products/landing")
@@ -121,6 +123,9 @@ function Landing() {
     API.get("/site-config")
       .then((r) => setSiteConfig((prev) => ({ ...prev, ...r.data })))
       .catch(() => {});
+    API.get("/banners?type=home")
+      .then((r) => setBanners(r.data || []))
+      .catch(() => setBanners([]));
   }, []);
 
   const { featured, newArrivals } = landingData;
@@ -133,11 +138,6 @@ function Landing() {
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-14">
-
-        {/* ── BANNER CAROUSEL ── */}
-        <section className="max-w-4xl mx-auto w-full">
-          <HeroCarousel type="home" />
-        </section>
 
         {/* ── HERO BENTO GRID ── */}
         <section>
@@ -152,7 +152,6 @@ function Landing() {
                   : "var(--hero-grad)"
               }}
             >
-              {/* Decoración fondo (solo sin imagen) */}
               {!siteConfig.heroImage && (
                 <>
                   <div className="absolute right-0 bottom-0 w-72 h-72 opacity-10 pointer-events-none">
@@ -197,34 +196,45 @@ function Landing() {
               </div>
             </div>
 
-            {/* Stat 1 — 4 cols, 1 row */}
-            <div className="col-span-6 md:col-span-4 row-span-1 bento p-5 sm:p-6 flex flex-col justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-                {siteConfig.stat1Title}
-              </p>
-              <div>
-                <p className="text-4xl font-black leading-none" style={{ color: "var(--text)" }}>
-                  {siteConfig.stat1Value}
-                </p>
-                <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>{siteConfig.stat1Label}</p>
-              </div>
-            </div>
+            {/* Columna derecha: carousel si hay banners, stat cards si no */}
+            {banners?.length
+              ? (
+                /* Carousel integrado — ocupa las 2 filas de la columna derecha */
+                <div className="col-span-12 md:col-span-4 row-span-2 overflow-hidden rounded-[20px]">
+                  <HeroCarousel slides={banners} fillContainer />
+                </div>
+              ) : banners !== null && (
+                /* Stat cards — solo se muestran cuando se confirmó que no hay banners */
+                <>
+                  <div className="col-span-6 md:col-span-4 row-span-1 bento p-5 sm:p-6 flex flex-col justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+                      {siteConfig.stat1Title}
+                    </p>
+                    <div>
+                      <p className="text-4xl font-black leading-none" style={{ color: "var(--text)" }}>
+                        {siteConfig.stat1Value}
+                      </p>
+                      <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>{siteConfig.stat1Label}</p>
+                    </div>
+                  </div>
 
-            {/* Stat 2 — dark — 4 cols, 1 row */}
-            <div
-              className="col-span-6 md:col-span-4 row-span-1 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between border"
-              style={{ background: "var(--dark-card)", borderColor: "rgba(255,255,255,0.05)" }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.6)" }}>
-                {siteConfig.stat2Title}
-              </p>
-              <div>
-                <p className="text-4xl font-black leading-none text-white">
-                  {siteConfig.stat2Value}
-                </p>
-                <p className="text-sm mt-1 text-white/40">{siteConfig.stat2Label}</p>
-              </div>
-            </div>
+                  <div
+                    className="col-span-6 md:col-span-4 row-span-1 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between border"
+                    style={{ background: "var(--dark-card)", borderColor: "rgba(255,255,255,0.05)" }}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.6)" }}>
+                      {siteConfig.stat2Title}
+                    </p>
+                    <div>
+                      <p className="text-4xl font-black leading-none text-white">
+                        {siteConfig.stat2Value}
+                      </p>
+                      <p className="text-sm mt-1 text-white/40">{siteConfig.stat2Label}</p>
+                    </div>
+                  </div>
+                </>
+              )
+            }
 
           </div>
         </section>
