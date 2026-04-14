@@ -134,6 +134,11 @@ function Landing() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-14">
 
+        {/* ── BANNER CAROUSEL ── */}
+        <section className="max-w-4xl mx-auto w-full">
+          <HeroCarousel type="home" />
+        </section>
+
         {/* ── HERO BENTO GRID ── */}
         <section>
           <div className="grid grid-cols-12 gap-4" style={{ gridAutoRows: "160px" }}>
@@ -222,11 +227,6 @@ function Landing() {
             </div>
 
           </div>
-        </section>
-
-        {/* ── BANNER CAROUSEL ── */}
-        <section className="max-w-4xl mx-auto w-full">
-          <HeroCarousel type="home" />
         </section>
 
         {/* ── INFO CARDS ── */}
