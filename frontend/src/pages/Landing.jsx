@@ -225,7 +225,9 @@ function Landing() {
         </section>
 
         {/* ── BANNER CAROUSEL ── */}
-        <HeroCarousel type="home" />
+        <section className="max-w-4xl mx-auto w-full">
+          <HeroCarousel type="home" />
+        </section>
 
         {/* ── INFO CARDS ── */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
