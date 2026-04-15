@@ -6,43 +6,50 @@ import toast from "react-hot-toast";
 const stepperClamp = (n, step = 0.5) =>
   Math.max(0, Math.round(n / step) * step);
 
+const inputCls = "border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
+const inputStyle = {
+  background: "var(--surface2)",
+  borderColor: "var(--border)",
+  color: "var(--text)",
+};
+
 export default function KitInstalacion() {
-  const [meta, setMeta] = useState([]);
-  const [qty, setQty] = useState({});
-  const [variant, setVariant] = useState({}); // variantes por item.key
+  const [meta, setMeta]       = useState([]);
+  const [qty, setQty]         = useState({});
+  const [variant, setVariant] = useState({});
   const [pricing, setPricing] = useState({ lines: [], total: 0 });
   const [loading, setLoading] = useState(false);
+  const [waNumber, setWaNumber] = useState("");
 
-  // ─────────────────────────────────────────────
-  // Cargar metadata (items + defaults)
+  /* Cargar metadata + WhatsApp */
   useEffect(() => {
     API.get("/kits/install/meta")
       .then((res) => {
         const items = res.data.items || [];
         setMeta(items);
-
-        // defaults de cantidades y variantes
         const initialQty = {};
         const initialVar = {};
         items.forEach((it) => {
           initialQty[it.key] = it.defaultQty ?? 0;
           if (Array.isArray(it.variants) && it.variants.length) {
-            initialVar[it.key] = it.variants[0].value; // 1ra variante como default
+            initialVar[it.key] = it.variants[0].value;
           }
         });
         setQty(initialQty);
         setVariant(initialVar);
       })
       .catch(() => toast.error("No se pudo cargar el kit"));
+
+    API.get("/site-config")
+      .then((r) => setWaNumber((r.data?.whatsapp || "").replace(/\D/g, "")))
+      .catch(() => {});
   }, []);
 
-  // ─────────────────────────────────────────────
-  // Exclusión: patas de ménsula vs piso
+  /* Exclusión: patas de ménsula vs piso */
   const handleQty = (key, value) => {
     const item = meta.find((i) => i.key === key);
     const step = item?.step || 0.5;
     const v = stepperClamp(Number(value || 0), step);
-
     setQty((prev) => {
       const next = { ...prev, [key]: v };
       if (key === "feet_bracket" && v > 0) next["feet_floor"] = 0;
@@ -51,19 +58,14 @@ export default function KitInstalacion() {
     });
   };
 
-  const handleVariant = (key, value) => {
+  const handleVariant = (key, value) =>
     setVariant((prev) => ({ ...prev, [key]: value }));
-  };
 
-  // ─────────────────────────────────────────────
-  // Calcular precio en backend
+  /* Calcular precio */
   const fetchPrice = async () => {
     try {
       setLoading(true);
-      const res = await API.post("/kits/install/price", {
-        quantities: qty,
-        variant, // ← enviar variantes de TODOS los ítems
-      });
+      const res = await API.post("/kits/install/price", { quantities: qty, variant });
       setPricing(res.data);
     } catch {
       toast.error("No se pudo calcular el precio");
@@ -72,79 +74,78 @@ export default function KitInstalacion() {
     }
   };
 
-  useEffect(() => {
-    if (meta.length) fetchPrice();
-  }, [meta.length]); // primera vez
+  useEffect(() => { if (meta.length) fetchPrice(); }, [meta.length]);
+  useEffect(() => { if (meta.length) fetchPrice(); }, [qty, variant, meta.length]);
 
-  useEffect(() => {
-    if (meta.length) fetchPrice();
-  }, [qty, variant, meta.length]); // recalcular al cambiar qty o variantes
-
-  // ─────────────────────────────────────────────
-  // Texto para WhatsApp
+  /* Texto WhatsApp */
   const waText = useMemo(() => {
     const lines = pricing.lines
       .map((l) => {
         const varLabel = l.variant
           ? ` (${l.key === "bracket" ? `${l.variant} cm` : l.variant})`
           : "";
-        return `• ${l.label}${varLabel}: ${l.qty} ${
-          l.unit
-        } — $${l.unitPriceARS.toLocaleString("es-AR")} c/u`;
+        return `• ${l.label}${varLabel}: ${l.qty} ${l.unit} — $${l.unitPriceARS.toLocaleString("es-AR")} c/u`;
       })
       .join("%0A");
-
-    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${pricing.total.toLocaleString(
-      "es-AR"
-    )}`;
+    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${pricing.total.toLocaleString("es-AR")}`;
   }, [pricing]);
 
-  // ─────────────────────────────────────────────
+  const variantLabel = (key) => {
+    if (key === "copper_small" || key === "copper_big") return "Medida:";
+    if (key === "cable")      return "Sección:";
+    if (key === "insulation") return "Para caños:";
+    if (key === "bracket")    return "Tamaño:";
+    return "Variante:";
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-      <h1 className="text-2xl font-bold text-white">Kit de instalación</h1>
-      <p className="text-gray-200">
-        Ajustá cantidades (paso 0.5) y elegí las variantes. El total se calcula
-        automáticamente.
-      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-black">
-        {/* Configurador */}
-        <section className="bg-white rounded-xl shadow p-6 space-y-4">
+      {/* Encabezado */}
+      <div>
+        <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+          Kit de instalación
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+          Ajustá cantidades y elegí las variantes. El total se calcula automáticamente.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* ── Configurador ── */}
+        <section className="bento p-6 space-y-4">
+          <h2 className="text-base font-bold pb-2 border-b"
+            style={{ color: "var(--text)", borderColor: "var(--border)" }}>
+            Configuración
+          </h2>
+
           {!meta.length ? (
-            <div className="text-gray-500">Configuración no encontrada.</div>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              Configuración no encontrada.
+            </p>
           ) : (
             meta.map((item) => (
-              <div
-                key={item.key}
-                className="flex items-center justify-between gap-3"
-              >
-                <div className="flex-1">
-                  <div className="font-medium">{item.label}</div>
+              <div key={item.key} className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
+                    {item.label}
+                  </p>
 
-                  {/* Selector de variante (genérico) */}
                   {Array.isArray(item.variants) && item.variants.length > 0 && (
-                    <div className="text-sm text-gray-600 mt-1">
-                      {item.key === "copper_small" || item.key === "copper_big"
-                        ? "Medida:"
-                        : item.key === "cable"
-                        ? "Sección:"
-                        : item.key === "insulation"
-                        ? "Para caños:"
-                        : item.key === "bracket"
-                        ? "Tamaño:"
-                        : "Variante:"}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>
+                        {variantLabel(item.key)}
+                      </span>
                       <select
                         value={variant[item.key] || item.variants[0].value}
-                        onChange={(e) =>
-                          handleVariant(item.key, e.target.value)
-                        }
-                        className="ml-2 border rounded px-2 py-1"
+                        onChange={(e) => handleVariant(item.key, e.target.value)}
+                        className={inputCls + " text-xs py-1 px-2"}
+                        style={inputStyle}
                       >
                         {item.variants.map((v) => (
                           <option key={v.value} value={v.value}>
-                            {v.value}
-                            {item.key === "bracket" ? " cm" : ""}
+                            {v.value}{item.key === "bracket" ? " cm" : ""}
                           </option>
                         ))}
                       </select>
@@ -152,39 +153,28 @@ export default function KitInstalacion() {
                   )}
                 </div>
 
-                {/* Stepper de cantidad */}
-                <div className="flex items-center gap-2">
+                {/* Stepper */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
-                    onClick={() =>
-                      handleQty(
-                        item.key,
-                        (qty[item.key] || 0) - (item.step || 0.5)
-                      )
-                    }
-                    className="px-2 py-1 border rounded"
-                  >
-                    −
-                  </button>
+                    onClick={() => handleQty(item.key, (qty[item.key] || 0) - (item.step || 0.5))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
+                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                  >−</button>
                   <input
                     type="number"
                     step={item.step || 0.5}
                     min="0"
                     value={qty[item.key] ?? 0}
                     onChange={(e) => handleQty(item.key, e.target.value)}
-                    className="w-24 border rounded px-2 py-1 text-right"
+                    className="w-20 text-center text-sm rounded-lg"
+                    style={{ ...inputStyle, border: "1px solid var(--border)", padding: "6px 4px" }}
                   />
                   <button
-                    onClick={() =>
-                      handleQty(
-                        item.key,
-                        (qty[item.key] || 0) + (item.step || 0.5)
-                      )
-                    }
-                    className="px-2 py-1 border rounded"
-                  >
-                    +
-                  </button>
-                  <span className="w-8 text-right text-gray-500">
+                    onClick={() => handleQty(item.key, (qty[item.key] || 0) + (item.step || 0.5))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
+                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                  >+</button>
+                  <span className="w-8 text-xs text-right" style={{ color: "var(--muted)" }}>
                     {item.unit}
                   </span>
                 </div>
@@ -193,62 +183,68 @@ export default function KitInstalacion() {
           )}
         </section>
 
-        {/* Resumen */}
-        <section className="bg-white rounded-xl shadow p-6 space-y-3">
-          <h2 className="text-lg font-semibold">Resumen</h2>
+        {/* ── Resumen ── */}
+        <section className="bento p-6 space-y-3">
+          <h2 className="text-base font-bold pb-2 border-b"
+            style={{ color: "var(--text)", borderColor: "var(--border)" }}>
+            Resumen
+          </h2>
+
           {loading ? (
-            <div className="text-gray-500">Calculando…</div>
+            <div className="flex justify-center py-6">
+              <div className="animate-spin h-6 w-6 border-4 border-t-transparent rounded-full"
+                style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            </div>
           ) : pricing.lines.length ? (
             <>
-              <ul className="divide-y">
+              <ul className="divide-y" style={{ borderColor: "var(--border)" }}>
                 {pricing.lines.map((l) => (
-                  <li
-                    key={l.key}
-                    className="py-2 flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="font-medium">
+                  <li key={l.key} className="py-2.5 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
                         {l.label}
                         {l.variant
-                          ? ` (${
-                              l.key === "bracket"
-                                ? `${l.variant} cm`
-                                : l.variant
-                            })`
+                          ? ` (${l.key === "bracket" ? `${l.variant} cm` : l.variant})`
                           : ""}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {l.qty} {l.unit} × $
-                        {l.unitPriceARS.toLocaleString("es-AR")}
-                      </div>
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>
+                        {l.qty} {l.unit} × ${l.unitPriceARS.toLocaleString("es-AR")}
+                      </p>
                     </div>
-                    <div className="font-semibold">
+                    <span className="text-sm font-semibold flex-shrink-0" style={{ color: "var(--text)" }}>
                       ${l.subtotal.toLocaleString("es-AR")}
-                    </div>
+                    </span>
                   </li>
                 ))}
               </ul>
-              <div className="pt-3 border-t flex items-center justify-between">
-                <span className="text-gray-600">Total</span>
-                <span className="text-xl font-bold">
+
+              <div className="pt-3 border-t flex items-center justify-between"
+                style={{ borderColor: "var(--border)" }}>
+                <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>Total estimado</span>
+                <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>
                   ${pricing.total.toLocaleString("es-AR")}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {waNumber && (
                 <a
-                  href={`https://wa.me/5491168815837?text=${waText}`}
+                  href={`https://wa.me/${waNumber}?text=${waText}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 text-center bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors"
+                  style={{ background: "#25D366" }}
                 >
+                  <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor">
+                    <path d="M16.003 2.667C8.638 2.667 2.667 8.638 2.667 16c0 2.358.627 4.67 1.817 6.694L2.667 29.333l6.825-1.789A13.29 13.29 0 0016.003 29.333c7.365 0 13.33-5.97 13.33-13.333S23.368 2.667 16.003 2.667zm6.059 18.264c-.331-.167-1.96-.968-2.264-1.079-.305-.107-.527-.167-.748.166-.223.33-.86 1.079-1.054 1.3-.196.222-.39.248-.72.083-.331-.166-1.398-.515-2.663-1.643-.984-.878-1.648-1.962-1.843-2.293-.194-.33-.02-.51.146-.674.15-.149.33-.389.496-.583.167-.194.222-.332.333-.554.11-.222.055-.416-.028-.583-.083-.167-.748-1.803-1.025-2.47-.27-.648-.545-.56-.748-.57l-.637-.011c-.222 0-.582.083-.888.415-.305.33-1.164 1.137-1.164 2.773 0 1.637 1.192 3.218 1.358 3.44.167.222 2.346 3.584 5.685 5.027.795.343 1.415.547 1.899.7.798.253 1.525.217 2.099.132.64-.096 1.97-.806 2.247-1.584.278-.778.278-1.445.194-1.584-.083-.14-.305-.222-.637-.389z"/>
+                  </svg>
                   Enviar por WhatsApp
                 </a>
-              </div>
+              )}
             </>
           ) : (
-            <div className="text-gray-500">
+            <p className="text-sm py-4 text-center" style={{ color: "var(--muted)" }}>
               Elegí cantidades para ver el total.
-            </div>
+            </p>
           )}
         </section>
       </div>
