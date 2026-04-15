@@ -100,7 +100,12 @@ function Catalogo() {
           setHasMore(false); // cortar el loop del observer cuando el servidor no responde
         }
       })
-      .finally(() => { isFetchingRef.current = false; setIsFetching(false); });
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          isFetchingRef.current = false;
+          setIsFetching(false);
+        }
+      });
 
     return () => controller.abort();
   }, [category, subcategory, sort, debouncedSearch, selectedBrands, page]);
