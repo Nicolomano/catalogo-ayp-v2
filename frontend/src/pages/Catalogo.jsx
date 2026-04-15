@@ -226,7 +226,7 @@ function Catalogo() {
           )}
 
           {/* Grid de productos */}
-          {isFetching && allProducts.length === 0 ? (
+          {(isFetching || isPending) && allProducts.length === 0 ? (
             <div className="flex justify-center py-24">
               <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full"
                 style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
@@ -304,7 +304,7 @@ function Catalogo() {
           )}
 
           <div ref={loaderRef} className="h-4" />
-          {isFetching && allProducts.length > 0 && (
+          {(isFetching || isPending) && allProducts.length > 0 && (
             <div className="flex justify-center py-8">
               <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full"
                 style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
