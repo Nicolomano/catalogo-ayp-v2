@@ -39,10 +39,12 @@ const siteConfigSchema = new mongoose.Schema(
       default: "A&P Refrigeración es un distribuidor mayorista de repuestos y equipos de refrigeración comercial e industrial. Más de 10 años en el rubro, atendiendo a instaladores y técnicos de todo el país.",
     },
     // ── Contacto ───────────────────────────────────────────────
-    address:  { type: String, default: "Dirección del local, Ciudad, Provincia" },
-    phone:    { type: String, default: "+54 11 XXXX-XXXX" },
-    whatsapp: { type: String, default: "" }, // número limpio para wa.me, ej: 5491112345678
-    hours:    { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
+    address:   { type: String, default: "Dirección del local, Ciudad, Provincia" },
+    phone:     { type: String, default: "+54 11 XXXX-XXXX" },
+    whatsapp:  { type: String, default: "" }, // número limpio para wa.me, ej: 5491112345678
+    hours:     { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
+    email:     { type: String, default: "" },
+    mapsEmbed: { type: String, default: "" }, // URL del iframe de Google Maps
     // ── Kit CTA ────────────────────────────────────────────────
     kitTitle:    { type: String, default: "Kit de instalación" },
     kitSubtitle: {

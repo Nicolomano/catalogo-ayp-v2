@@ -57,6 +57,7 @@ function ProductDetail() {
   const [quantity, setQuantity]            = useState(1);
   const [related, setRelated]              = useState([]);
   const [copied, setCopied]                = useState(false);
+  const [zoomOpen, setZoomOpen]            = useState(false);
   const { addToCart }                      = useCart();
   const { isServiceApproved, servicePrice } = useAuth();
 
@@ -173,13 +174,45 @@ function ProductDetail() {
         <div className="bento p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8" style={{ borderRadius: "24px" }}>
 
           {/* Imagen */}
-          <div className="flex items-center justify-center rounded-2xl p-6 min-h-64"
-            style={{ background: "var(--surface2)" }}>
+          <div
+            className="flex items-center justify-center rounded-2xl p-6 min-h-64 relative group"
+            style={{ background: "var(--surface2)", cursor: product.image ? "zoom-in" : "default" }}
+            onClick={() => product.image && setZoomOpen(true)}
+          >
             {product.image
-              ? <img src={product.image} alt={product.name} className="object-contain max-h-80 w-full" />
+              ? <>
+                  <img src={product.image} alt={product.name} className="object-contain max-h-80 w-full" />
+                  <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-medium px-2 py-1 rounded-lg"
+                      style={{ background: "rgba(0,0,0,0.5)", color: "#fff" }}>
+                      Ampliar
+                    </span>
+                  </div>
+                </>
               : <div className="text-6xl opacity-20">📦</div>
             }
           </div>
+
+          {/* Lightbox */}
+          {zoomOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style={{ background: "rgba(0,0,0,0.85)" }}
+              onClick={() => setZoomOpen(false)}
+            >
+              <img
+                src={product.image}
+                alt={product.name}
+                className="max-w-full max-h-[90vh] object-contain rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={() => setZoomOpen(false)}
+                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                style={{ background: "rgba(255,255,255,0.15)" }}
+              >✕</button>
+            </div>
+          )}
 
           {/* Info */}
           <div className="flex flex-col">

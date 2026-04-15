@@ -1,4 +1,5 @@
 import serviceUserModel from "../services/models/serviceUserModel.js";
+import { sendMail, approvalEmail, rejectionEmail } from "../services/emailService.js";
 
 export const registerServiceUser = async (req, res) => {
   try {
@@ -53,6 +54,15 @@ export const updateServiceUserStatus = async (req, res) => {
       .select("-password");
 
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    // Enviar email de notificación (no bloquea la respuesta)
+    if (status === "approved") {
+      const mail = approvalEmail(user.name);
+      sendMail({ to: user.email, ...mail });
+    } else if (status === "rejected") {
+      const mail = rejectionEmail(user.name, rejectionReason);
+      sendMail({ to: user.email, ...mail });
+    }
 
     res.json(user);
   } catch (error) {
