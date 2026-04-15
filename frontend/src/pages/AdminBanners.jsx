@@ -306,7 +306,12 @@ export default function AdminBanners() {
 
               <label className="block">
                 <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
-                  Imagen <span className="opacity-60">(cuadrada · mín. 900×900 px)</span>
+                  Imagen{" "}
+                  <span className="opacity-60">
+                    {editing.type === "catalog"
+                      ? "(horizontal · mín. 1200×400 px — proporción 3:1)"
+                      : "(cuadrada · mín. 900×900 px)"}
+                  </span>
                 </span>
                 <div className="flex items-center gap-3">
                   {editing.image && !editing.imageFile && (

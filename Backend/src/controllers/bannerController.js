@@ -31,6 +31,12 @@ export const listAdminBanners = async (req, res) => {
   }
 };
 
+// Dimensiones según tipo: home = 900×900 (cuadrado), catalog = 1200×400 (3:1)
+const BANNER_SIZES = {
+  home:    { width: 900,  height: 900  },
+  catalog: { width: 1200, height: 400  },
+};
+
 export const createBanner = async (req, res) => {
   try {
     const {
@@ -43,9 +49,10 @@ export const createBanner = async (req, res) => {
     } = req.body;
     let image = req.body.image || null;
     if (req.file?.buffer) {
+      const { width, height } = BANNER_SIZES[type] || BANNER_SIZES.home;
       const filename = `banners/${uuidv4()}.webp`;
       const buffer = await sharp(req.file.buffer)
-        .resize(900, 900, { fit: "cover", position: "attention" })
+        .resize(width, height, { fit: "cover", position: "attention" })
         .webp({ quality: 85 })
         .toBuffer();
       image = await uploadToR2(buffer, filename, "image/webp");
@@ -72,9 +79,13 @@ export const updateBanner = async (req, res) => {
     const { id } = req.params;
     const data = { ...req.body };
     if (req.file?.buffer) {
+      // Usar el tipo del body si se está cambiando, sino el del banner existente
+      const existing = await Banner.findById(id).lean();
+      const type = data.type || existing?.type || "home";
+      const { width, height } = BANNER_SIZES[type] || BANNER_SIZES.home;
       const filename = `banners/${uuidv4()}.webp`;
       const buffer = await sharp(req.file.buffer)
-        .resize(900, 900, { fit: "cover", position: "attention" })
+        .resize(width, height, { fit: "cover", position: "attention" })
         .webp({ quality: 85 })
         .toBuffer();
       data.image = await uploadToR2(buffer, filename, "image/webp");
