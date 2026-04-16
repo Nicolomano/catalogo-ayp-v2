@@ -11,9 +11,7 @@ function AdminOrders() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   useEffect(() => {
-    API.get("/orders", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
+    API.get("/orders")
       .then((res) => setOrders(res.data))
       .catch((err) => console.error("Error cargando órdenes:", err))
       .finally(() => setLoading(false));
@@ -22,11 +20,7 @@ function AdminOrders() {
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === "pendiente" ? "contestada" : "pendiente";
     try {
-      const res = await API.patch(
-        `/orders/${id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      const res = await API.patch(`/orders/${id}/status`, { status: newStatus });
       setOrders(orders.map((o) => (o._id === id ? res.data : o)));
     } catch (err) {
       console.error("Error actualizando estado:", err);

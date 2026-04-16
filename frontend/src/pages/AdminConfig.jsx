@@ -8,9 +8,7 @@ export default function AdminConfig() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    API.get("/config", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
+    API.get("/config")
       .then((res) => setExchangeRate(res.data.exchangeRate))
       .catch((err) => console.error("Error cargando config:", err))
       .finally(() => setLoading(false));
@@ -19,11 +17,7 @@ export default function AdminConfig() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const res = await API.put(
-        "/config/",
-        { exchangeRate },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      const res = await API.put("/config/", { exchangeRate });
       setExchangeRate(res.data.exchangeRate);
       toast.success("Cotización actualizada");
     } catch (err) {

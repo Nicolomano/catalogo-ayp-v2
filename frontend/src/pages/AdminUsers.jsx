@@ -3,7 +3,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Users, Building2, ClipboardCheck, MapPin, Phone, Calendar } from "lucide-react";
 
-const AUTH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
 
 const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" };
 
@@ -27,8 +27,7 @@ function AdminUsers() {
     setLoading(true);
     try {
       const res = await API.get("/users", {
-        headers: AUTH(),
-        params: status !== "all" ? { status } : {},
+                params: status !== "all" ? { status } : {},
       });
       setUsers(res.data);
     } catch {
@@ -42,7 +41,7 @@ function AdminUsers() {
 
   const handleApprove = async (id) => {
     try {
-      await API.patch(`/users/${id}/status`, { status: "approved" }, { headers: AUTH() });
+      await API.patch(`/users/${id}/status`, { status: "approved" }, );
       toast.success("Usuario aprobado");
       fetchUsers();
     } catch {
@@ -56,7 +55,7 @@ function AdminUsers() {
       await API.patch(
         `/users/${rejectModal.userId}/status`,
         { status: "rejected", rejectionReason: rejectReason },
-        { headers: AUTH() }
+        
       );
       toast.success("Usuario rechazado");
       setRejectModal(null);

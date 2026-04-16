@@ -3,9 +3,6 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star } from "lucide-react";
 
-const AUTH_HEADER = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
-});
 
 const inputCls =
   "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
@@ -81,10 +78,7 @@ function AdminProducts() {
       if (sortParam) params.sort = sortParam;
       params.limit = 0;
 
-      const res = await API.get("/products/admin/all", {
-        headers: AUTH_HEADER(),
-        params,
-      });
+      const res = await API.get("/products/admin/all", { params });
 
       if (Array.isArray(res.data.products)) setProducts(res.data.products);
       else if (Array.isArray(res.data)) setProducts(res.data);
@@ -110,7 +104,7 @@ function AdminProducts() {
   const handleDelete = async (id) => {
     if (!confirm("¿Seguro que querés eliminar este producto?")) return;
     try {
-      await API.delete(`/products/${id}`, { headers: AUTH_HEADER() });
+      await API.delete(`/products/${id}`, );
       setProducts((prev) => prev.filter((p) => p._id !== id));
       toast.success("Producto eliminado");
     } catch {
@@ -120,7 +114,7 @@ function AdminProducts() {
 
   const handleToggle = async (id) => {
     try {
-      const res = await API.patch(`/products/${id}/toggle`, {}, { headers: AUTH_HEADER() });
+      const res = await API.patch(`/products/${id}/toggle`, {}, );
       setProducts((prev) =>
         prev.map((p) => (p._id === id ? res.data.product : p))
       );
@@ -132,7 +126,7 @@ function AdminProducts() {
 
   const handleToggleFeatured = async (id) => {
     try {
-      const res = await API.patch(`/products/${id}/featured`, {}, { headers: AUTH_HEADER() });
+      const res = await API.patch(`/products/${id}/featured`, {}, );
       setProducts((prev) => prev.map((p) => (p._id === id ? res.data.product : p)));
       toast.success(res.data.message);
     } catch {
@@ -142,7 +136,7 @@ function AdminProducts() {
 
   const handleToggleStock = async (id) => {
     try {
-      const res = await API.patch(`/products/${id}/stock`, {}, { headers: AUTH_HEADER() });
+      const res = await API.patch(`/products/${id}/stock`, {}, );
       setProducts((prev) => prev.map((p) => (p._id === id ? res.data.product : p)));
       toast.success(res.data.message);
     } catch {
@@ -158,7 +152,7 @@ function AdminProducts() {
     if (!window.confirm("¿Migrar el campo 'category' (string) a 'categories' (array) en todos los productos que lo necesiten?")) return;
     setMigrating(true);
     try {
-      const res = await API.post("/products/admin/migrate-categories", {}, { headers: AUTH_HEADER() });
+      const res = await API.post("/products/admin/migrate-categories", {}, );
       toast.success(res.data.message);
       fetchProducts();
     } catch (err) {
@@ -177,7 +171,7 @@ function AdminProducts() {
       const fd = new FormData();
       fd.append("file", file);
       const res = await API.post("/products/import/excel", fd, {
-        headers: { ...AUTH_HEADER(), "Content-Type": "multipart/form-data" },
+        headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success(res.data.message);
       fetchProducts();
@@ -525,7 +519,7 @@ function AdminProducts() {
                   let res;
                   if (editingProduct._id) {
                     res = await API.put(`/products/${editingProduct._id}`, formData, {
-                      headers: { ...AUTH_HEADER(), "Content-Type": "multipart/form-data" },
+                      headers: { "Content-Type": "multipart/form-data" },
                     });
                     setProducts((prev) =>
                       prev.map((p) => (p._id === editingProduct._id ? res.data : p))
@@ -533,7 +527,7 @@ function AdminProducts() {
                     toast.success("Producto actualizado");
                   } else {
                     res = await API.post("/products", formData, {
-                      headers: { ...AUTH_HEADER(), "Content-Type": "multipart/form-data" },
+                      headers: { "Content-Type": "multipart/form-data" },
                     });
                     setProducts((prev) => [res.data, ...prev]);
                     toast.success("Producto creado");

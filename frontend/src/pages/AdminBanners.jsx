@@ -3,7 +3,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Image, PlusCircle } from "lucide-react";
 
-const AUTH = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
 
 const inputCls =
   "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
@@ -19,7 +19,7 @@ export default function AdminBanners() {
   const [typeFilter, setTypeFilter] = useState("home");
 
   const fetchAll = () => {
-    API.get("/banners/admin/all", { headers: AUTH(), params: { type: typeFilter } })
+    API.get("/banners/admin/all", { params: { type: typeFilter } })
       .then((res) => setItems(res.data || []))
       .catch((e) => console.error(e));
   };
@@ -41,13 +41,13 @@ export default function AdminBanners() {
       let res;
       if (editing._id) {
         res = await API.put(`/banners/${editing._id}`, fd, {
-          headers: { ...AUTH(), "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" },
         });
         setItems((prev) => prev.map((i) => (i._id === editing._id ? res.data : i)));
         toast.success("Banner actualizado");
       } else {
         res = await API.post("/banners", fd, {
-          headers: { ...AUTH(), "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" },
         });
         setItems((prev) => [res.data, ...prev]);
         toast.success("Banner creado");
@@ -60,18 +60,18 @@ export default function AdminBanners() {
 
   const handleDelete = async (id) => {
     if (!confirm("¿Eliminar este banner?")) return;
-    await API.delete(`/banners/${id}`, { headers: AUTH() });
+    await API.delete(`/banners/${id}`, {});
     setItems((prev) => prev.filter((i) => i._id !== id));
     toast.success("Banner eliminado");
   };
 
   const handleToggle = async (id) => {
-    const res = await API.patch(`/banners/${id}/toggle`, {}, { headers: AUTH() });
+    const res = await API.patch(`/banners/${id}/toggle`, {}, {});
     setItems((prev) => prev.map((i) => (i._id === id ? res.data.banner : i)));
   };
 
   const handleReorder = async () => {
-    await API.patch("/banners/reorder", { ids: items.map((i) => i._id) }, { headers: AUTH() });
+    await API.patch("/banners/reorder", { ids: items.map((i) => i._id) }, {});
     toast.success("Orden actualizado");
     fetchAll();
   };

@@ -62,6 +62,7 @@ productSchema.pre("save", async function (next) {
   if (this.fixedInARS === true) return next();
 
   try {
+    if (this.priceUSD == null) return next();   // sin precio USD → no recalcular
     const cfg = await Config.findOne();
     const rate = cfg ? cfg.exchangeRate : 1;
     this.priceARS = Number(this.priceUSD) * Number(rate);

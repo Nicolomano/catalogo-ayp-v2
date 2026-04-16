@@ -3,14 +3,15 @@ import productModel from "../services/models/productModel.js";
 
 export async function updateExchangeRate(req, res) {
   const { exchangeRate } = req.body;
-  if (exchangeRate == null) {
-    return res.status(400).json({ message: "Exchange rate is required" });
+  const rate = Number(exchangeRate);
+  if (exchangeRate == null || isNaN(rate) || rate <= 0) {
+    return res.status(400).json({ message: "La cotización debe ser un número mayor a 0" });
   }
 
   try {
     const cfg = await configModel.findOneAndUpdate(
       {},
-      { exchangeRate: Number(exchangeRate) },
+      { exchangeRate: rate },
       { new: true, upsert: true }
     );
 
@@ -27,7 +28,7 @@ export async function updateExchangeRate(req, res) {
                 {
                   $multiply: [
                     { $ifNull: ["$priceUSD", 0] },
-                    Number(exchangeRate),
+                    rate,
                   ],
                 },
               ],
