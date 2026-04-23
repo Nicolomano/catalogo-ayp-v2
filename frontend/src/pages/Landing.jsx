@@ -241,7 +241,7 @@ function Landing() {
 
         {/* ── INFO CARDS ── */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {siteConfig.infoCards.map((card, i) => (
+          {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i) => (
             <div key={i} className="bento p-5 flex flex-col items-center text-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
