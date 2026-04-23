@@ -17,8 +17,8 @@ function AdminLogin({ onLogin }) {
         onLogin(res.data.user);
       }
       navigate("/admin/dashboard");
-    } catch (err) {
-      setError("Credenciales inválidas", err);
+    } catch {
+      setError("Credenciales inválidas");
     }
   };
 
