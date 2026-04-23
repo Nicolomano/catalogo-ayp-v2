@@ -10,7 +10,7 @@ import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
 /* ----------------------- CREAR PRODUCTO ----------------------- */
 export async function createProduct(req, res) {
   try {
-    const { name, description, priceUSD, priceARS, fixedInARS, productCode } =
+    const { name, description, priceUSD, priceARS, fixedInARS, productCode, brand } =
       req.body;
 
     // Normalizar arrays
@@ -53,6 +53,7 @@ export async function createProduct(req, res) {
       name,
       description,
       productCode,
+      brand: brand?.trim() || null,
       priceUSD: priceUSDFinal,
       priceARS: priceARSFinal,
       fixedInARS: fixedFlag,
@@ -117,6 +118,7 @@ export async function updateProduct(req, res) {
       name: req.body.name ?? current.name,
       description: req.body.description ?? current.description,
       productCode: req.body.productCode ?? current.productCode,
+      brand: req.body.brand !== undefined ? (req.body.brand?.trim() || null) : current.brand,
       fixedInARS: fixedFlag,
       categories,
       subcategories,
@@ -197,19 +199,46 @@ export const getProductsByCategory = async (req, res) => {
       limit = 24,
     } = req.query;
 
+    const brand = req.query.brand
+      ? Array.isArray(req.query.brand)
+        ? req.query.brand
+        : [req.query.brand]
+      : [];
+
     const filter = { active: true };
+    // Condiciones que requieren $or propios — se combinarán con $and al final
+    const andConditions = [];
 
     if (category && category !== "all") {
-      filter.categories = { $in: [category] };
+      // Compatibilidad con documentos que aún usan el campo singular "category"
+      andConditions.push({
+        $or: [
+          { categories: { $in: [category] } },
+          { category: category },
+        ],
+      });
     }
 
     if (subcategory && subcategory !== "all") {
       filter.subcategories = { $in: [subcategory] };
     }
 
+    if (brand.length > 0) {
+      filter.brand = { $in: brand };
+    }
+
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.name = { $regex: escaped, $options: "i" };
+      andConditions.push({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { productCode: { $regex: escaped, $options: "i" } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      filter.$and = andConditions;
     }
 
     if (minPrice || maxPrice) {
@@ -309,12 +338,29 @@ export const getProductsAdmin = async (req, res) => {
 
     const filter = {};
 
+    const adminAnd = [];
+
     if (search) {
-      const term = new RegExp(search.trim(), "i");
-      filter.$or = [{ name: term }, { productCode: term }];
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      adminAnd.push({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { productCode: { $regex: escaped, $options: "i" } },
+        ],
+      });
     }
 
-    if (category) filter.categories = { $in: [category] };
+    if (category) {
+      adminAnd.push({
+        $or: [
+          { categories: { $in: [category] } },
+          { category: category },
+        ],
+      });
+    }
+
+    if (adminAnd.length > 0) filter.$and = adminAnd;
+
     if (subcategory) filter.subcategories = { $in: [subcategory] };
     if (active === "true") filter.active = true;
     if (active === "false") filter.active = false;
@@ -364,7 +410,20 @@ export const getCategoriesMeta = async (req, res) => {
       { $match: match },
       {
         $project: {
-          categories: { $ifNull: ["$categories", []] },
+          // Normalizar: si categories está vacío o no existe, intentar con el campo singular "category"
+          categories: {
+            $cond: {
+              if: { $and: [{ $isArray: "$categories" }, { $gt: [{ $size: { $ifNull: ["$categories", []] } }, 0] }] },
+              then: "$categories",
+              else: {
+                $cond: {
+                  if: { $and: [{ $ifNull: ["$category", false] }, { $ne: ["$category", ""] }] },
+                  then: ["$category"],
+                  else: [],
+                },
+              },
+            },
+          },
           subcategories: { $ifNull: ["$subcategories", []] },
         },
       },
@@ -401,18 +460,290 @@ export const getCategoriesMeta = async (req, res) => {
   }
 };
 
+/* ----------------------- PRODUCTOS LANDING ----------------------- */
+export const getLandingProducts = async (req, res) => {
+  try {
+    const [featured, newArrivals] = await Promise.all([
+      productModel
+        .find({ active: true, featured: true })
+        .sort({ soldCount: -1 })
+        .limit(8)
+        .lean(),
+      productModel
+        .find({ active: true })
+        .sort({ createdAt: -1 })
+        .limit(8)
+        .lean(),
+    ]);
+    res.json({ featured, newArrivals });
+  } catch (error) {
+    res.status(500).json({ message: "Error obteniendo productos landing", error: error.message });
+  }
+};
+
+/* ----------------------- MARCAS (BRANDS) ----------------------- */
+export const getProductBrands = async (req, res) => {
+  try {
+    const brands = await productModel.distinct("brand", {
+      active: true,
+      brand: { $exists: true, $ne: null, $ne: "" },
+    });
+    res.json(brands.filter(Boolean).sort());
+  } catch (error) {
+    res.status(500).json({ message: "Error obteniendo marcas", error: error.message });
+  }
+};
+
+/* ----------------------- TOGGLE DESTACADO ----------------------- */
+export const toggleFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    product.featured = !product.featured;
+    await product.save();
+    res.json({ message: `Producto ${product.featured ? "destacado" : "quitado de destacados"}`, product });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cambiar destacado", error: error.message });
+  }
+};
+
+/* ----------------------- TOGGLE STOCK ----------------------- */
+export const toggleStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await productModel.findById(id);
+    if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+    product.inStock = !product.inStock;
+    await product.save();
+    res.json({ message: `Stock ${product.inStock ? "disponible" : "agotado"}`, product });
+  } catch (error) {
+    res.status(500).json({ message: "Error al cambiar stock", error: error.message });
+  }
+};
+
+/* ──────────────── helpers para parsear el nuevo formato ──────────────── */
+
+/**
+ * Parsea un número en formato contable argentino:
+ *   "(34,00) $"    → 34        (stock o precio con paréntesis)
+ *   "(1.234,56) $" → 1234.56
+ *   "14066,3952"   → 14066.3952 (precio_venta con coma decimal)
+ *   14066.3952     → 14066.3952 (número nativo JS)
+ */
+function parseARNumber(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw === "number") return raw;
+  const str = String(raw)
+    .replace(/\$/g, "")    // quitar signo $
+    .replace(/[()]/g, "")  // quitar paréntesis contables
+    .trim()
+    .replace(/\./g, "")    // quitar separadores de miles (. en AR)
+    .replace(",", ".");    // convertir decimal , → .
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Detecta si una fila pertenece al nuevo formato del sistema contable.
+ * Criterio: tiene columna "Codigo_catalogo" o "Codigo_ze" (variantes del sistema contable).
+ */
+function detectFormat(rows) {
+  if (!rows.length) return "unknown";
+  const keys = Object.keys(rows[0]);
+  if (keys.some((k) => /^Codigo_catalogo$/i.test(k) || /^Codigo_ze$/i.test(k))) return "new";
+  if (keys.some((k) => /^C[oó]digo$/.test(k) || k === "productCode")) return "old";
+  return "unknown";
+}
+
+/* ----------------------- IMPORTAR EXCEL ----------------------- */
+export const importProductsExcel = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
+
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (!rows.length) return res.json({ message: "Archivo vacío", updated: 0, created: 0, skipped: 0, errors: [] });
+
+    const format = detectFormat(rows);
+    if (format === "unknown") {
+      return res.status(400).json({
+        message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_catalogo' (sistema contable) o 'Código' (exportación clásica).",
+      });
+    }
+
+    const cfg = await Config.findOne();
+    const exchangeRate = Number(cfg?.exchangeRate || 1);
+
+    let updated = 0, created = 0, skipped = 0;
+    const errors = [];
+
+    for (const row of rows) {
+      let code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag;
+
+      // ── NUEVO FORMATO del sistema contable (Tango/similar) ──────────────
+      // Columnas: Codigo_catalogo | precio_venta | Cotizador | Rubro | SubRubro
+      if (format === "new") {
+        // productCode: primero Codigo_catalogo, luego Codigo_ze como fallback
+        code = String(
+          row["Codigo_catalogo"] ?? row["Codigo_catalogo"] ??
+          row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
+        ).trim();
+        if (!code) { skipped++; continue; }
+
+        nombre = String(row["Descripcion"] ?? row["descripcion"] ?? code).trim();
+
+        // Categoría desde Rubro (ignorar "TODOS" = sin categoría)
+        const rubro = String(row["Rubro"] ?? row["rubro"] ?? "").trim();
+        const subrubro = String(row["SubRubro"] ?? row["Subrubro"] ?? row["subrubro"] ?? "").trim();
+        parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
+        parsedSubs = subrubro ? [subrubro] : [];
+
+        // Precio en ARS desde columna precio_venta (número directo, ej: 14066,3952)
+        priceARS = parseARNumber(row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"]);
+        priceUSD = null;
+        fixedFlag = priceARS !== null;
+
+        // Stock desde columna Cotizador: "(34,00) $" → cantidad=34 → inStock = cantidad > 0
+        // Los paréntesis son formato contable, el número es el stock actual
+        const cotizRaw = row["Cotizador"] ?? row["cotizador"] ?? row["Cotizacion"] ?? row["cotizacion"];
+        const stockQty = parseARNumber(cotizRaw);
+        inStock = stockQty !== null ? stockQty > 0 : true;
+
+        brandVal = null; // el nuevo formato no tiene columna de marca
+
+      // ── FORMATO CLÁSICO (exportación del sistema: Código, Precio (ARS), Stock, Marca, etc.) ──
+      } else {
+        code = String(row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? "").trim();
+        if (!code) { skipped++; continue; }
+
+        nombre = String(row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code).trim();
+
+        const rawARSv = row["Precio (ARS)"];
+        const rawUSDv = row["Precio (USD)"];
+        const rawStock = row["Stock"];
+        const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
+
+        const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
+        const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
+
+        priceARS = rawARSv !== undefined && rawARSv !== "" ? Number(rawARSv) : null;
+        priceUSD = rawUSDv !== undefined && rawUSDv !== "" ? Number(rawUSDv) : null;
+        fixedFlag = priceARS !== null && priceUSD === null;
+        inStock = rawStock !== undefined
+          ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
+          : undefined;
+        brandVal = rawBrand ? String(rawBrand).trim() || null : undefined;
+        parsedCats = rawCats ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+        parsedSubs = rawSubs ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+      }
+
+      // ── Guardar en BD ──────────────────────────────────────────────────────────
+      const existing = await productModel.findOne({ productCode: code });
+
+      if (existing) {
+        const update = {};
+
+        if (format === "new") {
+          // Nuevo formato: solo actualizar precio ARS y stock (no tocar categorías existentes si ya las tiene)
+          if (priceARS !== null) {
+            update.priceARS = priceARS;
+            update.fixedInARS = true;
+          }
+          update.inStock = inStock;
+          // Actualizar categorías solo si el producto no tiene ninguna aún
+          if (parsedCats.length > 0 && (!existing.categories || existing.categories.length === 0)) {
+            update.categories = parsedCats;
+          }
+          if (parsedSubs.length > 0 && (!existing.subcategories || existing.subcategories.length === 0)) {
+            update.subcategories = parsedSubs;
+          }
+        } else {
+          // Formato clásico: respetar lógica de fixedInARS
+          if (existing.fixedInARS) {
+            if (priceARS !== null) update.priceARS = priceARS;
+            if (priceUSD !== null) update.priceUSD = priceUSD;
+          } else {
+            if (priceUSD !== null) {
+              update.priceUSD = priceUSD;
+              update.priceARS = priceUSD * exchangeRate;
+            } else if (priceARS !== null) {
+              update.priceARS = priceARS;
+            }
+          }
+          if (inStock !== undefined) update.inStock = inStock;
+          if (brandVal !== undefined) update.brand = brandVal;
+          if (parsedCats !== undefined) update.categories = parsedCats;
+          if (parsedSubs !== undefined) update.subcategories = parsedSubs;
+        }
+
+        if (Object.keys(update).length > 0) {
+          await productModel.updateOne({ _id: existing._id }, { $set: update });
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        // ── Producto nuevo ─────────────────────────────────────────────────────
+        const newProd = {
+          name:          nombre,
+          description:   nombre,
+          productCode:   code,
+          brand:         brandVal ?? null,
+          categories:    parsedCats ?? [],
+          subcategories: parsedSubs ?? [],
+          active:        true,
+          inStock:       inStock !== undefined ? inStock : true,
+        };
+
+        if (priceARS !== null && !isNaN(priceARS)) {
+          newProd.priceARS = priceARS;
+          if (fixedFlag) newProd.fixedInARS = true;
+        }
+        if (priceUSD !== null && priceUSD !== undefined && !isNaN(priceUSD)) {
+          newProd.priceUSD = priceUSD;
+          if (!fixedFlag) newProd.priceARS = priceUSD * exchangeRate;
+        }
+
+        try {
+          await productModel.create(newProd);
+          created++;
+        } catch (e) {
+          errors.push(`${code}: ${e.message}`);
+          skipped++;
+        }
+      }
+    }
+
+    res.json({
+      message: `Importación (${format === "new" ? "nuevo formato" : "formato clásico"}) completada: ${updated} actualizados, ${created} creados, ${skipped} omitidos`,
+      format,
+      updated,
+      created,
+      skipped,
+      errors,
+    });
+  } catch (error) {
+    console.error("Error importando Excel:", error);
+    res.status(500).json({ message: "Error importando Excel", error: error.message });
+  }
+};
+
 export const exportProductsExcel = async (req, res) => {
   try {
     const products = await productModel
       .find(
         {},
-        "productCode name priceARS priceUSD active categories subcategories"
+        "productCode name brand priceARS priceUSD active categories subcategories"
       )
       .lean();
 
     const data = products.map((p) => ({
       Código: p.productCode,
       Nombre: p.name,
+      Marca: p.brand || "",
       "Precio (ARS)": p.priceARS || "",
       "Precio (USD)": p.priceUSD || "",
       Estado: p.active ? "Activo" : "Inactivo",
@@ -445,5 +776,34 @@ export const exportProductsExcel = async (req, res) => {
   } catch (error) {
     console.error("❌ Error exportando Excel:", error);
     res.status(500).json({ message: "Error exportando Excel" });
+  }
+};
+
+/* ---- MIGRACIÓN: normalizar campo category (string) → categories (array) ---- */
+export const migrateCategories = async (req, res) => {
+  try {
+    // Buscar productos que tienen el campo viejo "category" (string) en MongoDB
+    // usando $exists + $type string, y cuyo categories array está vacío
+    const candidates = await productModel
+      .find({ $and: [{ category: { $exists: true } }, { $or: [{ categories: { $size: 0 } }, { categories: { $exists: false } }] }] })
+      .lean();
+
+    let migrated = 0;
+    for (const doc of candidates) {
+      if (!doc.category) continue;
+      await productModel.updateOne(
+        { _id: doc._id },
+        { $set: { categories: [doc.category] } }
+      );
+      migrated++;
+    }
+
+    res.json({
+      message: `Migración completada: ${migrated} productos actualizados`,
+      migrated,
+    });
+  } catch (error) {
+    console.error("Error en migración de categorías:", error);
+    res.status(500).json({ message: "Error en migración", error: error.message });
   }
 };

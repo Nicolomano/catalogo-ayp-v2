@@ -7,57 +7,44 @@ import {
   getProductsByCategory,
   deleteProduct,
   toggleProduct,
+  toggleFeatured,
+  toggleStock,
   getProductsAdmin,
   getCategoriesMeta,
   exportProductsExcel,
+  importProductsExcel,
+  getLandingProducts,
+  getProductBrands,
+  migrateCategories,
 } from "../controllers/productsController.js";
-const productRouter = express.Router();
 import { protect } from "../middlewares/authMiddleware.js";
-import uploadCloud from "../middlewares/multer.js";
-import Category from "../services/models/category.js";
+import uploadCloud, { uploadExcel } from "../middlewares/multer.js";
 
-//subide de imagen
-productRouter.post("/upload", uploadCloud.single("image"), uploadImage);
+const productRouter = express.Router();
 
-//public
-productRouter.get("/meta/categories", async (req, res) => {
-  try {
-    // 1️⃣ Buscar todas las categorías
-    const allCategories = await Category.find().lean();
+// ── Rutas estáticas (deben ir ANTES de /:category) ───────────────
 
-    // 2️⃣ Filtrar las categorías principales (sin parent)
-    const mainCategories = allCategories.filter((cat) => !cat.parent);
-
-    // 3️⃣ Agrupar subcategorías según su parent
-    const structured = mainCategories.map((cat) => {
-      const subs = allCategories
-        .filter((sub) => sub.parent?.toString() === cat._id.toString())
-        .map((sub) => sub.name);
-      return {
-        category: cat.name,
-        subcategories: subs,
-      };
-    });
-
-    res.json(structured);
-  } catch (error) {
-    console.error("Error al obtener meta categorías:", error);
-    res.status(500).json({ error: "Error al obtener categorías" });
-  }
-});
+// Públicas
 productRouter.get("/meta/categories", getCategoriesMeta);
-productRouter.get("/", getProductsByCategory);
+productRouter.get("/landing",         getLandingProducts);
+productRouter.get("/brands",          getProductBrands);
 productRouter.get("/code/:productCode", getProductByCode);
+productRouter.get("/export/excel",    exportProductsExcel);
+
+// Admin
+productRouter.get("/admin/all",             protect, getProductsAdmin);
+productRouter.post("/admin/migrate-categories", protect, migrateCategories);
+productRouter.post("/import/excel",         protect, uploadExcel.single("file"), importProductsExcel);
+productRouter.post("/upload",         protect, uploadCloud.single("image"), uploadImage);
+productRouter.post("/",               protect, uploadCloud.single("image"), createProduct);
+productRouter.put("/:id",             protect, uploadCloud.single("image"), updateProduct);
+productRouter.delete("/:id",          protect, deleteProduct);
+productRouter.patch("/:id/toggle",    protect, toggleProduct);
+productRouter.patch("/:id/featured",  protect, toggleFeatured);
+productRouter.patch("/:id/stock",     protect, toggleStock);
+
+// ── Ruta genérica — SIEMPRE AL FINAL ────────────────────────────
+productRouter.get("/",          getProductsByCategory);
 productRouter.get("/:category", getProductsByCategory);
-
-//productRouter.get("/:id", getProductByCode); // soporte para id directo
-
-//admin
-productRouter.post("/", protect, uploadCloud.single("image"), createProduct);
-productRouter.put("/:id", protect, uploadCloud.single("image"), updateProduct);
-productRouter.delete("/:id", protect, deleteProduct);
-productRouter.patch("/:id/toggle", protect, toggleProduct);
-productRouter.get("/admin/all", protect, getProductsAdmin);
-productRouter.get("/export/excel", exportProductsExcel);
 
 export default productRouter;

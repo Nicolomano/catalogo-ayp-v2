@@ -35,8 +35,10 @@ html.dark {
   --text2:        #CBD5E1;
   --muted:        #94A3B8;
   --muted2:       #64748B;
-  --brand-tint:   #0D1A40;
-  --brand-tint-t: #3355AA;
+  --brand:        #6699FF;   /* lighter blue — readable on dark surfaces */
+  --brand-h:      #5588EE;
+  --brand-tint:   rgba(102, 153, 255, 0.12);
+  --brand-tint-t: rgba(102, 153, 255, 0.28);
   --hero-grad:    linear-gradient(135deg, #000D40 0%, #001A80 60%, #0033CC 100%);
   --dark-card:    #000D40;
   --shadow:       0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.3);

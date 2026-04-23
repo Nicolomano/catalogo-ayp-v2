@@ -10,6 +10,7 @@ import dashboardRouter from "./src/routes/dashboardRoute.js";
 import categoryRouter from "./src/routes/categoryRoutes.js";
 import kitRouter from "./src/routes/kitRoutes.js";
 import siteConfigRouter from "./src/routes/siteConfigRoutes.js";
+import userRouter from "./src/routes/userRoutes.js";
 import corsOptions from "./src/utils/cors.js";
 import productModel from "./src/services/models/productModel.js";
 
@@ -29,6 +30,7 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/categories", categoryRouter);
 app.use("/api/kits", kitRouter);
 app.use("/api/site-config", siteConfigRouter);
+app.use("/api/users", userRouter);
 
 app.get("/sitemap.xml", async (req, res) => {
   try {
@@ -88,7 +90,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     message: "Error interno del servidor",
     error: err.message,
-    stack: err.stack,
   });
 });
 

@@ -39,9 +39,12 @@ const siteConfigSchema = new mongoose.Schema(
       default: "A&P Refrigeración es un distribuidor mayorista de repuestos y equipos de refrigeración comercial e industrial. Más de 10 años en el rubro, atendiendo a instaladores y técnicos de todo el país.",
     },
     // ── Contacto ───────────────────────────────────────────────
-    address: { type: String, default: "Dirección del local, Ciudad, Provincia" },
-    phone:   { type: String, default: "+54 11 XXXX-XXXX" },
-    hours:   { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
+    address:   { type: String, default: "Dirección del local, Ciudad, Provincia" },
+    phone:     { type: String, default: "+54 11 XXXX-XXXX" },
+    whatsapp:  { type: String, default: "" }, // número limpio para wa.me, ej: 5491112345678
+    hours:     { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
+    email:     { type: String, default: "" },
+    mapsEmbed: { type: String, default: "" }, // URL del iframe de Google Maps
     // ── Kit CTA ────────────────────────────────────────────────
     kitTitle:    { type: String, default: "Kit de instalación" },
     kitSubtitle: {
@@ -49,10 +52,14 @@ const siteConfigSchema = new mongoose.Schema(
       default: "Calculá todo lo que necesitás para una instalación completa. Seleccioná los componentes y armá tu pedido en minutos.",
     },
     kitCTA: { type: String, default: "Armar mi kit →" },
+    // ── Modo mantenimiento ─────────────────────────────────────
+    maintenanceMode: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
+// Campo interno para garantizar documento único (singleton pattern)
+siteConfigSchema.add({ singleton_key: { type: String, default: "main", select: false } });
 siteConfigSchema.index({ singleton_key: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model("siteConfig", siteConfigSchema);

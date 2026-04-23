@@ -3,33 +3,36 @@ import productModel from "../services/models/productModel.js";
 
 export async function updateExchangeRate(req, res) {
   const { exchangeRate } = req.body;
-  if (exchangeRate == null) {
-    return res.status(400).json({ message: "Exchange rate is required" });
+  const rate = Number(exchangeRate);
+  if (exchangeRate == null || isNaN(rate) || rate <= 0) {
+    return res.status(400).json({ message: "La cotización debe ser un número mayor a 0" });
   }
 
   try {
     const cfg = await configModel.findOneAndUpdate(
       {},
-      { exchangeRate: Number(exchangeRate) },
+      { exchangeRate: rate },
       { new: true, upsert: true }
     );
 
-    // Recalcular SOLO los que NO son fijos en ARS
+    // Recalcular solo cuando haya priceUSD y no sea fijo en ARS.
+    // Si fixedInARS=true o priceUSD es null/ausente → mantener priceARS actual
+    // (así evitamos poner precios en 0 a productos sin USD).
     await productModel.updateMany(
-      {}, // usamos $set con $cond, así no necesitamos filtrar aquí
+      {},
       [
         {
           $set: {
             priceARS: {
               $cond: [
-                { $eq: ["$fixedInARS", true] }, // si es fijo → mantener
-                "$priceARS",
                 {
-                  $multiply: [
-                    { $ifNull: ["$priceUSD", 0] },
-                    Number(exchangeRate),
+                  $or: [
+                    { $eq: ["$fixedInARS", true] },
+                    { $eq: [{ $ifNull: ["$priceUSD", null] }, null] },
                   ],
                 },
+                "$priceARS",
+                { $multiply: ["$priceUSD", rate] },
               ],
             },
           },

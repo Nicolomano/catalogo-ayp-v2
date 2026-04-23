@@ -3,6 +3,7 @@ import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
+import WhatsappFloat from "./WhatsappFloat.jsx";
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
@@ -43,20 +44,13 @@ function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--brand)" }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="font-bold text-sm" style={{ color: "var(--text)" }}>A&P</span>
-              <span className="text-xs" style={{ color: "var(--muted)" }}>Refrigeración</span>
-            </div>
+          <Link to="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="A&P Refrigeración"
+              className="h-10 w-auto invert dark:invert-0"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
           </Link>
 
           {/* Links desktop */}
@@ -200,18 +194,19 @@ function Layout() {
         <Outlet />
       </main>
 
+      <WhatsappFloat />
+
       {/* FOOTER */}
       <footer className="py-12 mt-8" style={{ background: "var(--dark-card)" }}>
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-8">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </div>
-              <span className="font-bold text-white">A&P Refrigeración</span>
+            <div className="flex items-center mb-3">
+              <img
+                src="/logo.png"
+                alt="A&P Refrigeración"
+                className="h-10 w-auto"
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
             </div>
             <p className="text-sm text-white/40 max-w-xs">Distribuidora de repuestos para refrigeración. Buenos Aires, Argentina.</p>
           </div>

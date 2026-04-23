@@ -7,15 +7,20 @@ import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
 import toast from "react-hot-toast";
 import Sidebar from "../components/Sidebar.jsx";
+import HeroCarousel from "../components/HeroCarousel.jsx";
 
 const PAGE_SIZE = 24;
 
 function Catalogo() {
   const [allProducts, setAllProducts] = useState([]);
-  const [isFetching, setIsFetching]   = useState(false);
+  const [isFetching, setIsFetching]   = useState(true);
   const [hasMore, setHasMore]         = useState(true);
   const [page, setPage]               = useState(1);
   const [isPending, startTransition]  = useTransition();
+  const [catalogBanners, setCatalogBanners] = useState([]);
+
+  // Ref para que el observer siempre lea el valor actual sin recrearse
+  const isFetchingRef = useRef(true);
 
   const { addToCart }                           = useCart();
   const { isServiceApproved, servicePrice }     = useAuth();
@@ -49,6 +54,7 @@ function Catalogo() {
       setCategories(normalized);
     }).catch(() => {});
     API.get("/products/brands").then((res) => setBrands(res.data || [])).catch(() => {});
+    API.get("/banners?type=catalog").then((res) => setCatalogBanners(res.data || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -67,11 +73,14 @@ function Catalogo() {
   }, [categories, params]);
 
   useEffect(() => {
+    isFetchingRef.current = true;  // bloquear observer durante el reset
+    setIsFetching(true);
     setPage(1); setAllProducts([]); setHasMore(true);
   }, [category, subcategory, sort, debouncedSearch, selectedBrands]);
 
   useEffect(() => {
     const controller = new AbortController();
+    isFetchingRef.current = true;
     setIsFetching(true);
     const qs = new URLSearchParams();
     qs.set("limit", PAGE_SIZE); qs.set("page", page); qs.set("sort", sort);
@@ -89,10 +98,17 @@ function Catalogo() {
         );
       })
       .catch((err) => {
-        if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED")
+        if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
           console.error("Error cargando productos:", err);
+          setHasMore(false); // cortar el loop del observer cuando el servidor no responde
+        }
       })
-      .finally(() => setIsFetching(false));
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          isFetchingRef.current = false;
+          setIsFetching(false);
+        }
+      });
 
     return () => controller.abort();
   }, [category, subcategory, sort, debouncedSearch, selectedBrands, page]);
@@ -101,12 +117,14 @@ function Catalogo() {
     const el = loaderRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting && hasMore && !isFetching) setPage((p) => p + 1); },
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isFetchingRef.current) setPage((p) => p + 1);
+      },
       { rootMargin: "200px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasMore, isFetching]);
+  }, [hasMore]); // ya no depende de isFetching (usa el ref)
 
   const handleIncrease = (code) => setQuantities((prev) => ({ ...prev, [code]: (prev[code] || 1) + 1 }));
   const handleDecrease = (code) => setQuantities((prev) => ({ ...prev, [code]: Math.max(1, (prev[code] || 1) - 1) }));
@@ -157,6 +175,13 @@ function Catalogo() {
 
         {/* Contenido principal */}
         <div className="flex-1 min-w-0">
+
+          {/* Banners del catálogo */}
+          {catalogBanners.length > 0 && (
+            <div className="rounded-[20px] overflow-hidden mb-5" style={{ aspectRatio: "3/1" }}>
+              <HeroCarousel slides={catalogBanners} fillContainer />
+            </div>
+          )}
 
           {/* Barra de búsqueda + controles */}
           <div className="flex gap-2 mb-4">
@@ -216,7 +241,12 @@ function Catalogo() {
           )}
 
           {/* Grid de productos */}
-          {allProducts.length === 0 && !isFetching ? (
+          {(isFetching || isPending) && allProducts.length === 0 ? (
+            <div className="flex justify-center py-24">
+              <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full"
+                style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            </div>
+          ) : allProducts.length === 0 ? (
             <p className="text-center py-16 text-lg" style={{ color: "var(--muted)" }}>
               No se encontraron productos.
             </p>
@@ -242,7 +272,7 @@ function Catalogo() {
                     </Link>
 
                     <div className="px-3 pb-3 flex flex-col gap-2 mt-auto">
-                      {!p.inStock && (
+                      {p.inStock === false && (
                         <span className="text-xs text-center rounded-full px-2 py-0.5"
                           style={{ background: "#FEF2F2", color: "#DC2626" }}>
                           Sin stock
@@ -275,11 +305,11 @@ function Catalogo() {
 
                       <button
                         onClick={() => { addToCart(p, qty); toast.success("Agregado al pedido"); }}
-                        disabled={!p.inStock}
+                        disabled={p.inStock === false}
                         className="w-full text-white text-xs py-2 rounded-lg font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: p.inStock ? "var(--brand)" : "var(--muted2)" }}
+                        style={{ background: p.inStock !== false ? "var(--brand)" : "var(--muted2)" }}
                       >
-                        {p.inStock ? "Agregar" : "Sin stock"}
+                        {p.inStock !== false ? "Agregar" : "Sin stock"}
                       </button>
                     </div>
                   </div>
@@ -289,7 +319,7 @@ function Catalogo() {
           )}
 
           <div ref={loaderRef} className="h-4" />
-          {isFetching && (
+          {(isFetching || isPending) && allProducts.length > 0 && (
             <div className="flex justify-center py-8">
               <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full"
                 style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />

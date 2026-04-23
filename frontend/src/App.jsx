@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Layout from "./components/Layout.jsx";
 import Landing from "./pages/Landing.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import ProductDetail from "./pages/ProductDetail.jsx";
 import Cart from "./pages/Cart.jsx";
 import Contacto from "./pages/Contacto.jsx";
+import MaintenancePage from "./pages/MaintenancePage.jsx";
 
 import AdminLogin from "./pages/AdminLogin.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -21,13 +23,30 @@ import AdminInstallKit from "./pages/AdminInstallKit.jsx";
 import AdminCategories from "./pages/AdminCategories.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
+import API from "./api/axios.js";
+
+function PublicLayout() {
+  const [state, setState] = useState("loading");
+
+  useEffect(() => {
+    API.get("/site-config")
+      .then((r) => setState(r.data.maintenanceMode ? "maintenance" : "ok"))
+      .catch(() => setState("ok"));
+  }, []);
+
+  const adminToken = localStorage.getItem("token");
+
+  if (state === "loading") return null;
+  if (state === "maintenance" && !adminToken) return <MaintenancePage />;
+  return <Layout />;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Público */}
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={<PublicLayout />}>
           <Route index element={<Landing />} />
           <Route path="catalogo" element={<Catalogo />} />
           <Route path="product/:productCode" element={<ProductDetail />} />

@@ -1,14 +1,12 @@
 // controllers/kitController.js
 import configModel from "../services/models/configModel.js";
 import productModel from "../services/models/productModel.js";
-import configApp from "../services/models/configModel.js";
 
 export const priceInstallKit = async (req, res) => {
   const { quantities = {}, variant = {} } = req.body || {};
   const cfg = await configModel.findOne().lean();
   const items = cfg?.installKit?.items || [];
-  const appCfg = await configApp.findOne().lean();
-  const exchangeRate = Number(appCfg?.exchangeRate || 1);
+  const exchangeRate = Number(cfg?.exchangeRate || 1);
 
   // Pre-cargar todos los productCodes a consultar (mejor performance)
   const codes = new Set();

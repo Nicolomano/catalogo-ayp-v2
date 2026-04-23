@@ -1,12 +1,7 @@
 import Order from "../services/models/orderModel.js";
 import Config from "../services/models/configModel.js";
+import SiteConfig from "../services/models/siteConfigModel.js";
 import Product from "../services/models/productModel.js";
-
-// Si tenés un config central, podés leerlo de ahí.
-import config from "../config/config.js";
-
-// Número de WhatsApp del LOCAL (formato WhatsApp: 549 + area + número)
-const STORE_WHATSAPP = config.storeWhatsApp;
 
 // helper para formatear texto del detalle
 const formatMoney = (n) => {
@@ -32,9 +27,10 @@ export const createOrder = async (req, res) => {
         .json({ message: "Faltan datos del cliente (nombre y teléfono)." });
     }
 
-    // Tomamos la cotización vigente para garantizar totales correctos (no confiamos en el frontend)
-    const cfg = await Config.findOne();
+    // Tomamos la cotización y el número de WhatsApp del LOCAL desde la DB
+    const [cfg, siteCfg] = await Promise.all([Config.findOne(), SiteConfig.findOne()]);
     const exchangeRate = cfg?.exchangeRate || 1;
+    const storeWhatsApp = (siteCfg?.whatsapp || "").replace(/\D/g, "");
 
     let totalUSD = 0;
     let totalARS = 0;
@@ -48,8 +44,8 @@ export const createOrder = async (req, res) => {
       const qty = Number(item.quantity || 0);
       if (qty <= 0) continue;
 
-      prod.soldCount = (prod.soldCount || 0) + qty;
-      await prod.save();
+      // Incremento atómico para evitar race condition entre pedidos concurrentes
+      await Product.updateOne({ _id: prod._id }, { $inc: { soldCount: qty } });
 
       const subUSD = prod.priceUSD * qty;
       const subARS = prod.priceARS * qty; // ya persistido con tu lógica de exchangeRate
@@ -105,8 +101,7 @@ export const createOrder = async (req, res) => {
     );
 
     // IMPORTANTE: el número es el del LOCAL (para que el cliente inicie el chat hacia el negocio)
-    const waPhone = String(STORE_WHATSAPP).replace(/[^\d]/g, "");
-    const waLink = `https://wa.me/${waPhone}?text=${text}`;
+    const waLink = storeWhatsApp ? `https://wa.me/${storeWhatsApp}?text=${text}` : null;
     // Alternativa compatible:
     // const waLink = `https://api.whatsapp.com/send?phone=${waPhone}&text=${text}`;
 
@@ -149,7 +144,7 @@ export const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["pendiente", "contestada"].includes(status)) {
+    if (!["pendiente", "contestada"].includes(status)) {  // debe coincidir con el enum del modelo
       return res.status(400).json({ message: "Estado inválido" });
     }
 

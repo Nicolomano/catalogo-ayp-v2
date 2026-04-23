@@ -16,8 +16,9 @@ const DEFAULT = {
     { title: "Horario", desc: "Lun-Vie 8 a 18hs" },
   ],
   aboutTitle: "¿Quiénes somos?", aboutText: "",
-  address: "", phone: "", hours: "",
+  address: "", phone: "", whatsapp: "", hours: "", email: "", mapsEmbed: "",
   kitTitle: "Kit de instalación", kitSubtitle: "", kitCTA: "Armar mi kit →",
+  maintenanceMode: false,
 };
 
 const inputCls = "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
@@ -102,6 +103,38 @@ export default function AdminLanding() {
 
   return (
     <div className="max-w-3xl space-y-6">
+
+      {/* Modo mantenimiento */}
+      <div
+        className="bento p-5 flex items-center justify-between gap-4"
+        style={{
+          borderRadius: "16px",
+          borderColor: config.maintenanceMode ? "#ef4444" : "var(--border)",
+          borderWidth: config.maintenanceMode ? "2px" : "1px",
+        }}
+      >
+        <div>
+          <p className="font-semibold text-sm" style={{ color: config.maintenanceMode ? "#ef4444" : "var(--text)" }}>
+            {config.maintenanceMode ? "🔒 Modo mantenimiento ACTIVO" : "Modo mantenimiento"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+            {config.maintenanceMode
+              ? "Los visitantes ven una página \"en construcción\". Solo vos (admin) podés acceder al sitio."
+              : "Cuando está activo, los visitantes ven una página \"en construcción\" en lugar del sitio."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => set("maintenanceMode", !config.maintenanceMode)}
+          className="relative flex-shrink-0 w-12 h-6 rounded-full transition-colors duration-200"
+          style={{ background: config.maintenanceMode ? "#ef4444" : "var(--border)" }}
+        >
+          <span
+            className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+            style={{ transform: config.maintenanceMode ? "translateX(24px)" : "translateX(0)" }}
+          />
+        </button>
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -222,8 +255,20 @@ export default function AdminLanding() {
       {/* CONTACTO */}
       <Section title="Información de contacto">
         <Field label="Dirección"><input className={inputCls} style={inputStyle} value={config.address} onChange={(e) => set("address", e.target.value)} /></Field>
-        <Field label="Teléfono / WhatsApp"><input className={inputCls} style={inputStyle} value={config.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="Teléfono (display)"><input className={inputCls} style={inputStyle} value={config.phone} onChange={(e) => set("phone", e.target.value)} /></Field>
+        <Field label="WhatsApp (botón flotante)" hint="Número limpio para wa.me, sin +, sin espacios. Ej: 5491112345678">
+          <input
+            className={inputCls} style={inputStyle}
+            placeholder="5491112345678"
+            value={config.whatsapp}
+            onChange={(e) => set("whatsapp", e.target.value.replace(/\D/g, ""))}
+          />
+        </Field>
         <Field label="Horario"><input className={inputCls} style={inputStyle} value={config.hours} onChange={(e) => set("hours", e.target.value)} /></Field>
+        <Field label="Email de contacto"><input className={inputCls} style={inputStyle} value={config.email} onChange={(e) => set("email", e.target.value)} placeholder="info@ejemplo.com" /></Field>
+        <Field label="URL del iframe de Google Maps" hint="Abrí Google Maps → Compartir → Insertar mapa → copiá la URL del src del iframe">
+          <textarea rows={2} className={inputCls} style={inputStyle} value={config.mapsEmbed} onChange={(e) => set("mapsEmbed", e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." />
+        </Field>
       </Section>
 
       {/* KIT */}

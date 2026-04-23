@@ -29,13 +29,17 @@ const productSchema = new mongoose.Schema(
     priceARS: { type: Number },
     fixedInARS: { type: Boolean, default: false },
 
+    brand: { type: String, trim: true, default: null },
+
     // ✅ categorías y subcategorías como strings (no ObjectId)
     categories: [{ type: String, trim: true }],
     subcategories: [{ type: String, trim: true }],
 
     // 📊 estado y métricas
-    active: { type: Boolean, default: true },
-    views: { type: Number, default: 0 },
+    active:    { type: Boolean, default: true },
+    inStock:   { type: Boolean, default: true },
+    featured:  { type: Boolean, default: false },
+    views:     { type: Number, default: 0 },
     soldCount: { type: Number, default: 0 },
   },
   {
@@ -58,6 +62,7 @@ productSchema.pre("save", async function (next) {
   if (this.fixedInARS === true) return next();
 
   try {
+    if (this.priceUSD == null) return next();   // sin precio USD → no recalcular
     const cfg = await Config.findOne();
     const rate = cfg ? cfg.exchangeRate : 1;
     this.priceARS = Number(this.priceUSD) * Number(rate);
