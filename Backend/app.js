@@ -90,7 +90,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     message: "Error interno del servidor",
     error: err.message,
-    stack: err.stack,
   });
 });
 
