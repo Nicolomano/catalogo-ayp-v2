@@ -15,22 +15,24 @@ export async function updateExchangeRate(req, res) {
       { new: true, upsert: true }
     );
 
-    // Recalcular SOLO los que NO son fijos en ARS
+    // Recalcular solo cuando haya priceUSD y no sea fijo en ARS.
+    // Si fixedInARS=true o priceUSD es null/ausente → mantener priceARS actual
+    // (así evitamos poner precios en 0 a productos sin USD).
     await productModel.updateMany(
-      {}, // usamos $set con $cond, así no necesitamos filtrar aquí
+      {},
       [
         {
           $set: {
             priceARS: {
               $cond: [
-                { $eq: ["$fixedInARS", true] }, // si es fijo → mantener
-                "$priceARS",
                 {
-                  $multiply: [
-                    { $ifNull: ["$priceUSD", 0] },
-                    rate,
+                  $or: [
+                    { $eq: ["$fixedInARS", true] },
+                    { $eq: [{ $ifNull: ["$priceUSD", null] }, null] },
                   ],
                 },
+                "$priceARS",
+                { $multiply: ["$priceUSD", rate] },
               ],
             },
           },

@@ -341,8 +341,13 @@ export const getProductsAdmin = async (req, res) => {
     const adminAnd = [];
 
     if (search) {
-      const term = new RegExp(search.trim(), "i");
-      adminAnd.push({ $or: [{ name: term }, { productCode: term }] });
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      adminAnd.push({
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { productCode: { $regex: escaped, $options: "i" } },
+        ],
+      });
     }
 
     if (category) {

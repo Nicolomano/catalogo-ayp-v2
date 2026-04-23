@@ -44,8 +44,8 @@ export const createOrder = async (req, res) => {
       const qty = Number(item.quantity || 0);
       if (qty <= 0) continue;
 
-      prod.soldCount = (prod.soldCount || 0) + qty;
-      await prod.save();
+      // Incremento atómico para evitar race condition entre pedidos concurrentes
+      await Product.updateOne({ _id: prod._id }, { $inc: { soldCount: qty } });
 
       const subUSD = prod.priceUSD * qty;
       const subARS = prod.priceARS * qty; // ya persistido con tu lógica de exchangeRate

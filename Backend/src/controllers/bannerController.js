@@ -91,6 +91,7 @@ export const updateBanner = async (req, res) => {
       data.image = await uploadToR2(buffer, filename, "image/webp");
     }
     const updated = await Banner.findByIdAndUpdate(id, data, { new: true });
+    if (!updated) return res.status(404).json({ message: "Banner no encontrado" });
     res.json(updated);
   } catch (e) {
     res
