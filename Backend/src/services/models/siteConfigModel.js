@@ -52,6 +52,8 @@ const siteConfigSchema = new mongoose.Schema(
       default: "Calculá todo lo que necesitás para una instalación completa. Seleccioná los componentes y armá tu pedido en minutos.",
     },
     kitCTA: { type: String, default: "Armar mi kit →" },
+    // ── Modo mantenimiento ─────────────────────────────────────
+    maintenanceMode: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
