@@ -26,18 +26,17 @@ import Login from "./pages/Login.jsx";
 import API from "./api/axios.js";
 
 function PublicLayout() {
-  const [state, setState] = useState("loading");
+  const [maintenance, setMaintenance] = useState(false);
 
   useEffect(() => {
     API.get("/site-config")
-      .then((r) => setState(r.data.maintenanceMode ? "maintenance" : "ok"))
-      .catch(() => setState("ok"));
+      .then((r) => setMaintenance(r.data.maintenanceMode === true))
+      .catch(() => {});
   }, []);
 
   const adminToken = localStorage.getItem("token");
 
-  if (state === "loading") return null;
-  if (state === "maintenance" && !adminToken) return <MaintenancePage />;
+  if (maintenance && !adminToken) return <MaintenancePage />;
   return <Layout />;
 }
 
