@@ -13,15 +13,18 @@ import API from "../api/axios";
 export default function HeroCarousel({ type = "home", slides: slidesProp, fillContainer = false }) {
   const autoplay = useRef(Autoplay({ delay: 4000, stopOnInteraction: false }));
 
-  const [slides, setSlides]       = useState(slidesProp ?? []);
+  const [slides, setSlides]       = useState(Array.isArray(slidesProp) ? slidesProp : []);
   const [emblaRef, emblaApi]      = useEmblaCarousel({ loop: true }, [autoplay.current]);
   const [selected, setSelected]   = useState(0);
 
   // Solo hace fetch si no recibió slides como prop
   useEffect(() => {
-    if (slidesProp !== undefined) { setSlides(slidesProp); return; }
+    if (slidesProp !== undefined) {
+      setSlides(Array.isArray(slidesProp) ? slidesProp : []);
+      return;
+    }
     API.get(`/banners?type=${type}`)
-      .then((res) => setSlides(res.data || []))
+      .then((res) => setSlides(Array.isArray(res.data) ? res.data : []))
       .catch((e) => console.error("Error cargando banners:", e));
   }, [type, slidesProp]);
 

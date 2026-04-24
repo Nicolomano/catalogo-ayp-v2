@@ -113,7 +113,7 @@ function Landing() {
       .catch(() => {});
     API.get("/products/meta/categories")
       .then((r) => {
-        const data = r.data || [];
+        const data = Array.isArray(r.data) ? r.data : [];
         const norm = data.length && typeof data[0] === "string"
           ? data.map((c) => ({ category: c, subcategories: [] }))
           : data;
@@ -124,7 +124,7 @@ function Landing() {
       .then((r) => setSiteConfig((prev) => ({ ...prev, ...r.data })))
       .catch(() => {});
     API.get("/banners?type=home")
-      .then((r) => setBanners(r.data || []))
+      .then((r) => setBanners(Array.isArray(r.data) ? r.data : []))
       .catch(() => setBanners([]));
   }, []);
 

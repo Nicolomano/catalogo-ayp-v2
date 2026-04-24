@@ -48,13 +48,13 @@ function Catalogo() {
 
   useEffect(() => {
     API.get("/products/meta/categories").then((res) => {
-      const data = res.data || [];
+      const data = Array.isArray(res.data) ? res.data : [];
       const normalized = data.length && typeof data[0] === "string"
         ? data.map((c) => ({ category: c, subcategories: [] })) : data;
       setCategories(normalized);
     }).catch(() => {});
-    API.get("/products/brands").then((res) => setBrands(res.data || [])).catch(() => {});
-    API.get("/banners?type=catalog").then((res) => setCatalogBanners(res.data || [])).catch(() => {});
+    API.get("/products/brands").then((res) => setBrands(Array.isArray(res.data) ? res.data : [])).catch(() => {});
+    API.get("/banners?type=catalog").then((res) => setCatalogBanners(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, []);
 
   useEffect(() => {
