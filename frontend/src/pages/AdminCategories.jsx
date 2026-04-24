@@ -20,7 +20,7 @@ export default function AdminCategories() {
     setLoading(true);
     try {
       const res = await API.get("/categories/tree");
-      setCategories(res.data);
+      setCategories(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error("No se pudieron cargar las categorías");
     } finally {

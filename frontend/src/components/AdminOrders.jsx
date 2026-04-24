@@ -12,7 +12,7 @@ function AdminOrders() {
 
   useEffect(() => {
     API.get("/orders")
-      .then((res) => setOrders(res.data))
+      .then((res) => setOrders(Array.isArray(res.data) ? res.data : []))
       .catch((err) => console.error("Error cargando órdenes:", err))
       .finally(() => setLoading(false));
   }, []);

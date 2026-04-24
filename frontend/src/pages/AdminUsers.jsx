@@ -29,7 +29,7 @@ function AdminUsers() {
       const res = await API.get("/users", {
                 params: status !== "all" ? { status } : {},
       });
-      setUsers(res.data);
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error("Error cargando usuarios");
     } finally {

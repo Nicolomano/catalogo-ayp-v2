@@ -29,7 +29,7 @@ function AdminProducts() {
   useEffect(() => {
     API.get("/products/meta/categories")
       .then((res) => {
-        const data = res.data || [];
+        const data = Array.isArray(res.data) ? res.data : [];
         const cats = data.map((item) => {
           if (typeof item === "string") return { category: item, subcategories: [] };
           return {

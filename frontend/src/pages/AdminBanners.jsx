@@ -20,7 +20,7 @@ export default function AdminBanners() {
 
   const fetchAll = () => {
     API.get("/banners/admin/all", { params: { type: typeFilter } })
-      .then((res) => setItems(res.data || []))
+      .then((res) => setItems(Array.isArray(res.data) ? res.data : []))
       .catch((e) => console.error(e));
   };
 
