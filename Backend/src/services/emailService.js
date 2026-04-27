@@ -29,15 +29,16 @@ export async function sendMail({ to, subject, html }) {
   }
 }
 
-export function approvalEmail(userName) {
+export function approvalEmail(userName, clientNumber) {
   return {
     subject: "¡Tu cuenta fue aprobada! — A&P Refrigeración",
     html: `
       <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px">
         <h2 style="color:#0033CC;margin-bottom:8px">¡Bienvenido, ${userName}!</h2>
         <p style="color:#374151">Tu cuenta de <strong>Precio Service</strong> en A&P Refrigeración fue <strong style="color:#16A34A">aprobada</strong>.</p>
+        ${clientNumber ? `<p style="color:#374151">Tu <strong>número de cliente</strong> es: <span style="font-size:1.2em;font-weight:700;color:#0033CC">${clientNumber}</span>. Guardalo para futuras consultas.</p>` : ""}
         <p style="color:#374151">A partir de ahora podés iniciar sesión y acceder a los precios especiales para técnicos matriculados.</p>
-        <a href="https://catalogoayp.vercel.app/login"
+        <a href="https://www.refrigeracionayp.com/login"
            style="display:inline-block;margin-top:16px;padding:10px 24px;background:#0033CC;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
           Iniciar sesión
         </a>

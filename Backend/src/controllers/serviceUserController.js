@@ -1,12 +1,18 @@
 import serviceUserModel from "../services/models/serviceUserModel.js";
 import { sendMail, approvalEmail, rejectionEmail } from "../services/emailService.js";
+import sharp from "sharp";
+import { v4 as uuidv4 } from "uuid";
+import { uploadToR2 } from "../utils/r2.js";
 
 export const registerServiceUser = async (req, res) => {
   try {
-    const { name, email, password, company, matricula, province, phone } = req.body;
+    const { name, email, password, company, cuit, province, phone } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Nombre, email y contraseña son requeridos" });
+    }
+    if (!cuit) {
+      return res.status(400).json({ message: "El CUIT es requerido" });
     }
 
     const exists = await serviceUserModel.findOne({ email: email.toLowerCase().trim() });
@@ -14,7 +20,22 @@ export const registerServiceUser = async (req, res) => {
       return res.status(400).json({ message: "Ya existe una cuenta con ese email" });
     }
 
-    const user = new serviceUserModel({ name, email, password, company, matricula, province, phone });
+    let matriculaImage = "";
+    if (req.file?.buffer) {
+      const buffer = await sharp(req.file.buffer)
+        .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+      matriculaImage = await uploadToR2(
+        buffer,
+        `serviceuser-matriculas/${uuidv4()}.webp`,
+        "image/webp"
+      );
+    }
+
+    const user = new serviceUserModel({
+      name, email, password, company, cuit, matriculaImage, province, phone,
+    });
     await user.save();
 
     res.status(201).json({ message: "Registro exitoso. Tu cuenta está pendiente de aprobación." });
@@ -40,13 +61,18 @@ export const listServiceUsers = async (req, res) => {
 export const updateServiceUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body;
+    const { status, rejectionReason, clientNumber } = req.body;
 
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Estado inválido" });
     }
 
+    if (status === "approved" && !clientNumber?.trim()) {
+      return res.status(400).json({ message: "Debés asignar un número de cliente antes de aprobar" });
+    }
+
     const update = { status, approved: status === "approved" };
+    if (status === "approved") update.clientNumber = clientNumber.trim();
     if (status === "rejected" && rejectionReason) update.rejectionReason = rejectionReason;
 
     const user = await serviceUserModel
@@ -55,9 +81,8 @@ export const updateServiceUserStatus = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Enviar email de notificación (no bloquea la respuesta)
     if (status === "approved") {
-      const mail = approvalEmail(user.name);
+      const mail = approvalEmail(user.name, clientNumber.trim());
       sendMail({ to: user.email, ...mail });
     } else if (status === "rejected") {
       const mail = rejectionEmail(user.name, rejectionReason);

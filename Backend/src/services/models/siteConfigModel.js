@@ -41,7 +41,8 @@ const siteConfigSchema = new mongoose.Schema(
     // ── Contacto ───────────────────────────────────────────────
     address:   { type: String, default: "Dirección del local, Ciudad, Provincia" },
     phone:     { type: String, default: "+54 11 XXXX-XXXX" },
-    whatsapp:  { type: String, default: "" }, // número limpio para wa.me, ej: 5491112345678
+    whatsapp:      { type: String, default: "" }, // número limpio para wa.me, ej: 5491112345678
+    adminWhatsapp: { type: String, default: "" }, // número de la administración (registro service sin matrícula)
     hours:     { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
     email:     { type: String, default: "" },
     mapsEmbed: { type: String, default: "" }, // URL del iframe de Google Maps

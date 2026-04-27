@@ -7,9 +7,11 @@ const serviceUserSchema = new mongoose.Schema(
     email:           { type: String, required: true, unique: true, lowercase: true, trim: true },
     password:        { type: String, required: true },
     company:         { type: String, default: "" },
-    matricula:       { type: String, default: "" },
+    cuit:            { type: String, required: true },
+    matriculaImage:  { type: String, default: "" }, // R2 public URL
     province:        { type: String, default: "" },
     phone:           { type: String, default: "" },
+    clientNumber:    { type: String, default: "" }, // assigned by admin before approval
     role:            { type: String, default: "service" },
     approved:        { type: Boolean, default: false },
     status:          { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
