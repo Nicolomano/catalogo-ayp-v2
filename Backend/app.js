@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 import MongoSingleton from "./src/config/mongoDB-singleton.js";
 import productRouter from "./src/routes/productRoute.js";
 import configRouter from "./src/routes/configRoute.js";
@@ -106,3 +107,21 @@ const connectMongoDB = async () => {
 };
 
 connectMongoDB();
+
+// Una vez conectado, elimina el índice viejo de productos que combinaba
+// categories+subcategories (MongoDB rechaza inserts por "parallel arrays").
+mongoose.connection.once("open", async () => {
+  try {
+    const indexes = await productModel.collection.indexes();
+    const bad = indexes.find(
+      (i) => i.key && i.key.categories === 1 && i.key.subcategories === 1,
+    );
+    if (bad) {
+      await productModel.collection.dropIndex(bad.name);
+      console.log(`Dropped legacy parallel-arrays index: ${bad.name}`);
+    }
+    await productModel.syncIndexes();
+  } catch (e) {
+    console.error("Error syncing product indexes:", e.message);
+  }
+});

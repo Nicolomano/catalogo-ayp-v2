@@ -51,7 +51,10 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ name: "text", productCode: "text", description: "text" });
 
 // 📈 índices compuestos para queries del catálogo (escalabilidad a 10k+ productos)
-productSchema.index({ active: 1, categories: 1, subcategories: 1 });
+// Nota: NO se puede combinar categories y subcategories en un mismo índice
+// porque MongoDB rechaza inserts cuando ambos campos son arrays ("parallel arrays")
+productSchema.index({ active: 1, categories: 1 });
+productSchema.index({ active: 1, subcategories: 1 });
 productSchema.index({ active: 1, priceARS: 1 });
 productSchema.index({ active: 1, soldCount: -1 });
 productSchema.index({ active: 1, views: -1 });
