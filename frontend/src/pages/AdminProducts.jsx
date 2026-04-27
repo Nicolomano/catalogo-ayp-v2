@@ -173,7 +173,17 @@ function AdminProducts() {
       const res = await API.post("/products/import/excel", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success(res.data.message);
+      if (res.data.skipped > 0 && res.data.errors?.length > 0) {
+        const errSample = res.data.errors.slice(0, 3).join(" | ");
+        toast.error(`${res.data.message}\nErrores: ${errSample}`, { duration: 8000 });
+        console.warn("Import errors:", res.data.errors);
+        console.info("Detected columns:", res.data.detectedColumns);
+      } else if (res.data.skipped > 0) {
+        toast.error(`${res.data.message}\nColumnas: ${res.data.detectedColumns?.join(", ")}`, { duration: 8000 });
+        console.info("Detected columns:", res.data.detectedColumns);
+      } else {
+        toast.success(res.data.message);
+      }
       fetchProducts();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error al importar");

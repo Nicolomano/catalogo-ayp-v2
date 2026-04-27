@@ -601,15 +601,21 @@ export const importProductsExcel = async (req, res) => {
         parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
         parsedSubs = subrubro ? [subrubro] : [];
 
-        // Precio en ARS desde columna precio_venta (número directo, ej: 14066,3952)
-        priceARS = parseARNumber(row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"]);
+        // Precio en ARS — intentar múltiples nombres de columna
+        priceARS = parseARNumber(
+          row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"] ??
+          row["Precio"] ?? row["precio"] ?? row["PrecioVenta"] ?? row["Precio_Venta"]
+        );
         priceUSD = null;
         fixedFlag = priceARS !== null;
 
-        // Stock desde columna Cotizador: "(34,00) $" → cantidad=34 → inStock = cantidad > 0
-        // Los paréntesis son formato contable, el número es el stock actual
-        const cotizRaw = row["Cotizador"] ?? row["cotizador"] ?? row["Cotizacion"] ?? row["cotizacion"];
-        const stockQty = parseARNumber(cotizRaw);
+        // Stock desde columna Moneda (formato contable: "(1,00) $" → stock=1)
+        // También intenta Cotizador / Cotizacion como fallback
+        const stockRaw =
+          row["Moneda"] ?? row["moneda"] ??
+          row["Cotizador"] ?? row["cotizador"] ??
+          row["Cotizacion"] ?? row["cotizacion"];
+        const stockQty = parseARNumber(stockRaw);
         inStock = stockQty !== null ? stockQty > 0 : true;
 
         brandVal = null; // el nuevo formato no tiene columna de marca
@@ -717,13 +723,15 @@ export const importProductsExcel = async (req, res) => {
       }
     }
 
+    const detectedColumns = rows.length ? Object.keys(rows[0]) : [];
     res.json({
       message: `Importación (${format === "new" ? "nuevo formato" : "formato clásico"}) completada: ${updated} actualizados, ${created} creados, ${skipped} omitidos`,
       format,
       updated,
       created,
       skipped,
-      errors,
+      errors: errors.slice(0, 20), // primeros 20 errores
+      detectedColumns,
     });
   } catch (error) {
     console.error("Error importando Excel:", error);
