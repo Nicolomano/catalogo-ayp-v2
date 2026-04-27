@@ -655,7 +655,7 @@ export const importProductsExcel = async (req, res) => {
         if (format === "new") {
           // Nuevo formato: solo actualizar precio ARS y stock (no tocar categorías existentes si ya las tiene)
           if (priceARS !== null) {
-            update.priceARS = priceARS;
+            update.priceARS = Math.round(priceARS);
             update.fixedInARS = true;
           }
           update.inStock = inStock;
@@ -705,7 +705,7 @@ export const importProductsExcel = async (req, res) => {
         };
 
         if (priceARS !== null && !isNaN(priceARS)) {
-          newProd.priceARS = priceARS;
+          newProd.priceARS = Math.round(priceARS);
           if (fixedFlag) newProd.fixedInARS = true;
         }
         if (priceUSD !== null && priceUSD !== undefined && !isNaN(priceUSD)) {

@@ -27,25 +27,36 @@ function AdminProducts() {
 
   /* -------------------- Cargar categorías -------------------- */
   useEffect(() => {
-    API.get("/products/meta/categories")
-      .then((res) => {
-        const data = Array.isArray(res.data) ? res.data : [];
-        const cats = data.map((item) => {
-          if (typeof item === "string") return { category: item, subcategories: [] };
-          return {
-            category: item.category || item._id || "",
-            subcategories: Array.isArray(item.subcategories)
-              ? item.subcategories.flat().filter(Boolean)
-              : [],
-          };
-        });
-        setCategories(cats);
-        if (category !== "all") {
-          const found = cats.find((c) => c.category === category);
-          setSubcategories(found ? found.subcategories : []);
-        }
-      })
-      .catch((e) => console.error("Error meta categorías:", e));
+    // Combina categorías de la colección + categorías ya asignadas a productos
+    Promise.all([
+      API.get("/products/meta/categories").then((r) => Array.isArray(r.data) ? r.data : []),
+      API.get("/categories").then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
+    ]).then(([metaCats, collCats]) => {
+      // Normaliza meta-categories (vienen como {category, subcategories})
+      const fromMeta = metaCats.map((item) =>
+        typeof item === "string"
+          ? { category: item, subcategories: [] }
+          : { category: item.category || item._id || "", subcategories: Array.isArray(item.subcategories) ? item.subcategories.flat().filter(Boolean) : [] }
+      );
+      // Normaliza categorías de la colección (vienen como {name, slug, ...})
+      const fromColl = collCats
+        .filter((c) => !c.parent)
+        .map((c) => ({
+          category: c.name || c.slug || "",
+          subcategories: collCats.filter((s) => s.parent === c._id || s.parent?.toString() === c._id?.toString()).map((s) => s.name || s.slug || ""),
+        }));
+      // Merge: preferir fromColl si existe la misma categoría
+      const merged = [...fromColl];
+      fromMeta.forEach((m) => {
+        if (!merged.some((c) => c.category === m.category)) merged.push(m);
+      });
+      const cats = merged.filter((c) => c.category);
+      setCategories(cats);
+      if (category !== "all") {
+        const found = cats.find((c) => c.category === category);
+        setSubcategories(found ? found.subcategories : []);
+      }
+    }).catch((e) => console.error("Error cargando categorías:", e));
   }, []);
 
   useEffect(() => {
