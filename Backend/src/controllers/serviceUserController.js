@@ -81,15 +81,16 @@ export const updateServiceUserStatus = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
+    let emailResult = null;
     if (status === "approved") {
       const mail = approvalEmail(user.name, clientNumber.trim());
-      sendMail({ to: user.email, ...mail });
+      emailResult = await sendMail({ to: user.email, ...mail });
     } else if (status === "rejected") {
       const mail = rejectionEmail(user.name, rejectionReason);
-      sendMail({ to: user.email, ...mail });
+      emailResult = await sendMail({ to: user.email, ...mail });
     }
 
-    res.json(user);
+    res.json({ ...user.toObject(), emailSent: emailResult?.ok ?? null, emailDebug: emailResult });
   } catch (error) {
     res.status(500).json({ message: "Error al actualizar estado", error: error.message });
   }
