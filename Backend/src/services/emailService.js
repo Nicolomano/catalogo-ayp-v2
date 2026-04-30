@@ -33,8 +33,11 @@ async function resolveSmtpHostIPv4() {
 function buildTransporter(host) {
   return nodemailer.createTransport({
     host,
-    port: 465,
-    secure: true,
+    // Usamos 587 (Submission + STARTTLS): muchos PaaS — Railway incluido —
+    // bloquean el puerto 465 (SMTPS legacy), pero permiten 587.
+    port: 587,
+    secure: false,
+    requireTLS: true,
     family: 4,
     auth: {
       user: config.emailAccount,
