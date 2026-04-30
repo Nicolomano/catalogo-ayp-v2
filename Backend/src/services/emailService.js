@@ -1,24 +1,52 @@
 import nodemailer from "nodemailer";
 import dns from "node:dns";
+import { promises as dnsPromises } from "node:dns";
 import config from "../config/config.js";
 
 // Redundancia: si por orden de imports app.js no llegó a setearlo,
 // nos aseguramos acá también de resolver primero IPv4.
 dns.setDefaultResultOrder("ipv4first");
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4, // forzar IPv4 — Railway no tiene conectividad IPv6 saliente
-  auth: {
-    user: config.emailAccount,
-    pass: config.emailPassword,
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
-});
+const SMTP_HOST = "smtp.gmail.com";
+let cachedHost = null;
+let cachedHostExpiresAt = 0;
+
+// Resuelve smtp.gmail.com SOLO a IPv4 (resolve4 nunca devuelve AAAA).
+// Cachea por 5 minutos para no martillar DNS.
+async function resolveSmtpHostIPv4() {
+  const now = Date.now();
+  if (cachedHost && now < cachedHostExpiresAt) return cachedHost;
+  try {
+    const addresses = await dnsPromises.resolve4(SMTP_HOST);
+    if (addresses?.length) {
+      cachedHost = addresses[0];
+      cachedHostExpiresAt = now + 5 * 60 * 1000;
+      console.log(`[emailService] Resuelto ${SMTP_HOST} -> ${cachedHost} (IPv4)`);
+      return cachedHost;
+    }
+  } catch (e) {
+    console.warn(`[emailService] No pude resolver IPv4 de ${SMTP_HOST}: ${e.message}. Uso hostname directo.`);
+  }
+  return SMTP_HOST;
+}
+
+function buildTransporter(host) {
+  return nodemailer.createTransport({
+    host,
+    port: 465,
+    secure: true,
+    family: 4,
+    auth: {
+      user: config.emailAccount,
+      pass: config.emailPassword,
+    },
+    // SNI debe seguir siendo el hostname real para que el cert TLS valide.
+    tls: { servername: SMTP_HOST },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
+  });
+}
 
 /**
  * Envía un email. Si las credenciales no están configuradas, loguea y sigue.
@@ -32,16 +60,21 @@ export async function sendMail({ to, subject, html }) {
     return { ok: false, reason: "no-credentials" };
   }
   try {
+    const host = await resolveSmtpHostIPv4();
+    const transporter = buildTransporter(host);
     const info = await transporter.sendMail({
       from: `"A&P Refrigeración" <${config.emailAccount}>`,
       to,
       subject,
       html,
     });
-    console.log(`[emailService] Enviado OK a ${to} | messageId=${info.messageId} | accepted=${info.accepted?.join(",")} | rejected=${info.rejected?.join(",")}`);
-    return { ok: true, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected };
+    console.log(`[emailService] Enviado OK a ${to} via ${host} | messageId=${info.messageId} | accepted=${info.accepted?.join(",")} | rejected=${info.rejected?.join(",")}`);
+    return { ok: true, host, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected };
   } catch (err) {
     console.error(`[emailService] Error enviando a ${to}:`, err.message, err.code || "", err.response || "");
+    // Invalidar cache de host por si la IP quedó muerta
+    cachedHost = null;
+    cachedHostExpiresAt = 0;
     return { ok: false, reason: err.message, code: err.code };
   }
 }
