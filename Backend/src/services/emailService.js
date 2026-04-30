@@ -1,5 +1,10 @@
 import nodemailer from "nodemailer";
+import dns from "node:dns";
 import config from "../config/config.js";
+
+// Redundancia: si por orden de imports app.js no llegó a setearlo,
+// nos aseguramos acá también de resolver primero IPv4.
+dns.setDefaultResultOrder("ipv4first");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
