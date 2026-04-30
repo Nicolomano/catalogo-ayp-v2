@@ -5,11 +5,12 @@ import {
   updateServiceUserStatus,
 } from "../controllers/serviceUserController.js";
 import { protect } from "../middlewares/authMiddleware.js";
+import uploadCloud from "../middlewares/multer.js";
 
 const userRouter = Router();
 
-// Público — el técnico se registra
-userRouter.post("/register", registerServiceUser);
+// Público — el técnico se registra (acepta imagen de matrícula opcional)
+userRouter.post("/register", uploadCloud.single("matriculaImage"), registerServiceUser);
 
 // Protegidas — solo admin
 userRouter.get("/", protect, listServiceUsers);
