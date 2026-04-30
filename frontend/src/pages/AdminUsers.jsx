@@ -47,8 +47,16 @@ function AdminUsers() {
       return;
     }
     try {
-      await API.patch(`/users/${id}/status`, { status: "approved", clientNumber });
-      toast.success("Usuario aprobado");
+      const res = await API.patch(`/users/${id}/status`, { status: "approved", clientNumber });
+      if (res.data?.emailSent === true) {
+        toast.success("Usuario aprobado · email enviado");
+      } else if (res.data?.emailSent === false) {
+        const reason = res.data?.emailDebug?.reason || "desconocido";
+        toast.error(`Usuario aprobado pero el email FALLÓ: ${reason}`, { duration: 8000 });
+        console.warn("Email debug:", res.data?.emailDebug);
+      } else {
+        toast.success("Usuario aprobado");
+      }
       fetchUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error al aprobar");

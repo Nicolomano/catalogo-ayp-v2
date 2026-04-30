@@ -13,19 +13,25 @@ const transporter = nodemailer.createTransport({
  * Envía un email. Si las credenciales no están configuradas, loguea y sigue.
  */
 export async function sendMail({ to, subject, html }) {
+  console.log(`[emailService] Intentando enviar a ${to} | subject="${subject}"`);
   if (!config.emailAccount || !config.emailPassword) {
-    console.warn("[emailService] Credenciales de Gmail no configuradas, email omitido.");
-    return;
+    console.warn("[emailService] Credenciales de Gmail NO configuradas, email omitido. " +
+      `(GMAIL_ACCOUNT=${config.emailAccount ? "SET" : "MISSING"}, ` +
+      `GMAIL_PASSWORD=${config.emailPassword ? "SET" : "MISSING"})`);
+    return { ok: false, reason: "no-credentials" };
   }
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"A&P Refrigeración" <${config.emailAccount}>`,
       to,
       subject,
       html,
     });
+    console.log(`[emailService] Enviado OK a ${to} | messageId=${info.messageId} | accepted=${info.accepted?.join(",")} | rejected=${info.rejected?.join(",")}`);
+    return { ok: true, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected };
   } catch (err) {
-    console.error("[emailService] Error enviando email:", err.message);
+    console.error(`[emailService] Error enviando a ${to}:`, err.message, err.code || "", err.response || "");
+    return { ok: false, reason: err.message, code: err.code };
   }
 }
 
