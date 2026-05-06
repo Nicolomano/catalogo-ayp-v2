@@ -1,8 +1,3 @@
-import dns from "node:dns";
-// Railway no tiene IPv6 saliente: forzar todas las resoluciones DNS a IPv4 primero.
-// Sin esto Gmail SMTP falla con `connect ENETUNREACH <ipv6>:465`.
-dns.setDefaultResultOrder("ipv4first");
-
 import express from "express";
 import cors from "cors";
 import MongoSingleton from "./src/config/mongoDB-singleton.js";

@@ -373,14 +373,16 @@ export const getProductsAdmin = async (req, res) => {
       sortOption = { createdAt: -1 };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const parsedLimit = Number(limit);
+    const effectiveLimit = parsedLimit > 0 ? Math.min(parsedLimit, 500) : 500;
+    const skip = (Number(page) - 1) * effectiveLimit;
 
     const [products, total] = await Promise.all([
       productModel
         .find(filter)
         .sort(sortOption)
         .skip(skip)
-        .limit(Number(limit))
+        .limit(effectiveLimit)
         .lean(),
       productModel.countDocuments(filter),
     ]);
