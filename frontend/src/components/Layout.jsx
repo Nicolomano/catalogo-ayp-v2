@@ -45,17 +45,12 @@ function Layout() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <div
-              className="px-3 py-1.5 rounded-xl flex items-center"
-              style={{ background: "var(--dark-card)" }}
-            >
-              <img
-                src="/logo.png"
-                alt="A&P Refrigeración"
-                className="h-8 w-auto"
-                onError={(e) => { e.target.parentElement.style.display = "none"; }}
-              />
-            </div>
+            <img
+              src="/logo.png"
+              alt="A&P Refrigeración"
+              className="h-11 w-auto"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
           </Link>
 
           {/* Links desktop */}
