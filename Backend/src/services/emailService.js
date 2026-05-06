@@ -1,80 +1,22 @@
-import nodemailer from "nodemailer";
-import { promises as dnsPromises } from "node:dns";
-import config from "../config/config.js";
+import { Resend } from "resend";
 
-const SMTP_HOST = "smtp.gmail.com";
-let cachedHost = null;
-let cachedHostExpiresAt = 0;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Resuelve smtp.gmail.com SOLO a IPv4 (resolve4 nunca devuelve AAAA).
-// Cachea por 5 minutos para no martillar DNS.
-async function resolveSmtpHostIPv4() {
-  const now = Date.now();
-  if (cachedHost && now < cachedHostExpiresAt) return cachedHost;
-  try {
-    const addresses = await dnsPromises.resolve4(SMTP_HOST);
-    if (addresses?.length) {
-      cachedHost = addresses[0];
-      cachedHostExpiresAt = now + 5 * 60 * 1000;
-      console.log(`[emailService] Resuelto ${SMTP_HOST} -> ${cachedHost} (IPv4)`);
-      return cachedHost;
-    }
-  } catch (e) {
-    console.warn(`[emailService] No pude resolver IPv4 de ${SMTP_HOST}: ${e.message}. Uso hostname directo.`);
-  }
-  return SMTP_HOST;
-}
+const FROM = process.env.EMAIL_FROM || "A&P Refrigeración <noreply@refrigeracionayp.com>";
 
-function buildTransporter(host) {
-  return nodemailer.createTransport({
-    host,
-    // Usamos 587 (Submission + STARTTLS): muchos PaaS — Railway incluido —
-    // bloquean el puerto 465 (SMTPS legacy), pero permiten 587.
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    auth: {
-      user: config.emailAccount,
-      pass: config.emailPassword,
-    },
-    // SNI debe seguir siendo el hostname real para que el cert TLS valide.
-    tls: { servername: SMTP_HOST },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
-}
-
-/**
- * Envía un email. Si las credenciales no están configuradas, loguea y sigue.
- */
 export async function sendMail({ to, subject, html }) {
-  console.log(`[emailService] Intentando enviar a ${to} | subject="${subject}"`);
-  if (!config.emailAccount || !config.emailPassword) {
-    console.warn("[emailService] Credenciales de Gmail NO configuradas, email omitido. " +
-      `(GMAIL_ACCOUNT=${config.emailAccount ? "SET" : "MISSING"}, ` +
-      `GMAIL_PASSWORD=${config.emailPassword ? "SET" : "MISSING"})`);
+  console.log(`[emailService] Enviando a ${to} | subject="${subject}"`);
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[emailService] RESEND_API_KEY no configurada — email omitido.");
     return { ok: false, reason: "no-credentials" };
   }
-  try {
-    const host = await resolveSmtpHostIPv4();
-    const transporter = buildTransporter(host);
-    const info = await transporter.sendMail({
-      from: `"A&P Refrigeración" <${config.emailAccount}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`[emailService] Enviado OK a ${to} via ${host} | messageId=${info.messageId} | accepted=${info.accepted?.join(",")} | rejected=${info.rejected?.join(",")}`);
-    return { ok: true, host, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected };
-  } catch (err) {
-    console.error(`[emailService] Error enviando a ${to}:`, err.message, err.code || "", err.response || "");
-    // Invalidar cache de host por si la IP quedó muerta
-    cachedHost = null;
-    cachedHostExpiresAt = 0;
-    return { ok: false, reason: err.message, code: err.code };
+  const { data, error } = await resend.emails.send({ from: FROM, to, subject, html });
+  if (error) {
+    console.error("[emailService] Error Resend:", JSON.stringify(error));
+    return { ok: false, reason: error.message, code: error.name };
   }
+  console.log(`[emailService] Enviado OK | id=${data.id}`);
+  return { ok: true, id: data.id };
 }
 
 export function approvalEmail(userName, clientNumber) {
