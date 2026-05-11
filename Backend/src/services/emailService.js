@@ -1,49 +1,22 @@
-import nodemailer from "nodemailer";
-import dns from "node:dns";
-import config from "../config/config.js";
+import { Resend } from "resend";
 
-// Redundancia: si por orden de imports app.js no llegó a setearlo,
-// nos aseguramos acá también de resolver primero IPv4.
-dns.setDefaultResultOrder("ipv4first");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4, // forzar IPv4 — Railway no tiene conectividad IPv6 saliente
-  auth: {
-    user: config.emailAccount,
-    pass: config.emailPassword,
-  },
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
-});
+const FROM = process.env.EMAIL_FROM || "A&P Refrigeración <noreply@refrigeracionayp.com>";
 
-/**
- * Envía un email. Si las credenciales no están configuradas, loguea y sigue.
- */
 export async function sendMail({ to, subject, html }) {
-  console.log(`[emailService] Intentando enviar a ${to} | subject="${subject}"`);
-  if (!config.emailAccount || !config.emailPassword) {
-    console.warn("[emailService] Credenciales de Gmail NO configuradas, email omitido. " +
-      `(GMAIL_ACCOUNT=${config.emailAccount ? "SET" : "MISSING"}, ` +
-      `GMAIL_PASSWORD=${config.emailPassword ? "SET" : "MISSING"})`);
+  console.log(`[emailService] Enviando a ${to} | subject="${subject}"`);
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[emailService] RESEND_API_KEY no configurada — email omitido.");
     return { ok: false, reason: "no-credentials" };
   }
-  try {
-    const info = await transporter.sendMail({
-      from: `"A&P Refrigeración" <${config.emailAccount}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`[emailService] Enviado OK a ${to} | messageId=${info.messageId} | accepted=${info.accepted?.join(",")} | rejected=${info.rejected?.join(",")}`);
-    return { ok: true, messageId: info.messageId, accepted: info.accepted, rejected: info.rejected };
-  } catch (err) {
-    console.error(`[emailService] Error enviando a ${to}:`, err.message, err.code || "", err.response || "");
-    return { ok: false, reason: err.message, code: err.code };
+  const { data, error } = await resend.emails.send({ from: FROM, to, subject, html });
+  if (error) {
+    console.error("[emailService] Error Resend:", JSON.stringify(error));
+    return { ok: false, reason: error.message, code: error.name };
   }
+  console.log(`[emailService] Enviado OK | id=${data.id}`);
+  return { ok: true, id: data.id };
 }
 
 export function approvalEmail(userName, clientNumber) {
