@@ -70,10 +70,13 @@ export const updateServiceUserStatus = async (req, res) => {
     if (status === "approved" && !clientNumber?.trim()) {
       return res.status(400).json({ message: "Debés asignar un número de cliente antes de aprobar" });
     }
+    if (status === "rejected" && !rejectionReason?.trim()) {
+      return res.status(400).json({ message: "El motivo del rechazo es requerido" });
+    }
 
     const update = { status, approved: status === "approved" };
     if (status === "approved") update.clientNumber = clientNumber.trim();
-    if (status === "rejected" && rejectionReason) update.rejectionReason = rejectionReason;
+    if (status === "rejected") update.rejectionReason = rejectionReason.trim();
 
     const user = await serviceUserModel
       .findByIdAndUpdate(id, update, { new: true })
@@ -90,7 +93,7 @@ export const updateServiceUserStatus = async (req, res) => {
       emailResult = await sendMail({ to: user.email, ...mail });
     }
 
-    res.json({ ...user.toObject(), emailSent: emailResult?.ok ?? null, emailDebug: emailResult });
+    res.json({ ...user.toObject(), emailSent: emailResult?.ok ?? null });
   } catch (error) {
     res.status(500).json({ message: "Error al actualizar estado", error: error.message });
   }

@@ -51,9 +51,7 @@ function AdminUsers() {
       if (res.data?.emailSent === true) {
         toast.success("Usuario aprobado · email enviado");
       } else if (res.data?.emailSent === false) {
-        const reason = res.data?.emailDebug?.reason || "desconocido";
-        toast.error(`Usuario aprobado pero el email FALLÓ: ${reason}`, { duration: 8000 });
-        console.warn("Email debug:", res.data?.emailDebug);
+        toast.error("Usuario aprobado pero el email no se pudo enviar", { duration: 8000 });
       } else {
         toast.success("Usuario aprobado");
       }
@@ -65,12 +63,13 @@ function AdminUsers() {
 
   const handleReject = async () => {
     if (!rejectModal) return;
+    if (!rejectReason.trim()) { toast.error("Ingresá el motivo del rechazo"); return; }
     try {
       await API.patch(
         `/users/${rejectModal.userId}/status`,
-        { status: "rejected", rejectionReason: rejectReason },
+        { status: "rejected", rejectionReason: rejectReason.trim() },
       );
-      toast.success("Usuario rechazado");
+      toast.success("Usuario rechazado · email enviado");
       setRejectModal(null);
       setRejectReason("");
       fetchUsers();
@@ -289,7 +288,7 @@ function AdminUsers() {
                 Rechazar a {rejectModal.name}
               </h3>
               <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                Podés indicar el motivo del rechazo (opcional).
+                Indicá el motivo del rechazo para notificar al usuario.
               </p>
             </div>
             <textarea
@@ -310,7 +309,8 @@ function AdminUsers() {
               </button>
               <button
                 onClick={handleReject}
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                disabled={!rejectReason.trim()}
+                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
                 style={{ background: "#DC2626", color: "#fff" }}
               >
                 Confirmar rechazo

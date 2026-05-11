@@ -3,10 +3,13 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:4173",
   "https://catalogoayp.vercel.app",
+  "https://refrigeracionayp.com",
+  "https://www.refrigeracionayp.com",
 ];
 
 if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
+  const url = process.env.FRONTEND_URL.trim();
+  if (!allowedOrigins.includes(url)) allowedOrigins.push(url);
 }
 
 const corsOptions = {
