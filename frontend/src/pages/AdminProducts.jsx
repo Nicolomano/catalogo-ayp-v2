@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Package, PlusCircle, Download, Search, Upload, Star } from "lucide-react";
+import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 50;
 
 
 const inputCls =
@@ -21,6 +23,10 @@ function AdminProducts() {
   const [category, setCategory] = useState("all");
   const [subcategory, setSubcategory] = useState("all");
   const [sort, setSort] = useState("createdAt:desc");
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -79,21 +85,23 @@ function AdminProducts() {
     categoryParam = category,
     subcategoryParam = subcategory,
     sortParam = sort,
+    pageParam = page,
   } = {}) => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { limit: PAGE_SIZE, page: pageParam };
       if (searchParam?.trim()) params.search = searchParam.trim();
       if (categoryParam !== "all") params.category = categoryParam;
       if (subcategoryParam !== "all") params.subcategory = subcategoryParam;
       if (sortParam) params.sort = sortParam;
-      params.limit = 0;
 
       const res = await API.get("/products/admin/all", { params });
 
       if (Array.isArray(res.data.products)) setProducts(res.data.products);
       else if (Array.isArray(res.data)) setProducts(res.data);
       else setProducts([]);
+      setTotalPages(res.data.pages ?? 1);
+      setTotalCount(res.data.total ?? 0);
     } catch (err) {
       console.error("Error obteniendo productos (admin):", err);
       toast.error("No se pudieron cargar los productos");
@@ -103,12 +111,21 @@ function AdminProducts() {
   };
 
   useEffect(() => { fetchProducts(); }, []);
-  useEffect(() => { fetchProducts({}); }, [category, subcategory, sort]);
+  useEffect(() => {
+    setPage(1);
+    fetchProducts({ pageParam: 1 });
+  }, [category, subcategory, sort]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearch(value);
-    debouncedSearch(value, (v) => fetchProducts({ searchParam: v }));
+    debouncedSearch(value, (v) => { setPage(1); fetchProducts({ searchParam: v, pageParam: 1 }); });
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    fetchProducts({ pageParam: newPage });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   /* -------------------- Acciones -------------------- */
@@ -214,7 +231,8 @@ function AdminProducts() {
               Gestión de productos
             </h2>
             <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
-              {products.length} producto{products.length !== 1 ? "s" : ""} encontrado{products.length !== 1 ? "s" : ""}
+              {totalCount} producto{totalCount !== 1 ? "s" : ""} en total
+              {totalPages > 1 && ` · página ${page} de ${totalPages}`}
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -496,6 +514,57 @@ function AdminProducts() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2 pb-4">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+          >
+            <ChevronLeft size={15} /> Anterior
+          </button>
+
+          <div className="flex gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "..." ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 py-2 text-sm" style={{ color: "var(--muted)" }}>…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => handlePageChange(item)}
+                    className="w-9 h-9 rounded-xl text-sm font-medium transition-colors"
+                    style={
+                      item === page
+                        ? { background: "var(--brand)", color: "#fff" }
+                        : { background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }
+                    }
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+          >
+            Siguiente <ChevronRight size={15} />
+          </button>
         </div>
       )}
 
