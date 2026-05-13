@@ -7,6 +7,21 @@ import path from "path";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
+/* ---- búsqueda insensible a tildes ---- */
+function toAccentInsensitiveRegex(raw) {
+  const map = {
+    a: "[aáàâäã]", á: "[aáàâäã]", à: "[aáàâäã]", â: "[aáàâäã]", ä: "[aáàâäã]", ã: "[aáàâäã]",
+    e: "[eéèêë]",  é: "[eéèêë]",  è: "[eéèêë]",  ê: "[eéèêë]",  ë: "[eéèêë]",
+    i: "[iíìîï]",  í: "[iíìîï]",  ì: "[iíìîï]",  î: "[iíìîï]",  ï: "[iíìîï]",
+    o: "[oóòôöõ]", ó: "[oóòôöõ]", ò: "[oóòôöõ]", ô: "[oóòôöõ]", ö: "[oóòôöõ]", õ: "[oóòôöõ]",
+    u: "[uúùûü]",  ú: "[uúùûü]",  ù: "[uúùûü]",  û: "[uúùûü]",  ü: "[uúùûü]",
+    n: "[nñ]",     ñ: "[nñ]",
+  };
+  return [...raw.toLowerCase()]
+    .map((c) => map[c] ?? c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("");
+}
+
 /* ----------------------- CREAR PRODUCTO ----------------------- */
 export async function createProduct(req, res) {
   try {
@@ -228,11 +243,11 @@ export const getProductsByCategory = async (req, res) => {
     }
 
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = toAccentInsensitiveRegex(search.trim());
       andConditions.push({
         $or: [
-          { name: { $regex: escaped, $options: "i" } },
-          { productCode: { $regex: escaped, $options: "i" } },
+          { name: { $regex: pattern, $options: "i" } },
+          { productCode: { $regex: pattern, $options: "i" } },
         ],
       });
     }
@@ -341,11 +356,11 @@ export const getProductsAdmin = async (req, res) => {
     const adminAnd = [];
 
     if (search) {
-      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = toAccentInsensitiveRegex(search.trim());
       adminAnd.push({
         $or: [
-          { name: { $regex: escaped, $options: "i" } },
-          { productCode: { $regex: escaped, $options: "i" } },
+          { name: { $regex: pattern, $options: "i" } },
+          { productCode: { $regex: pattern, $options: "i" } },
         ],
       });
     }
