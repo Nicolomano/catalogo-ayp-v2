@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent } from "lucide-react";
+import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp, ArrowRight } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 
@@ -152,26 +152,41 @@ function Landing() {
                   : "var(--hero-grad)"
               }}
             >
+              {/* Dot grid always visible */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
+                  backgroundSize: "28px 28px",
+                }}
+              />
               {!siteConfig.heroImage && (
                 <>
-                  <div className="absolute right-0 bottom-0 w-72 h-72 opacity-10 pointer-events-none">
+                  <div className="absolute right-0 bottom-0 w-80 h-80 opacity-[0.07] pointer-events-none">
                     <svg viewBox="0 0 400 400" fill="none">
-                      <circle cx="200" cy="200" r="180" stroke="white" strokeWidth="0.5"/>
-                      <circle cx="200" cy="200" r="120" stroke="white" strokeWidth="0.5"/>
-                      <circle cx="200" cy="200" r="60"  stroke="white" strokeWidth="0.5"/>
-                      <line x1="20" y1="200" x2="380" y2="200" stroke="white" strokeWidth="0.5"/>
-                      <line x1="200" y1="20"  x2="200" y2="380" stroke="white" strokeWidth="0.5"/>
+                      <circle cx="200" cy="200" r="190" stroke="white" strokeWidth="1"/>
+                      <circle cx="200" cy="200" r="130" stroke="white" strokeWidth="1"/>
+                      <circle cx="200" cy="200" r="70"  stroke="white" strokeWidth="1"/>
+                      <line x1="10" y1="200" x2="390" y2="200" stroke="white" strokeWidth="1"/>
+                      <line x1="200" y1="10"  x2="200" y2="390" stroke="white" strokeWidth="1"/>
                     </svg>
                   </div>
-                  <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none"
-                    style={{ background: "radial-gradient(circle at top right, rgba(150,180,255,0.18) 0%, transparent 60%)" }}
+                  <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none"
+                    style={{ background: "radial-gradient(circle at top right, rgba(150,180,255,0.22) 0%, transparent 65%)" }}
+                  />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 pointer-events-none"
+                    style={{ background: "radial-gradient(circle at bottom left, rgba(0,51,204,0.4) 0%, transparent 70%)" }}
                   />
                 </>
               )}
 
               <div className="relative z-10 animate-fade-up">
-                <span className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full inline-block mb-4 border border-white/15 text-white/60"
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-4 border border-white/15 text-white/70"
                   style={{ background: "rgba(255,255,255,0.08)" }}>
+                  <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#4ADE80" }} />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#4ADE80" }} />
+                  </span>
                   {siteConfig.heroBadge}
                 </span>
                 <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-3">
@@ -204,38 +219,72 @@ function Landing() {
                   <HeroCarousel slides={banners} fillContainer />
                 </div>
               ) : banners !== null && (
-                /* Stat cards — solo se muestran cuando se confirmó que no hay banners */
-                <>
-                  <div className="col-span-6 md:col-span-4 row-span-1 bento p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: "var(--brand)" }} />
+                /* Panel derecho unificado con glassmorphism */
+                <div
+                  className="col-span-12 md:col-span-4 row-span-2 rounded-[20px] p-3 flex flex-col gap-3 relative overflow-hidden border"
+                  style={{
+                    background: "linear-gradient(160deg, #001260 0%, #001A80 55%, #002BB3 100%)",
+                    borderColor: "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  {/* Dot grid sobre fondo oscuro */}
+                  <div className="absolute inset-0 pointer-events-none"
+                    style={{
+                      backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+                      backgroundSize: "20px 20px",
+                    }}
+                  />
+                  {/* Glow radial top-right */}
+                  <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
+                    style={{ background: "radial-gradient(circle at top right, rgba(102,153,255,0.2) 0%, transparent 65%)" }} />
+
+                  {/* Glass card — stat 1 */}
+                  <div className="flex-1 rounded-2xl p-5 flex flex-col justify-between relative"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                    }}
+                  >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.75)" }}>
                         {siteConfig.stat1Title}
                       </p>
                       <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: "var(--brand-tint)", color: "var(--brand)" }}>
+                        style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)" }}>
                         <Package className="h-4 w-4" />
                       </div>
                     </div>
                     <div>
-                      <p className="text-4xl font-black leading-none" style={{ color: "var(--text)" }}>
+                      <p className="text-4xl font-black leading-none text-white">
                         {siteConfig.stat1Value}
                       </p>
-                      <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>{siteConfig.stat1Label}</p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <TrendingUp className="h-3 w-3 flex-shrink-0" style={{ color: "#4ADE80" }} />
+                        <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>{siteConfig.stat1Label}</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div
-                    className="col-span-6 md:col-span-4 row-span-1 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between border relative overflow-hidden"
-                    style={{ background: "var(--dark-card)", borderColor: "rgba(255,255,255,0.05)" }}
+                  {/* Glass card — stat 2 */}
+                  <div className="flex-1 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden"
+                    style={{
+                      background: "rgba(255,255,255,0.07)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                    }}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: "rgba(153,187,255,0.55)" }} />
+                    {/* Glow interno */}
+                    <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full pointer-events-none"
+                      style={{ background: "radial-gradient(circle, rgba(0,51,204,0.45) 0%, transparent 70%)" }} />
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.6)" }}>
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.75)" }}>
                         {siteConfig.stat2Title}
                       </p>
                       <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: "rgba(153,187,255,0.12)", color: "rgba(153,187,255,0.85)" }}>
+                        style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.85)" }}>
                         <BadgePercent className="h-4 w-4" />
                       </div>
                     </div>
@@ -243,10 +292,10 @@ function Landing() {
                       <p className="text-4xl font-black leading-none text-white">
                         {siteConfig.stat2Value}
                       </p>
-                      <p className="text-sm mt-1 text-white/40">{siteConfig.stat2Label}</p>
+                      <p className="text-xs font-medium mt-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>{siteConfig.stat2Label}</p>
                     </div>
                   </div>
-                </>
+                </div>
               )
             }
 
@@ -254,21 +303,25 @@ function Landing() {
         </section>
 
         {/* ── INFO CARDS ── */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i) => (
-            <div key={i} className="bento p-5 flex flex-col gap-3 relative overflow-hidden">
+            <div key={i} className="bento p-5 flex items-center gap-4 relative overflow-hidden">
+              {/* Left border accent */}
+              <div className="absolute top-0 left-0 bottom-0 w-[3px]"
+                style={{ background: "linear-gradient(180deg, var(--brand) 0%, var(--brand-tint-t) 100%)" }} />
+              {/* Icon with gradient bg + shadow */}
               <div
-                className="absolute top-0 left-0 right-0 h-[3px]"
-                style={{ background: `linear-gradient(90deg, var(--brand) 0%, var(--brand-tint-t) 100%)` }}
-              />
-              <div
-                className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ml-1"
+                style={{
+                  background: "linear-gradient(135deg, var(--brand) 0%, #1a4de8 100%)",
+                  color: "white",
+                  boxShadow: "0 4px 14px rgba(0,51,204,0.3)",
+                }}
               >
                 {INFO_ICONS[i]}
               </div>
-              <div>
-                <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{card.title}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm" style={{ color: "var(--text)" }}>{card.title}</p>
                 <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--muted)" }}>{card.desc}</p>
               </div>
             </div>
