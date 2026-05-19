@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import API from "../api/axios";
@@ -126,8 +127,8 @@ export default function HeroCarousel({ type = "home", slides: slidesProp, fillCo
                         key={i}
                         aria-label={`Slide ${i + 1}`}
                         onClick={(e) => { e.preventDefault(); scrollTo(i); }}
-                        className={`rounded-full transition-all duration-300 ${
-                          selected === i ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"
+                        className={`rounded-full transition-all duration-300 cursor-pointer hover:opacity-100 ${
+                          selected === i ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
                         }`}
                       />
                     ))}
@@ -159,13 +160,13 @@ export default function HeroCarousel({ type = "home", slides: slidesProp, fillCo
           <button
             onClick={scrollPrev}
             aria-label="Anterior"
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 sm:h-9 sm:w-9 rounded-full bg-black/40 text-white flex items-center justify-center backdrop-blur-sm text-lg leading-none md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-          >‹</button>
+            className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-black/60"
+          ><ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" /></button>
           <button
             onClick={scrollNext}
             aria-label="Siguiente"
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 sm:h-9 sm:w-9 rounded-full bg-black/40 text-white flex items-center justify-center backdrop-blur-sm text-lg leading-none md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-          >›</button>
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-black/45 text-white flex items-center justify-center backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-black/60"
+          ><ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" /></button>
         </>
       )}
     </div>

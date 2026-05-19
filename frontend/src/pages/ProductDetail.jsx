@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { ChevronLeft, Share2, Copy, Check } from "lucide-react";
+import { ChevronLeft, Share2, Copy, Check, Package, X as CloseIcon } from "lucide-react";
 import API from "../api/axios";
 import { useCart } from "../Context/CartContext";
 import { useAuth } from "../Context/AuthContext";
@@ -32,7 +32,7 @@ function RelatedCard({ product }) {
       >
         {product.image
           ? <img src={product.image} alt={product.name} className="object-contain max-h-full group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-          : <div className="text-3xl opacity-20">📦</div>
+          : <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
         }
       </div>
       <div className="p-2.5 flex flex-col flex-1">
@@ -126,7 +126,7 @@ function ProductDetail() {
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
       <p className="text-lg" style={{ color: "var(--muted)" }}>Producto no encontrado</p>
       <Link to="/catalogo" className="text-sm font-medium" style={{ color: "var(--brand)" }}>
-        ← Volver al catálogo
+        ← Volver
       </Link>
     </div>
   );
@@ -167,7 +167,7 @@ function ProductDetail() {
         <Link to="/catalogo"
           className="inline-flex items-center gap-1 text-sm mb-6 transition-colors"
           style={{ color: "var(--muted)" }}>
-          <ChevronLeft className="h-4 w-4" /> Volver al catálogo
+          <ChevronLeft className="h-4 w-4" /> Volver
         </Link>
 
         {/* Card principal */}
@@ -189,7 +189,7 @@ function ProductDetail() {
                     </span>
                   </div>
                 </>
-              : <div className="text-6xl opacity-20">📦</div>
+              : <Package className="h-24 w-24 opacity-10" style={{ color: "var(--muted)" }} />
             }
           </div>
 
@@ -208,9 +208,9 @@ function ProductDetail() {
               />
               <button
                 onClick={() => setZoomOpen(false)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white transition-colors hover:bg-white/25"
                 style={{ background: "rgba(255,255,255,0.15)" }}
-              >✕</button>
+              ><CloseIcon className="h-5 w-5" /></button>
             </div>
           )}
 
@@ -277,8 +277,7 @@ function ProductDetail() {
             <button
               onClick={() => { addToCart(product, quantity); toast.success("Agregado al pedido"); }}
               disabled={!product.inStock}
-              className="w-full py-3 rounded-xl text-white font-semibold text-base transition-colors disabled:opacity-40 disabled:cursor-not-allowed mb-3"
-              style={{ background: "var(--brand)" }}
+              className="btn-primary w-full py-3 text-base mb-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
             >
               {product.inStock ? "Agregar al pedido" : "Sin stock"}
             </button>

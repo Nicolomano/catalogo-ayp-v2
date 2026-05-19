@@ -11,7 +11,7 @@ export default function AdminDashboard() {
             Panel de Administración
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
-            Resumen general del catálogo
+            Resumen general de la tienda
           </p>
         </div>
         <DashboardData />

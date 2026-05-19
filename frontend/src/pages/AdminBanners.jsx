@@ -96,7 +96,7 @@ export default function AdminBanners() {
             style={inputStyle}
           >
             <option value="home">Home (hero)</option>
-            <option value="catalog">Catálogo</option>
+            <option value="catalog">Tienda</option>
           </select>
           <button
             onClick={() =>
@@ -174,7 +174,7 @@ export default function AdminBanners() {
                     className="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full"
                     style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
                   >
-                    {b.type === "home" ? "Home" : "Catálogo"}
+                    {b.type === "home" ? "Home" : "Tienda"}
                   </span>
                 </div>
 
@@ -273,7 +273,7 @@ export default function AdminBanners() {
                     style={inputStyle}
                   >
                     <option value="home">Home</option>
-                    <option value="catalog">Catálogo</option>
+                    <option value="catalog">Tienda</option>
                   </select>
                 </label>
                 <label className="block col-span-1">

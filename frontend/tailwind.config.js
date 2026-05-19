@@ -5,7 +5,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        brandBlue: "#0033cc", // tu azul corporativo
+        brandBlue: "#0033cc",
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },

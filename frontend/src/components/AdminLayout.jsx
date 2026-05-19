@@ -22,7 +22,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Catálogo",
+    label: "Tienda",
     items: [
       { to: "/admin/products", icon: Package, label: "Productos" },
       { to: "/admin/categories", icon: FolderTree, label: "Categorías" },
@@ -44,17 +44,17 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to}
       end={to === "/admin/landing"}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 py-2 rounded-[10px] text-sm transition-all duration-150 ${
+          isActive
+            ? "bg-white/12 font-semibold text-white"
+            : "font-normal text-white/65 hover:bg-white/8 hover:text-white/90"
+        }`
+      }
       style={({ isActive }) => ({
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        padding: "8px 12px",
-        borderRadius: "10px",
-        fontSize: "14px",
-        fontWeight: isActive ? "600" : "400",
-        background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
-        color: isActive ? "#fff" : "rgba(255,255,255,0.65)",
-        transition: "all 0.15s ease",
+        paddingLeft: isActive ? "9px" : "12px",
+        paddingRight: "12px",
+        borderLeft: isActive ? "3px solid rgba(255,255,255,0.65)" : "3px solid transparent",
         textDecoration: "none",
       })}
     >
@@ -93,8 +93,17 @@ function AdminLayout() {
           className="px-5 py-5 border-b"
           style={{ borderColor: "rgba(255,255,255,0.1)" }}
         >
-          <p className="text-white font-black text-lg tracking-tight">A&P</p>
-          <p className="text-white/50 text-xs font-medium tracking-wider uppercase mt-0.5">
+          <img
+            src="/logo.png"
+            alt="A&P Refrigeración"
+            className="h-8 w-auto mb-1"
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "block";
+            }}
+          />
+          <p className="text-white font-black text-lg tracking-tight hidden">A&P</p>
+          <p className="text-white/40 text-xs font-medium tracking-widest uppercase mt-1">
             Panel admin
           </p>
         </div>
@@ -131,7 +140,7 @@ function AdminLayout() {
             style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}
           >
             <LayoutDashboard size={15} strokeWidth={1.8} />
-            Ver catálogo
+            Ver tienda
           </a>
           <button
             onClick={logout}
@@ -157,7 +166,7 @@ function AdminLayout() {
           style={{
             background: "var(--surface)",
             borderColor: "var(--border)",
-            boxShadow: "0 1px 0 var(--border)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
           }}
         >
           <span

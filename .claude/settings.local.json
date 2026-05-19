@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(dir /S /B)",
+      "PowerShell(head -50)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\nieze\\\\OneDrive\\\\Documentos\\\\GitHub\\\\catalogo-ayp-v2\" -Recurse -Exclude node_modules -Directory | ForEach-Object { $_.FullName })"
+    ]
+  }
+}

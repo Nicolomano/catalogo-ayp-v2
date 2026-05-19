@@ -6,8 +6,8 @@ const DEFAULT = {
   heroImage: "", heroBadge: "Stock permanente · Buenos Aires",
   heroTitle: "Repuestos para", heroHighlight: "Refrigeración",
   heroSubtitle: "Distribuidora oficial. Más de 2000 productos para el técnico profesional.",
-  heroCTA1: "Ver Catálogo →", heroCTA2: "Precio Service",
-  stat1Title: "PRODUCTOS", stat1Value: "2k+", stat1Label: "En catálogo",
+  heroCTA1: "Ver productos →", heroCTA2: "Precio Service",
+  stat1Title: "PRODUCTOS", stat1Value: "2k+", stat1Label: "En tienda",
   stat2Title: "PRECIO SERVICE", stat2Value: "-10%", stat2Label: "Para técnicos matriculados",
   infoCards: [
     { title: "Envíos rápidos", desc: "A todo el país" },

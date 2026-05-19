@@ -18,6 +18,24 @@ function AccordionSection({ title, children, defaultOpen = true }) {
   );
 }
 
+function CustomCheckbox({ checked }) {
+  return (
+    <div
+      className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-all"
+      style={{
+        background: checked ? "var(--brand)" : "transparent",
+        borderColor: checked ? "var(--brand)" : "var(--border)",
+      }}
+    >
+      {checked && (
+        <svg viewBox="0 0 10 10" width="8" height="8" fill="none">
+          <path d="M1.5 5l2.5 2.5 5-4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({
   categories, selectedCategory, selectedSubcategory,
   onCategoryChange, onSubcategoryChange,
@@ -27,16 +45,13 @@ function Sidebar({
   const selectedCatData = categories.find((c) => c.category === selectedCategory);
   const subcategories   = selectedCatData?.subcategories || [];
 
-  const catBtnCls = (active) =>
-    `w-full text-left text-sm px-3 py-1.5 rounded-lg transition-colors font-medium`;
-
   return (
     <div className="flex flex-col h-full">
       {/* Header drawer mobile */}
       {onClose && (
         <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: "var(--border)" }}>
           <h2 className="font-bold text-base" style={{ color: "var(--text)" }}>Filtros</h2>
-          <button onClick={onClose} style={{ color: "var(--muted)" }}>
+          <button onClick={onClose} className="p-1.5 rounded-lg transition-colors hover:bg-[var(--surface2)]" style={{ color: "var(--muted)" }}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -45,7 +60,7 @@ function Sidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
         {activeFilterCount > 0 && (
           <button onClick={onClearAll}
-            className="w-full text-xs text-left mb-2 flex items-center gap-1 transition-colors"
+            className="w-full text-xs text-left mb-2 flex items-center gap-1.5 transition-colors font-semibold px-1 py-1"
             style={{ color: "#DC2626" }}>
             <X className="h-3 w-3" /> Limpiar filtros ({activeFilterCount})
           </button>
@@ -56,10 +71,12 @@ function Sidebar({
           <div className="space-y-0.5">
             <button
               onClick={() => onCategoryChange("all")}
-              className={catBtnCls(selectedCategory === "all")}
+              className="w-full text-left text-sm py-1.5 rounded-lg transition-all font-medium"
               style={{
-                background: selectedCategory === "all" ? "var(--brand)" : "transparent",
-                color: selectedCategory === "all" ? "white" : "var(--text)",
+                background: selectedCategory === "all" ? "var(--brand-tint)" : "transparent",
+                color: selectedCategory === "all" ? "var(--brand)" : "var(--text)",
+                borderLeft: selectedCategory === "all" ? "3px solid var(--brand)" : "3px solid transparent",
+                paddingLeft: "10px",
               }}
             >
               Todas las categorías
@@ -68,10 +85,12 @@ function Sidebar({
               <div key={c.category}>
                 <button
                   onClick={() => onCategoryChange(c.category)}
-                  className={catBtnCls(selectedCategory === c.category)}
+                  className="w-full text-left text-sm py-1.5 rounded-lg transition-all font-medium"
                   style={{
-                    background: selectedCategory === c.category ? "var(--brand)" : "transparent",
-                    color: selectedCategory === c.category ? "white" : "var(--text)",
+                    background: selectedCategory === c.category ? "var(--brand-tint)" : "transparent",
+                    color: selectedCategory === c.category ? "var(--brand)" : "var(--text)",
+                    borderLeft: selectedCategory === c.category ? "3px solid var(--brand)" : "3px solid transparent",
+                    paddingLeft: "10px",
                   }}
                 >
                   {c.category}
@@ -103,15 +122,15 @@ function Sidebar({
             <div className="space-y-0.5 max-h-64 overflow-y-auto pr-1">
               {brands.map((brand) => (
                 <label key={brand}
-                  className="flex items-center gap-2 px-1 py-1.5 rounded-lg cursor-pointer transition-colors"
+                  className="flex items-center gap-2.5 px-2 py-2 rounded-xl cursor-pointer transition-colors"
                   style={{ background: selectedBrands.includes(brand) ? "var(--brand-tint)" : "transparent" }}>
                   <input
                     type="checkbox"
                     checked={selectedBrands.includes(brand)}
                     onChange={() => onBrandToggle(brand)}
-                    className="rounded"
-                    style={{ accentColor: "var(--brand)" }}
+                    className="sr-only"
                   />
+                  <CustomCheckbox checked={selectedBrands.includes(brand)} />
                   <span className="text-sm" style={{ color: "var(--text)" }}>{brand}</span>
                 </label>
               ))}
@@ -122,9 +141,7 @@ function Sidebar({
 
       {onClose && (
         <div className="p-4 border-t" style={{ borderColor: "var(--border)" }}>
-          <button onClick={onClose}
-            className="w-full text-white py-2.5 rounded-xl font-semibold text-sm transition-colors"
-            style={{ background: "var(--brand)" }}>
+          <button onClick={onClose} className="btn-primary w-full py-2.5 text-sm">
             Ver resultados
           </button>
         </div>

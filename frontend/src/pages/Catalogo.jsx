@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useTransition, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, X, Package, BadgeCheck } from "lucide-react";
 import API from "../api/axios";
 import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
@@ -155,8 +155,8 @@ function Catalogo() {
   return (
     <>
       <Helmet>
-        <title>{category !== "all" ? `${category} | A&P Refrigeración` : "Catálogo | A&P Refrigeración"}</title>
-        <meta name="description" content={category !== "all" ? `Productos de ${category} en A&P Refrigeración.` : "Catálogo completo de A&P Refrigeración."} />
+        <title>{category !== "all" ? `${category} | A&P Refrigeración` : "Productos | A&P Refrigeración"}</title>
+        <meta name="description" content={category !== "all" ? `Productos de ${category} en A&P Refrigeración.` : "Tienda online de A&P Refrigeración. Repuestos de refrigeración comercial e industrial."} />
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex gap-6">
@@ -236,7 +236,7 @@ function Catalogo() {
           {isServiceApproved && (
             <div className="mb-4 rounded-xl px-4 py-2.5 text-sm flex items-center gap-2"
               style={{ background: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0" }}>
-              ✅ Estás viendo precios con <strong>10% de descuento service</strong>
+              <BadgeCheck className="h-4 w-4 flex-shrink-0" /> Estás viendo precios con <strong>10% de descuento service</strong>
             </div>
           )}
 
@@ -256,16 +256,16 @@ function Catalogo() {
                 const qty = quantities[p.productCode] || 1;
                 const displayPrice = isServiceApproved ? servicePrice(p.priceARS) : p.priceARS;
                 return (
-                  <div key={p._id} className="bento flex flex-col" style={{ borderRadius: "16px" }}>
+                  <div key={p._id} className="bento bento-link flex flex-col group">
                     <Link to={`/product/${p.productCode}`} className="flex flex-col items-center p-3">
-                      <div className="w-full aspect-square flex items-center justify-center mb-2 rounded-xl overflow-hidden"
+                      <div className="w-full aspect-square flex items-center justify-center mb-2 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
                         style={{ background: "var(--surface2)" }}>
                         {p.image
-                          ? <img src={p.image} alt={p.name} className="object-contain max-h-full" loading="lazy" decoding="async" />
-                          : <div className="text-4xl opacity-20">📦</div>
+                          ? <img src={p.image} alt={p.name} className="object-contain max-h-full transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
+                          : <Package className="h-12 w-12 opacity-15" style={{ color: "var(--muted)" }} />
                         }
                       </div>
-                      {p.brand && <span className="text-xs mb-1" style={{ color: "var(--muted)" }}>{p.brand}</span>}
+                      {p.brand && <span className="text-xs mb-1 font-medium" style={{ color: "var(--muted)" }}>{p.brand}</span>}
                       <h2 className="text-sm font-semibold text-center line-clamp-2 min-h-[2.5rem]" style={{ color: "var(--text)" }}>
                         {p.name}
                       </h2>
@@ -283,7 +283,7 @@ function Catalogo() {
                         <div className="text-center">
                           <p className="text-base font-bold" style={{ color: "var(--brand)" }}>
                             ${displayPrice.toLocaleString("es-AR")}
-                            {isServiceApproved && <span className="ml-1 text-xs font-normal" style={{ color: "#16A34A" }}>service</span>}
+                            {isServiceApproved && <span className="ml-1 text-xs font-semibold" style={{ color: "#16A34A" }}>service</span>}
                           </p>
                           <p className="text-[10px]" style={{ color: "var(--muted)" }}>
                             ó 6 cuotas de ${calcCuota6(displayPrice)?.toLocaleString("es-AR")}
@@ -295,19 +295,18 @@ function Catalogo() {
 
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => handleDecrease(p.productCode)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                           style={{ background: "var(--surface2)", color: "var(--text)" }}>−</button>
                         <span className="w-6 text-center font-bold text-sm" style={{ color: "var(--brand)" }}>{qty}</span>
                         <button onClick={() => handleIncrease(p.productCode)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                           style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
                       </div>
 
                       <button
                         onClick={() => { addToCart(p, qty); toast.success("Agregado al pedido"); }}
                         disabled={p.inStock === false}
-                        className="w-full text-white text-xs py-2 rounded-lg font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: p.inStock !== false ? "var(--brand)" : "var(--muted2)" }}
+                        className="btn-primary w-full text-xs py-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         {p.inStock !== false ? "Agregar" : "Sin stock"}
                       </button>

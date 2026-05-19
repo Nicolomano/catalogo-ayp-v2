@@ -103,6 +103,12 @@ export default function KitInstalacion() {
 
       {/* Encabezado */}
       <div>
+        <span
+          className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full inline-block mb-3"
+          style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+        >
+          Calculadora
+        </span>
         <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
           Kit de instalación
         </h1>
@@ -157,8 +163,8 @@ export default function KitInstalacion() {
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) - (item.step || 0.5))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
-                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
+                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1.5px solid var(--border)" }}
                   >−</button>
                   <input
                     type="number"
@@ -166,13 +172,13 @@ export default function KitInstalacion() {
                     min="0"
                     value={qty[item.key] ?? 0}
                     onChange={(e) => handleQty(item.key, e.target.value)}
-                    className="w-20 text-center text-sm rounded-lg"
-                    style={{ ...inputStyle, border: "1px solid var(--border)", padding: "6px 4px" }}
+                    className="input-field w-20 text-center text-sm"
+                    style={{ padding: "6px 4px" }}
                   />
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) + (item.step || 0.5))}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors"
-                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
+                    style={{ background: "var(--surface2)", color: "var(--text)", border: "1.5px solid var(--border)" }}
                   >+</button>
                   <span className="w-8 text-xs text-right" style={{ color: "var(--muted)" }}>
                     {item.unit}

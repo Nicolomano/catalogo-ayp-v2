@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap } from "lucide-react";
+import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 
@@ -48,7 +48,7 @@ function ProductCard({ product }) {
             loading="lazy"
           />
         ) : (
-          <div className="text-4xl opacity-20">📦</div>
+          <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
         )}
       </div>
       <div className="p-3 flex flex-col flex-1">
@@ -134,7 +134,7 @@ function Landing() {
     <>
       <Helmet>
         <title>A&P Refrigeración — Repuestos y equipos de refrigeración</title>
-        <meta name="description" content="Catálogo A&P Refrigeración: productos y repuestos de refrigeración comercial e industrial." />
+        <meta name="description" content="A&P Refrigeración: productos y repuestos de refrigeración comercial e industrial." />
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-14">
@@ -169,7 +169,7 @@ function Landing() {
                 </>
               )}
 
-              <div className="relative z-10">
+              <div className="relative z-10 animate-fade-up">
                 <span className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full inline-block mb-4 border border-white/15 text-white/60"
                   style={{ background: "rgba(255,255,255,0.08)" }}>
                   {siteConfig.heroBadge}
@@ -183,14 +183,14 @@ function Landing() {
                 </p>
               </div>
 
-              <div className="relative z-10 flex gap-3 flex-wrap">
+              <div className="relative z-10 flex gap-3 flex-wrap animate-fade-up" style={{ animationDelay: "80ms" }}>
                 <Link to="/catalogo"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-colors"
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   style={{ color: "#001A80" }}>
                   {siteConfig.heroCTA1}
                 </Link>
                 <Link to="/register"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm border border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-colors">
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm border border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98]">
                   {siteConfig.heroCTA2}
                 </Link>
               </div>
@@ -206,10 +206,17 @@ function Landing() {
               ) : banners !== null && (
                 /* Stat cards — solo se muestran cuando se confirmó que no hay banners */
                 <>
-                  <div className="col-span-6 md:col-span-4 row-span-1 bento p-5 sm:p-6 flex flex-col justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-                      {siteConfig.stat1Title}
-                    </p>
+                  <div className="col-span-6 md:col-span-4 row-span-1 bento p-5 sm:p-6 flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: "var(--brand)" }} />
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+                        {siteConfig.stat1Title}
+                      </p>
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: "var(--brand-tint)", color: "var(--brand)" }}>
+                        <Package className="h-4 w-4" />
+                      </div>
+                    </div>
                     <div>
                       <p className="text-4xl font-black leading-none" style={{ color: "var(--text)" }}>
                         {siteConfig.stat1Value}
@@ -219,12 +226,19 @@ function Landing() {
                   </div>
 
                   <div
-                    className="col-span-6 md:col-span-4 row-span-1 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between border"
+                    className="col-span-6 md:col-span-4 row-span-1 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between border relative overflow-hidden"
                     style={{ background: "var(--dark-card)", borderColor: "rgba(255,255,255,0.05)" }}
                   >
-                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.6)" }}>
-                      {siteConfig.stat2Title}
-                    </p>
+                    <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: "rgba(153,187,255,0.55)" }} />
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(153,187,255,0.6)" }}>
+                        {siteConfig.stat2Title}
+                      </p>
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: "rgba(153,187,255,0.12)", color: "rgba(153,187,255,0.85)" }}>
+                        <BadgePercent className="h-4 w-4" />
+                      </div>
+                    </div>
                     <div>
                       <p className="text-4xl font-black leading-none text-white">
                         {siteConfig.stat2Value}
@@ -242,16 +256,20 @@ function Landing() {
         {/* ── INFO CARDS ── */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i) => (
-            <div key={i} className="bento p-5 flex flex-col items-center text-center gap-3">
+            <div key={i} className="bento p-5 flex flex-col gap-3 relative overflow-hidden">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                className="absolute top-0 left-0 right-0 h-[3px]"
+                style={{ background: `linear-gradient(90deg, var(--brand) 0%, var(--brand-tint-t) 100%)` }}
+              />
+              <div
+                className="w-11 h-11 rounded-2xl flex items-center justify-center"
                 style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
               >
                 {INFO_ICONS[i]}
               </div>
               <div>
                 <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{card.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{card.desc}</p>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--muted)" }}>{card.desc}</p>
               </div>
             </div>
           ))}
@@ -266,13 +284,13 @@ function Landing() {
                 <Link
                   key={cat.category}
                   to={`/catalogo?cat=${encodeURIComponent(cat.category)}`}
-                  className="bento p-4 flex items-center gap-3 group"
+                  className="bento bento-link p-4 flex items-center gap-3 group"
                 >
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
-                    style={{ background: "var(--brand-tint)" }}
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
                   >
-                    🔧
+                    <Tag className="h-4 w-4" />
                   </div>
                   <span className="text-sm font-medium group-hover:underline" style={{ color: "var(--text)" }}>
                     {cat.category}

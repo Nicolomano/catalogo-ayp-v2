@@ -33,7 +33,7 @@ export default function MaintenancePage() {
         Estamos preparando algo grande
       </h1>
       <p className="text-base max-w-md mb-3" style={{ color: "var(--muted)" }}>
-        El catálogo de <strong style={{ color: "var(--text)" }}>A&P Refrigeración</strong> estará disponible muy pronto.
+        La tienda de <strong style={{ color: "var(--text)" }}>A&P Refrigeración</strong> estará disponible muy pronto.
         Estamos cargando todos nuestros productos para darte la mejor experiencia.
       </p>
       <p className="text-sm" style={{ color: "var(--muted)" }}>
