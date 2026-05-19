@@ -141,7 +141,7 @@ function Landing() {
 
         {/* ── HERO BENTO GRID ── */}
         <section>
-          <div className="grid grid-cols-12 gap-4" style={{ gridAutoRows: "160px" }}>
+          <div className="grid grid-cols-12 gap-4" style={{ gridAutoRows: "clamp(110px, 22vw, 160px)" }}>
 
             {/* Hero principal — 8 cols, 2 rows */}
             <div
@@ -200,12 +200,13 @@ function Landing() {
 
               <div className="relative z-10 flex gap-3 flex-wrap animate-fade-up" style={{ animationDelay: "80ms" }}>
                 <Link to="/catalogo"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ color: "#001A80" }}>
+                  className="px-5 py-3 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98] inline-flex items-center"
+                  style={{ color: "#001A80", minHeight: "44px" }}>
                   {siteConfig.heroCTA1}
                 </Link>
                 <Link to="/register"
-                  className="px-5 py-2.5 rounded-xl font-semibold text-sm border border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  className="px-5 py-3 rounded-xl font-semibold text-sm border border-white/20 text-white/80 hover:border-white/40 hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98] inline-flex items-center"
+                  style={{ minHeight: "44px" }}>
                   {siteConfig.heroCTA2}
                 </Link>
               </div>

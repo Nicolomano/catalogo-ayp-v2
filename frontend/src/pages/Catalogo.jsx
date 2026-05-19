@@ -295,18 +295,18 @@ function Catalogo() {
 
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => handleDecrease(p.productCode)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
+                          className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                           style={{ background: "var(--surface2)", color: "var(--text)" }}>−</button>
                         <span className="w-6 text-center font-bold text-sm" style={{ color: "var(--brand)" }}>{qty}</span>
                         <button onClick={() => handleIncrease(p.productCode)}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
+                          className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                           style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
                       </div>
 
                       <button
                         onClick={() => { addToCart(p, qty); toast.success("Agregado al pedido"); }}
                         disabled={p.inStock === false}
-                        className="btn-primary w-full text-xs py-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
+                        className="btn-primary w-full text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         {p.inStock !== false ? "Agregar" : "Sin stock"}
                       </button>

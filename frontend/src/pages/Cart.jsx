@@ -71,13 +71,13 @@ function Cart() {
               )}
               <div className="flex items-center gap-2 mt-2">
                 <button onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
+                  className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                   style={{ background: "var(--surface2)", color: "var(--text)" }}>−</button>
                 <span className="w-8 text-center font-bold text-sm" style={{ color: "var(--brand)" }}>
                   {item.quantity}
                 </span>
                 <button onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
+                  className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
                   style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
               </div>
             </div>
@@ -89,7 +89,7 @@ function Cart() {
                 </p>
               )}
               <button onClick={() => removeFromCart(item._id)}
-                className="p-1.5 rounded-lg transition-colors text-red-400 hover:text-red-600 hover:bg-red-50">
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors text-red-400 hover:text-red-600 hover:bg-red-50">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -131,12 +131,12 @@ function Cart() {
       {/* Acciones */}
       <div className="flex gap-3">
         <button onClick={clearCart}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all hover:scale-[1.02]"
-          style={{ borderColor: "#FECACA", color: "#DC2626", background: "#FEF2F2" }}>
+          className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border transition-all hover:scale-[1.02]"
+          style={{ borderColor: "#FECACA", color: "#DC2626", background: "#FEF2F2", minHeight: "44px" }}>
           <Trash2 className="h-4 w-4" /> Vaciar
         </button>
         <button onClick={handleConfirm} disabled={loading}
-          className="btn-primary flex-1 py-2.5 disabled:opacity-50">
+          className="btn-primary flex-1 disabled:opacity-50">
           <MessageCircle className="h-4 w-4" />
           {loading ? "Procesando…" : "Finalizar pedido por WhatsApp"}
         </button>

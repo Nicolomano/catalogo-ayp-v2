@@ -163,7 +163,7 @@ export default function KitInstalacion() {
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) - (item.step || 0.5))}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
+                    className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
                     style={{ background: "var(--surface2)", color: "var(--text)", border: "1.5px solid var(--border)" }}
                   >−</button>
                   <input
@@ -177,7 +177,7 @@ export default function KitInstalacion() {
                   />
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) + (item.step || 0.5))}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
+                    className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
                     style={{ background: "var(--surface2)", color: "var(--text)", border: "1.5px solid var(--border)" }}
                   >+</button>
                   <span className="w-8 text-xs text-right" style={{ color: "var(--muted)" }}>

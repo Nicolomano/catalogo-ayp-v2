@@ -88,7 +88,7 @@ function Layout() {
                 <span className="text-sm font-medium" style={{ color: "var(--text2)" }}>{serviceUser.name}</span>
                 <button
                   onClick={logoutService}
-                  className="p-1.5 rounded-xl transition-colors hover:bg-red-50 hover:text-red-500"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-red-50 hover:text-red-500"
                   style={{ color: "var(--muted)" }}
                   title="Cerrar sesión"
                 >
@@ -112,7 +112,7 @@ function Layout() {
 
             <Link
               to="/cart"
-              className="relative p-2 rounded-xl transition-colors hover:bg-[var(--surface2)]"
+              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
               style={{ color: "var(--muted)" }}
             >
               <ShoppingCart className="h-5 w-5" />
@@ -127,7 +127,7 @@ function Layout() {
             </Link>
 
             <button
-              className="md:hidden p-2 rounded-xl transition-colors hover:bg-[var(--surface2)]"
+              className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
               style={{ color: "var(--muted)" }}
               onClick={() => setMenuOpen(!menuOpen)}
             >
@@ -151,7 +151,7 @@ function Layout() {
               <NavLink
                 key={to} to={to} end={end}
                 className={({ isActive }) =>
-                  `block text-sm font-medium py-2 px-2 rounded-lg transition-colors ${isActive ? "text-[var(--brand)] bg-[var(--brand-tint)]" : "text-[var(--text2)] hover:text-[var(--text)] hover:bg-[var(--surface2)]"}`}
+                  `block text-sm font-medium py-3 px-3 rounded-lg transition-colors ${isActive ? "text-[var(--brand)] bg-[var(--brand-tint)]" : "text-[var(--text2)] hover:text-[var(--text)] hover:bg-[var(--surface2)]"}`}
                 onClick={() => setMenuOpen(false)}
               >
                 {label}
@@ -159,7 +159,7 @@ function Layout() {
             ))}
             {isAdmin && (
               <NavLink to="/admin"
-                className="block text-sm font-medium py-2 px-2 rounded-lg transition-colors text-[var(--text2)] hover:text-[var(--text)] hover:bg-[var(--surface2)]"
+                className="block text-sm font-medium py-3 px-3 rounded-lg transition-colors text-[var(--text2)] hover:text-[var(--text)] hover:bg-[var(--surface2)]"
                 onClick={() => setMenuOpen(false)}>
                 Admin
               </NavLink>
@@ -173,13 +173,13 @@ function Layout() {
                   </span>
                 )}
                 <button onClick={() => { logoutService(); setMenuOpen(false); }}
-                  className="flex items-center gap-2 text-sm font-medium text-red-500 py-2 px-2 rounded-lg hover:bg-red-50 w-full transition-colors">
+                  className="flex items-center gap-2 text-sm font-medium text-red-500 py-3 px-3 rounded-lg hover:bg-red-50 w-full transition-colors">
                   <LogOut className="h-4 w-4" /> Cerrar sesión
                 </button>
               </div>
             ) : (
               <Link to="/login"
-                className="flex items-center gap-2 text-sm font-semibold py-2 px-2 rounded-lg transition-colors hover:bg-[var(--brand-tint)]"
+                className="flex items-center gap-2 text-sm font-semibold py-3 px-3 rounded-lg transition-colors hover:bg-[var(--brand-tint)]"
                 style={{ color: "var(--brand)" }}
                 onClick={() => setMenuOpen(false)}>
                 <User className="h-4 w-4" /> Soy service — Iniciar sesión
