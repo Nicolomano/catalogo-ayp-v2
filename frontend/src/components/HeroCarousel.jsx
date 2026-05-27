@@ -41,11 +41,12 @@ export default function HeroCarousel({ type = "home", slides: slidesProp, fillCo
   }, [emblaApi, onSelect]);
 
   const handleMouseEnter = useCallback(() => autoplay.current.stop(), []);
-  const handleMouseLeave = useCallback(() => autoplay.current.play(), []);
+  const handleMouseLeave = useCallback(() => {
+    try { autoplay.current.play(); } catch (_) {}
+  }, []);
 
   const resetAutoplay = useCallback(() => {
-    autoplay.current.stop();
-    autoplay.current.play();
+    try { autoplay.current.stop(); autoplay.current.play(); } catch (_) {}
   }, []);
 
   const scrollPrev = () => { if (emblaApi) { emblaApi.scrollPrev(); resetAutoplay(); } };
