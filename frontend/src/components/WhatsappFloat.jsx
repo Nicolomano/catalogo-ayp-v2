@@ -20,7 +20,7 @@ export default function WhatsappFloat() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Consultar por WhatsApp"
-      className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95 group"
+      className="fixed right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95 group md:bottom-6 bottom-[88px]"
       style={{ background: "#25D366", boxShadow: "0 8px 24px rgba(37,211,102,0.4)" }}
     >
       {/* Label tooltip — solo desktop */}
@@ -36,7 +36,7 @@ export default function WhatsappFloat() {
       </svg>
 
       <span
-        className="absolute inset-0 rounded-full animate-ping opacity-20"
+        className="absolute inset-0 rounded-full wa-pulse"
         style={{ background: "#25D366" }}
       />
     </a>

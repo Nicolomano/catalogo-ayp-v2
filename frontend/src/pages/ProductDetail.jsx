@@ -1,11 +1,13 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { ChevronLeft, Share2, Copy, Check, Package, X as CloseIcon } from "lucide-react";
+import { ChevronLeft, Copy, Check, Package, X as CloseIcon } from "lucide-react";
 import API from "../api/axios";
 import { useCart } from "../Context/CartContext";
 import { useAuth } from "../Context/AuthContext";
 import toast from "react-hot-toast";
+import { useReveal } from "../hooks/useIntersectionObserver.js";
+import { useScrollProgress } from "../hooks/useScrollProgress.js";
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://catalogoayp.vercel.app";
 
@@ -60,6 +62,8 @@ function ProductDetail() {
   const [zoomOpen, setZoomOpen]            = useState(false);
   const { addToCart }                      = useCart();
   const { isServiceApproved, servicePrice } = useAuth();
+  const scrollProgress = useScrollProgress();
+  const relatedRef     = useReveal();
 
   /* Cargar producto */
   useEffect(() => {
@@ -116,9 +120,22 @@ function ProductDetail() {
 
   /* ── Estados de carga / no encontrado ── */
   if (loading) return (
-    <div className="flex justify-center items-center min-h-[50vh]">
-      <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full"
-        style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="skeleton skeleton-text w-16 mb-6" />
+      <div className="bento p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8" style={{ borderRadius: "24px" }}>
+        <div className="skeleton rounded-2xl" style={{ minHeight: "320px" }} />
+        <div className="flex flex-col gap-3">
+          <div className="skeleton skeleton-text w-1/4" />
+          <div className="skeleton" style={{ height: "2rem", borderRadius: "8px", width: "85%" }} />
+          <div className="skeleton" style={{ height: "1.25rem", borderRadius: "8px", width: "55%" }} />
+          <div className="skeleton skeleton-text w-full mt-2" />
+          <div className="skeleton skeleton-text w-full" />
+          <div className="skeleton skeleton-text w-3/4" />
+          <div className="skeleton" style={{ height: "2.5rem", borderRadius: "8px", width: "40%", marginTop: "8px" }} />
+          <div className="skeleton skeleton-btn mt-2" />
+          <div className="skeleton skeleton-btn" />
+        </div>
+      </div>
     </div>
   );
 
@@ -137,6 +154,12 @@ function ProductDetail() {
 
   return (
     <>
+      {/* Barra de progreso de lectura */}
+      <div
+        className="fixed top-0 left-0 z-50 h-0.5 transition-all duration-100"
+        style={{ width: `${scrollProgress}%`, background: "var(--brand)" }}
+      />
+
       <Helmet>
         <title>{`${product.name} | A&P Refrigeración`}</title>
         <meta name="description" content={description} />
@@ -307,7 +330,7 @@ function ProductDetail() {
 
         {/* ── PRODUCTOS RELACIONADOS ── */}
         {related.length > 0 && (
-          <section className="mt-12">
+          <section ref={relatedRef} className="mt-12 reveal">
             <h2 className="text-lg font-bold mb-4" style={{ color: "var(--text)" }}>
               También te puede interesar
             </h2>

@@ -74,7 +74,6 @@ export default function KitInstalacion() {
     }
   };
 
-  useEffect(() => { if (meta.length) fetchPrice(); }, [meta.length]);
   useEffect(() => { if (meta.length) fetchPrice(); }, [qty, variant, meta.length]);
 
   /* Texto WhatsApp */
@@ -127,9 +126,21 @@ export default function KitInstalacion() {
           </h2>
 
           {!meta.length ? (
-            <p className="text-sm" style={{ color: "var(--muted)" }}>
-              Configuración no encontrada.
-            </p>
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="skeleton skeleton-text w-3/4" />
+                    <div className="skeleton skeleton-text w-1/2" style={{ height: "1.5rem" }} />
+                  </div>
+                  <div className="flex gap-1.5">
+                    <div className="skeleton w-11 h-11 rounded-xl" />
+                    <div className="skeleton w-20 h-11 rounded-xl" />
+                    <div className="skeleton w-11 h-11 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             meta.map((item) => (
               <div key={item.key} className="flex items-center justify-between gap-3">
@@ -197,9 +208,16 @@ export default function KitInstalacion() {
           </h2>
 
           {loading ? (
-            <div className="flex justify-center py-6">
-              <div className="animate-spin h-6 w-6 border-4 border-t-transparent rounded-full"
-                style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="py-2.5 flex items-center justify-between gap-2">
+                  <div className="flex-1 space-y-1">
+                    <div className="skeleton skeleton-text w-3/5" />
+                    <div className="skeleton skeleton-text w-2/5" />
+                  </div>
+                  <div className="skeleton skeleton-text w-16" />
+                </div>
+              ))}
             </div>
           ) : pricing.lines.length ? (
             <>

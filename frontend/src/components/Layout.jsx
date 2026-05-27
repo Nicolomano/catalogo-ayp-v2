@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
-import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench } from "lucide-react";
 import { useState, useEffect } from "react";
 import WhatsappFloat from "./WhatsappFloat.jsx";
 
@@ -118,7 +118,8 @@ function Layout() {
               <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
                 <span
-                  className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-xs font-bold rounded-full flex items-center justify-center"
+                  key={totalItems}
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 text-white font-bold rounded-full flex items-center justify-center cart-badge-animate"
                   style={{ background: "var(--brand)", fontSize: "9px" }}
                 >
                   {totalItems}
@@ -139,7 +140,7 @@ function Layout() {
         {/* Menú mobile */}
         {menuOpen && (
           <nav
-            className="md:hidden px-5 py-4 space-y-1 border-t animate-fade-up"
+            className="md:hidden px-5 py-4 space-y-1 border-t menu-enter"
             style={{ borderColor: "var(--border)", borderRadius: "0 0 16px 16px", background: "var(--surface)" }}
           >
             {[
@@ -195,9 +196,53 @@ function Layout() {
 
       <WhatsappFloat />
 
+      {/* Bottom nav mobile */}
+      <nav className="bottom-nav">
+        <NavLink to="/" end className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
+          <Home className="h-5 w-5" />
+          Inicio
+        </NavLink>
+        <NavLink to="/catalogo" className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
+          <Package className="h-5 w-5" />
+          Productos
+        </NavLink>
+        <NavLink to="/kit-instalacion" className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
+          <Wrench className="h-5 w-5" />
+          Kit
+        </NavLink>
+        <NavLink to="/cart" className={({ isActive }) => `bottom-nav-item relative${isActive ? " active" : ""}`}>
+          <div className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            {totalItems > 0 && (
+              <span
+                key={totalItems}
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 text-white font-bold rounded-full flex items-center justify-center cart-badge-animate"
+                style={{ background: "var(--brand)", fontSize: "9px" }}
+              >
+                {totalItems}
+              </span>
+            )}
+          </div>
+          Pedido
+        </NavLink>
+      </nav>
+
       {/* FOOTER */}
-      <footer className="py-14 mt-8" style={{ background: "var(--dark-card)" }}>
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-10">
+      <footer className="py-14 mt-8 relative overflow-hidden" style={{ background: "var(--dark-card)" }}>
+        {/* Dot grid decoration */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-30"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        {/* Aurora radial esquina */}
+        <div
+          className="absolute top-0 right-0 w-96 h-96 pointer-events-none"
+          style={{ background: "radial-gradient(circle at top right, rgba(0,51,204,0.2) 0%, transparent 65%)" }}
+        />
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-10 relative">
           <div className="max-w-xs">
             <img
               src="/logo.png"
@@ -213,21 +258,21 @@ function Layout() {
             <div>
               <p className="text-xs text-white/30 mb-4 uppercase tracking-widest font-semibold">Tienda</p>
               <div className="flex flex-col gap-2.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                <Link to="/catalogo" className="hover:text-white transition-colors">Todos los productos</Link>
-                <Link to="/kit-instalacion" className="hover:text-white transition-colors">Kit de instalación</Link>
-                <Link to="/contacto" className="hover:text-white transition-colors">Contacto</Link>
+                <Link to="/catalogo" className="hover:text-white transition-colors hover:translate-x-0.5 inline-block">Todos los productos</Link>
+                <Link to="/kit-instalacion" className="hover:text-white transition-colors hover:translate-x-0.5 inline-block">Kit de instalación</Link>
+                <Link to="/contacto" className="hover:text-white transition-colors hover:translate-x-0.5 inline-block">Contacto</Link>
               </div>
             </div>
             <div>
               <p className="text-xs text-white/30 mb-4 uppercase tracking-widest font-semibold">Cuenta</p>
               <div className="flex flex-col gap-2.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                <Link to="/login" className="hover:text-white transition-colors">Iniciar sesión</Link>
-                <Link to="/register" className="hover:text-white transition-colors">Registrarme</Link>
+                <Link to="/login" className="hover:text-white transition-colors hover:translate-x-0.5 inline-block">Iniciar sesión</Link>
+                <Link to="/register" className="hover:text-white transition-colors hover:translate-x-0.5 inline-block">Registrarme</Link>
               </div>
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/5 text-xs" style={{ color: "rgba(255,255,255,0.18)" }}>
+        <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/5 text-xs relative" style={{ color: "rgba(255,255,255,0.18)" }}>
           © {new Date().getFullYear()} A&P Refrigeración. Todos los derechos reservados.
         </div>
       </footer>

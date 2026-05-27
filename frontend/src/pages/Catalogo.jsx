@@ -10,6 +10,23 @@ import Sidebar from "../components/Sidebar.jsx";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 
 const PAGE_SIZE = 24;
+const SKELETON_INITIAL = 8;
+const SKELETON_MORE = 4;
+
+function ProductCardSkeleton() {
+  return (
+    <div className="skeleton-card">
+      <div className="skeleton skeleton-image" style={{ borderRadius: "20px 20px 0 0" }} />
+      <div className="p-3 space-y-2">
+        <div className="skeleton skeleton-text w-1/3" />
+        <div className="skeleton skeleton-title w-full" />
+        <div className="skeleton skeleton-title w-4/5" />
+        <div className="skeleton skeleton-text w-1/2 mt-2" />
+        <div className="skeleton skeleton-btn mt-2" />
+      </div>
+    </div>
+  );
+}
 
 function Catalogo() {
   const [allProducts, setAllProducts] = useState([]);
@@ -213,8 +230,19 @@ function Catalogo() {
                 }}
               />
               {(isFetching || isPending) && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin h-4 w-4 border-2 border-t-transparent rounded-full"
-                  style={{ borderColor: "var(--brand)", borderTopColor: "transparent" }} />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: "var(--brand)",
+                        animation: "dotBounce 1s ease infinite",
+                        animationDelay: `${i * 0.15}s`,
+                      }}
+                    />
+                  ))}
+                </div>
               )}
             </div>
 
@@ -242,9 +270,8 @@ function Catalogo() {
 
           {/* Grid de productos */}
           {(isFetching || isPending) && allProducts.length === 0 ? (
-            <div className="flex justify-center py-24">
-              <div className="animate-spin h-10 w-10 border-4 border-t-transparent rounded-full"
-                style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              {Array.from({ length: SKELETON_INITIAL }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
           ) : allProducts.length === 0 ? (
             <p className="text-center py-16 text-lg" style={{ color: "var(--muted)" }}>
@@ -256,14 +283,24 @@ function Catalogo() {
                 const qty = quantities[p.productCode] || 1;
                 const displayPrice = isServiceApproved ? servicePrice(p.priceARS) : p.priceARS;
                 return (
-                  <div key={p._id} className="bento bento-link flex flex-col group">
+                  <div key={p._id} className="bento bento-link product-card flex flex-col group">
                     <Link to={`/product/${p.productCode}`} className="flex flex-col items-center p-3">
-                      <div className="w-full aspect-square flex items-center justify-center mb-2 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
-                        style={{ background: "var(--surface2)" }}>
+                      <div className="product-img-wrap rounded-xl mb-2 relative">
                         {p.image
-                          ? <img src={p.image} alt={p.name} className="object-contain max-h-full transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
+                          ? <img src={p.image} alt={p.name} className="object-contain max-h-full w-full h-full transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
                           : <Package className="h-12 w-12 opacity-15" style={{ color: "var(--muted)" }} />
                         }
+                        {p.inStock === false && (
+                          <span className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "var(--error-tint)", color: "var(--error)" }}>
+                            Sin stock
+                          </span>
+                        )}
+                        <div className="product-card-overlay rounded-xl">
+                          <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
+                            Ver más
+                          </span>
+                        </div>
                       </div>
                       {p.brand && <span className="text-xs mb-1 font-medium" style={{ color: "var(--muted)" }}>{p.brand}</span>}
                       <h2 className="text-sm font-semibold text-center line-clamp-2 min-h-[2.5rem]" style={{ color: "var(--text)" }}>
@@ -272,13 +309,6 @@ function Catalogo() {
                     </Link>
 
                     <div className="px-3 pb-3 flex flex-col gap-2 mt-auto">
-                      {p.inStock === false && (
-                        <span className="text-xs text-center rounded-full px-2 py-0.5"
-                          style={{ background: "#FEF2F2", color: "#DC2626" }}>
-                          Sin stock
-                        </span>
-                      )}
-
                       {displayPrice ? (
                         <div className="text-center">
                           <p className="text-base font-bold" style={{ color: "var(--brand)" }}>
@@ -319,9 +349,8 @@ function Catalogo() {
 
           <div ref={loaderRef} className="h-4" />
           {(isFetching || isPending) && allProducts.length > 0 && (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin h-8 w-8 border-4 border-t-transparent rounded-full"
-                style={{ borderColor: "var(--border)", borderTopColor: "var(--brand)" }} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mt-3">
+              {Array.from({ length: SKELETON_MORE }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
           )}
           {!hasMore && allProducts.length > 0 && (

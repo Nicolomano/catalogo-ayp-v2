@@ -12,10 +12,18 @@ function Cart() {
 
   if (cart.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-24 flex flex-col items-center gap-4">
-        <ShoppingCart className="h-16 w-16 opacity-15" style={{ color: "var(--muted)" }} />
-        <p className="text-lg font-semibold" style={{ color: "var(--muted)" }}>El pedido está vacío</p>
-        <Link to="/catalogo" className="btn-primary px-6">
+      <div className="max-w-2xl mx-auto px-4 py-24 flex flex-col items-center gap-4 text-center">
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-2"
+          style={{ background: "var(--brand-tint)" }}
+        >
+          <ShoppingCart className="h-10 w-10 opacity-60" style={{ color: "var(--brand)" }} />
+        </div>
+        <p className="text-xl font-bold" style={{ color: "var(--text)" }}>El pedido está vacío</p>
+        <p className="text-sm max-w-xs" style={{ color: "var(--muted)" }}>
+          Agregá productos desde el catálogo para armar tu pedido
+        </p>
+        <Link to="/catalogo" className="btn-primary px-8 mt-2">
           Ver productos
         </Link>
       </div>

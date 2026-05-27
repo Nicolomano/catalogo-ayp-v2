@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp, ArrowRight } from "lucide-react";
+import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
+import { useReveal } from "../hooks/useIntersectionObserver.js";
 
-/* Íconos fijos para las 4 tarjetas de info */
 const INFO_ICONS = [
   <Zap className="h-5 w-5" />,
   <Phone className="h-5 w-5" />,
@@ -34,22 +34,25 @@ function ProductCard({ product }) {
   return (
     <Link
       to={`/product/${product.productCode}`}
-      className="bento flex flex-col hover:shadow-lg transition group"
+      className="bento product-card flex flex-col group"
     >
-      <div
-        className="aspect-square flex items-center justify-center p-4 rounded-t-[20px]"
-        style={{ background: "var(--surface2)" }}
-      >
+      <div className="product-img-wrap rounded-t-[20px] p-4 relative">
         {product.image ? (
           <img
             src={product.image}
             alt={product.name}
-            className="object-contain max-h-full group-hover:scale-105 transition-transform duration-300"
+            className="object-contain max-h-full w-full h-full group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
         )}
+        <div className="product-card-overlay rounded-t-[20px]">
+          <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
+            Ver producto
+          </span>
+        </div>
       </div>
       <div className="p-3 flex flex-col flex-1">
         <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
@@ -82,12 +85,14 @@ function SectionHeader({ tag, title, linkTo, linkLabel }) {
             {tag}
           </span>
         )}
-        <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{title}</h2>
+        <h2 className="text-2xl font-bold" style={{ color: "var(--text)", letterSpacing: "var(--tracking-tight)" }}>
+          {title}
+        </h2>
       </div>
       {linkTo && (
         <Link
           to={linkTo}
-          className="flex items-center gap-1 text-sm font-medium"
+          className="flex items-center gap-1 text-sm font-medium transition-opacity hover:opacity-70"
           style={{ color: "var(--brand)" }}
         >
           {linkLabel} <ChevronRight className="h-4 w-4" />
@@ -101,8 +106,13 @@ function Landing() {
   const [landingData, setLandingData] = useState({ featured: [], newArrivals: [] });
   const [categories, setCategories]   = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
-  // null = cargando (evita parpadeo), [] = sin banners, [...] = hay banners
   const [banners, setBanners]         = useState(null);
+
+  const infoRef  = useReveal();
+  const catRef   = useReveal();
+  const featRef  = useReveal();
+  const newRef   = useReveal();
+  const ctaRef   = useReveal();
 
   useEffect(() => {
     API.get("/products/landing")
@@ -145,24 +155,23 @@ function Landing() {
 
             {/* Hero principal — 8 cols, 2 rows */}
             <div
-              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden"
+              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg"
               style={{
                 background: siteConfig.heroImage
                   ? `linear-gradient(rgba(0,26,128,0.78), rgba(0,51,204,0.72)), url(${siteConfig.heroImage}) center/cover`
-                  : "var(--hero-grad)"
+                  : "linear-gradient(135deg, #000D40 0%, #001A80 45%, #0033CC 100%)"
               }}
             >
-              {/* Dot grid always visible */}
               <div
-                className="absolute inset-0 pointer-events-none"
+                className="absolute inset-0 pointer-events-none z-[1]"
                 style={{
-                  backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
+                  backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
                   backgroundSize: "28px 28px",
                 }}
               />
               {!siteConfig.heroImage && (
                 <>
-                  <div className="absolute right-0 bottom-0 w-80 h-80 opacity-[0.07] pointer-events-none">
+                  <div className="absolute right-0 bottom-0 w-80 h-80 opacity-[0.07] pointer-events-none z-[1]">
                     <svg viewBox="0 0 400 400" fill="none">
                       <circle cx="200" cy="200" r="190" stroke="white" strokeWidth="1"/>
                       <circle cx="200" cy="200" r="130" stroke="white" strokeWidth="1"/>
@@ -171,11 +180,8 @@ function Landing() {
                       <line x1="200" y1="10"  x2="200" y2="390" stroke="white" strokeWidth="1"/>
                     </svg>
                   </div>
-                  <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none"
+                  <div className="absolute top-0 right-0 w-72 h-72 pointer-events-none z-[1]"
                     style={{ background: "radial-gradient(circle at top right, rgba(150,180,255,0.22) 0%, transparent 65%)" }}
-                  />
-                  <div className="absolute bottom-0 left-0 w-48 h-48 pointer-events-none"
-                    style={{ background: "radial-gradient(circle at bottom left, rgba(0,51,204,0.4) 0%, transparent 70%)" }}
                   />
                 </>
               )}
@@ -189,7 +195,10 @@ function Landing() {
                   </span>
                   {siteConfig.heroBadge}
                 </span>
-                <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight mb-3">
+                <h1
+                  className="text-4xl sm:text-5xl font-black text-white leading-tight mb-3"
+                  style={{ letterSpacing: "var(--tracking-display)" }}
+                >
                   {siteConfig.heroTitle}<br/>
                   <span style={{ color: "#99BBFF" }}>{siteConfig.heroHighlight}</span>
                 </h1>
@@ -212,15 +221,13 @@ function Landing() {
               </div>
             </div>
 
-            {/* Columna derecha: carousel si hay banners, stat cards si no */}
+            {/* Columna derecha */}
             {banners?.length
               ? (
-                /* Carousel integrado — ocupa las 2 filas de la columna derecha */
                 <div className="col-span-12 md:col-span-4 row-span-2 overflow-hidden rounded-[20px]">
                   <HeroCarousel slides={banners} fillContainer />
                 </div>
               ) : banners !== null && (
-                /* Panel derecho unificado con glassmorphism */
                 <div
                   className="col-span-12 md:col-span-4 row-span-2 rounded-[20px] p-3 flex flex-col gap-3 relative overflow-hidden border"
                   style={{
@@ -228,18 +235,15 @@ function Landing() {
                     borderColor: "rgba(255,255,255,0.06)",
                   }}
                 >
-                  {/* Dot grid sobre fondo oscuro */}
                   <div className="absolute inset-0 pointer-events-none"
                     style={{
                       backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
                       backgroundSize: "20px 20px",
                     }}
                   />
-                  {/* Glow radial top-right */}
                   <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none"
                     style={{ background: "radial-gradient(circle at top right, rgba(102,153,255,0.2) 0%, transparent 65%)" }} />
 
-                  {/* Glass card — stat 1 */}
                   <div className="flex-1 rounded-2xl p-5 flex flex-col justify-between relative"
                     style={{
                       background: "rgba(255,255,255,0.07)",
@@ -258,9 +262,7 @@ function Landing() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-4xl font-black leading-none text-white">
-                        {siteConfig.stat1Value}
-                      </p>
+                      <p className="text-4xl font-black leading-none text-white">{siteConfig.stat1Value}</p>
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <TrendingUp className="h-3 w-3 flex-shrink-0" style={{ color: "#4ADE80" }} />
                         <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>{siteConfig.stat1Label}</p>
@@ -268,7 +270,6 @@ function Landing() {
                     </div>
                   </div>
 
-                  {/* Glass card — stat 2 */}
                   <div className="flex-1 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden"
                     style={{
                       background: "rgba(255,255,255,0.07)",
@@ -277,7 +278,6 @@ function Landing() {
                       border: "1px solid rgba(255,255,255,0.12)",
                     }}
                   >
-                    {/* Glow interno */}
                     <div className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full pointer-events-none"
                       style={{ background: "radial-gradient(circle, rgba(0,51,204,0.45) 0%, transparent 70%)" }} />
                     <div className="flex items-start justify-between gap-2">
@@ -290,27 +290,28 @@ function Landing() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-4xl font-black leading-none text-white">
-                        {siteConfig.stat2Value}
-                      </p>
+                      <p className="text-4xl font-black leading-none text-white">{siteConfig.stat2Value}</p>
                       <p className="text-xs font-medium mt-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>{siteConfig.stat2Label}</p>
                     </div>
                   </div>
                 </div>
               )
             }
-
           </div>
         </section>
 
         {/* ── INFO CARDS ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <section
+          ref={infoRef}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 reveal"
+        >
           {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i) => (
-            <div key={i} className="bento p-5 flex items-center gap-4 relative overflow-hidden">
-              {/* Left border accent */}
+            <div
+              key={i}
+              className={`bento p-5 flex items-center gap-4 relative overflow-hidden reveal reveal-delay-${i + 1}`}
+            >
               <div className="absolute top-0 left-0 bottom-0 w-[3px]"
                 style={{ background: "linear-gradient(180deg, var(--brand) 0%, var(--brand-tint-t) 100%)" }} />
-              {/* Icon with gradient bg + shadow */}
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ml-1"
                 style={{
@@ -331,29 +332,29 @@ function Landing() {
 
         {/* ── CATEGORÍAS ── */}
         {categories.length > 0 && (
-          <section>
+          <section ref={catRef} className="reveal">
             <SectionHeader tag="Categorías" title="Navegá por categoría" linkTo="/catalogo" linkLabel="Ver todas" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {categories.map((cat) => (
+              {categories.map((cat, i) => (
                 <Link
                   key={cat.category}
                   to={`/catalogo?cat=${encodeURIComponent(cat.category)}`}
-                  className="bento bento-link p-4 flex items-center gap-3 group"
+                  className={`bento bento-link p-4 flex items-center gap-3 group reveal reveal-delay-${Math.min(i + 1, 4)}`}
                 >
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-[var(--brand)] group-hover:text-white"
                     style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
                   >
                     <Tag className="h-4 w-4" />
                   </div>
-                  <span className="text-sm font-medium group-hover:underline" style={{ color: "var(--text)" }}>
+                  <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
                     {cat.category}
                   </span>
                 </Link>
               ))}
               <Link
                 to="/catalogo"
-                className="rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-1 py-4 transition-colors"
+                className="rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-1 py-4 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-tint)]"
                 style={{ borderColor: "var(--brand-tint)", color: "var(--muted)" }}
               >
                 <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>+</span>
@@ -365,7 +366,7 @@ function Landing() {
 
         {/* ── PRODUCTOS DESTACADOS ── */}
         {featured.length > 0 && (
-          <section style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
+          <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
             <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {featured.map((p) => <ProductCard key={p._id} product={p} />)}
@@ -375,7 +376,7 @@ function Landing() {
 
         {/* ── NUEVOS INGRESOS ── */}
         {newArrivals.length > 0 && (
-          <section>
+          <section ref={newRef} className="reveal">
             <SectionHeader tag="Nuevos ingresos" title="Últimas novedades" linkTo="/catalogo?sort=createdAt:desc" linkLabel="Ver todos" />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {newArrivals.map((p) => <ProductCard key={p._id} product={p} />)}
@@ -384,33 +385,33 @@ function Landing() {
         )}
 
         {/* ── CTAs DOBLES ── */}
-        <section className="grid md:grid-cols-2 gap-4">
+        <section ref={ctaRef} className="grid md:grid-cols-2 gap-4 reveal">
 
-          {/* Kit de instalación */}
           <div
-            className="rounded-3xl p-8 sm:p-10 flex flex-col justify-between"
-            style={{ background: "var(--hero-grad)", minHeight: "220px" }}
+            className="rounded-3xl p-8 sm:p-10 flex flex-col justify-between aurora-bg"
+            style={{ background: "linear-gradient(135deg, #000D40 0%, #001A80 55%, #0033CC 100%)", minHeight: "220px" }}
           >
-            <div>
+            <div className="relative z-10">
               <span
                 className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full inline-block mb-4 border border-white/10"
                 style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}
               >
                 Kit completo
               </span>
-              <h2 className="text-2xl font-bold text-white mb-2">{siteConfig.kitTitle}</h2>
+              <h2 className="text-2xl font-bold text-white mb-2" style={{ letterSpacing: "var(--tracking-tight)" }}>
+                {siteConfig.kitTitle}
+              </h2>
               <p className="text-white/60 text-sm leading-relaxed">{siteConfig.kitSubtitle}</p>
             </div>
             <Link
               to="/kit-instalacion"
-              className="mt-6 self-start px-6 py-2.5 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-colors"
+              className="mt-6 self-start px-6 py-2.5 rounded-xl font-semibold text-sm bg-white hover:bg-slate-50 transition-all hover:scale-[1.02] relative z-10"
               style={{ color: "#001A80" }}
             >
               {siteConfig.kitCTA}
             </Link>
           </div>
 
-          {/* Quiénes somos + contacto */}
           <div className="bento p-8 sm:p-10 flex flex-col justify-between" style={{ minHeight: "220px" }}>
             <div>
               <span
@@ -419,7 +420,9 @@ function Landing() {
               >
                 Sobre nosotros
               </span>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>{siteConfig.aboutTitle}</h2>
+              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)", letterSpacing: "var(--tracking-tight)" }}>
+                {siteConfig.aboutTitle}
+              </h2>
               <p className="text-sm leading-relaxed line-clamp-3" style={{ color: "var(--muted)" }}>
                 {siteConfig.aboutText}
               </p>
