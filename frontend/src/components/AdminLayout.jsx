@@ -11,14 +11,16 @@ import {
   LogOut,
   ChevronRight,
   LayoutDashboard,
+  UserCheck,
 } from "lucide-react";
 
 const NAV_GROUPS = [
   {
     label: "Contenido",
     items: [
-      { to: "/admin/landing", icon: Home, label: "Página de inicio" },
-      { to: "/admin/banners", icon: Image, label: "Banners / Slider" },
+      { to: "/admin/landing",   icon: Home,      label: "Página de inicio" },
+      { to: "/admin/banners",   icon: Image,     label: "Banners / Slider" },
+      { to: "/admin/tecnicos",  icon: UserCheck, label: "Instaladores" },
     ],
   },
   {
