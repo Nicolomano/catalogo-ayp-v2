@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  MapPin, Star, ChevronLeft, UserCheck, Clock,
+  MapPin, ChevronLeft, UserCheck, Clock,
   Wrench, Thermometer, Zap, Wind, Package, Settings,
   Shield, Snowflake,
 } from "lucide-react";
@@ -27,22 +27,6 @@ function ServiceIcon({ name }) {
   return <Icon className="h-4 w-4 flex-shrink-0" />;
 }
 
-function StarRating({ value }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className="h-4 w-4"
-          style={{
-            fill:  i <= Math.round(value) ? "#FBBF24" : "transparent",
-            color: i <= Math.round(value) ? "#FBBF24" : "var(--border)",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function DetailSkeleton() {
   return (
@@ -184,15 +168,6 @@ export default function TecnicoDetalle() {
                   </p>
                 )}
               </div>
-
-              {tecnico.rating > 0 && (
-                <div className="space-y-0.5">
-                  <StarRating value={tecnico.rating} />
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>
-                    {tecnico.rating.toFixed(1)} · {tecnico.reviewCount} reseñas
-                  </p>
-                </div>
-              )}
 
               {tecnico.specialties?.length > 0 && (
                 <div className="space-y-1">

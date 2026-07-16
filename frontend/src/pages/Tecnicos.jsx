@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Star, ChevronDown, UserCheck } from "lucide-react";
+import { MapPin, ChevronDown, UserCheck } from "lucide-react";
 import API from "../api/axios";
 
 const LIMIT = 6;
@@ -71,19 +71,6 @@ function TecnicoCard({ tecnico }) {
               <MapPin className="h-3 w-3 flex-shrink-0" />
               {[tecnico.city, tecnico.neighborhood].filter(Boolean).join(", ")}
             </p>
-          )}
-          {tecnico.rating > 0 && (
-            <div className="flex items-center gap-1 mt-1">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>
-                {tecnico.rating.toFixed(1)}
-              </span>
-              {tecnico.reviewCount > 0 && (
-                <span className="text-xs" style={{ color: "var(--muted)" }}>
-                  ({tecnico.reviewCount} reseñas)
-                </span>
-              )}
-            </div>
           )}
         </div>
 
