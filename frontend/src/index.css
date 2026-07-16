@@ -25,6 +25,10 @@
   --shadow:       0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
   --shadow-lg:    0 8px 32px rgba(0,51,204,0.12);
 
+  --accent:      #ff751f;
+  --accent-h:    #e6661a;
+  --accent-tint: rgba(255, 117, 31, 0.10);
+
   --navbar-h:        64px;
   --radius-card:     20px;
   --radius-btn:      12px;
@@ -84,6 +88,8 @@ html.dark {
   --aurora-1: rgba(0, 51, 204, 0.5);
   --aurora-2: rgba(99, 102, 241, 0.4);
   --aurora-3: rgba(6, 182, 212, 0.25);
+
+  --accent-tint: rgba(255, 117, 31, 0.15);
 }
 
 /* ── Base ──────────────────────────────────────────────── */
@@ -409,6 +415,7 @@ html.dark .glass-card {
   .bottom-nav { display: none; }
 }
 .bottom-nav-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -428,6 +435,17 @@ html.dark .glass-card {
 .bottom-nav-item:hover {
   background: var(--brand-tint);
   color: var(--brand);
+}
+.bottom-nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 0 0 4px 4px;
 }
 @media (max-width: 767px) {
   .layout-body {

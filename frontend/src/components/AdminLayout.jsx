@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Package,
@@ -12,6 +13,8 @@ import {
   ChevronRight,
   LayoutDashboard,
   UserCheck,
+  Menu,
+  X,
 } from "lucide-react";
 
 const NAV_GROUPS = [
@@ -69,6 +72,9 @@ function NavItem({ to, icon: Icon, label }) {
 function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -83,9 +89,17 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
+      {/* Backdrop (mobile only) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
-        className="w-60 flex flex-col fixed top-0 left-0 h-full z-30"
+        className={`w-60 flex flex-col fixed top-0 left-0 h-full z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{
           background: "linear-gradient(180deg, #001A80 0%, #0033CC 100%)",
         }}
@@ -161,16 +175,25 @@ function AdminLayout() {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col" style={{ marginLeft: "240px" }}>
+      <div className="flex flex-col flex-1 md:ml-60 min-w-0">
         {/* Header */}
         <header
-          className="sticky top-0 z-20 px-6 py-4 flex items-center gap-2 border-b"
+          className="sticky top-0 z-20 px-4 py-4 flex items-center gap-2 border-b"
           style={{
             background: "var(--surface)",
             borderColor: "var(--border)",
             boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",
           }}
         >
+          {/* Hamburger — mobile only */}
+          <button
+            className="md:hidden p-2 -ml-1 mr-1 rounded-lg transition-colors hover:bg-[var(--surface2)]"
+            style={{ color: "var(--text)" }}
+            onClick={() => setSidebarOpen((o) => !o)}
+            aria-label="Abrir menú"
+          >
+            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
           <span
             className="text-sm font-medium"
             style={{ color: "var(--muted)" }}
@@ -179,7 +202,7 @@ function AdminLayout() {
           </span>
           <ChevronRight size={14} style={{ color: "var(--muted)" }} />
           <span
-            className="text-sm font-semibold"
+            className="text-sm font-semibold truncate"
             style={{ color: "var(--text)" }}
           >
             {pageTitle}

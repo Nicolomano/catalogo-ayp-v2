@@ -155,7 +155,7 @@ function Landing() {
 
             {/* Hero principal — 8 cols, 2 rows */}
             <div
-              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg"
+              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg min-h-[300px]"
               style={{
                 background: siteConfig.heroImage
                   ? `linear-gradient(rgba(0,26,128,0.78), rgba(0,51,204,0.72)), url(${siteConfig.heroImage}) center/cover`
@@ -190,8 +190,8 @@ function Landing() {
                 <span className="text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-4 border border-white/15 text-white/70"
                   style={{ background: "rgba(255,255,255,0.08)" }}>
                   <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#4ADE80" }} />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#4ADE80" }} />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--accent)" }} />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                   </span>
                   {siteConfig.heroBadge}
                 </span>
@@ -224,12 +224,12 @@ function Landing() {
             {/* Columna derecha */}
             {banners?.length
               ? (
-                <div className="col-span-12 md:col-span-4 row-span-2 overflow-hidden rounded-[20px]">
+                <div className="hidden md:block md:col-span-4 md:row-span-2 overflow-hidden rounded-[20px]">
                   <HeroCarousel slides={banners} fillContainer />
                 </div>
               ) : banners !== null && (
                 <div
-                  className="col-span-12 md:col-span-4 row-span-2 rounded-[20px] p-3 flex flex-col gap-3 relative overflow-hidden border"
+                  className="hidden md:flex md:col-span-4 md:row-span-2 rounded-[20px] p-3 flex-col gap-3 relative overflow-hidden border"
                   style={{
                     background: "linear-gradient(160deg, #001260 0%, #001A80 55%, #002BB3 100%)",
                     borderColor: "rgba(255,255,255,0.06)",

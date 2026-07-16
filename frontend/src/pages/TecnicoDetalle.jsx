@@ -167,7 +167,7 @@ export default function TecnicoDetalle() {
               {tecnico.recommended && (
                 <span
                   className="text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1"
-                  style={{ background: "#DCFCE7", color: "#16A34A" }}
+                  style={{ background: "var(--accent-tint)", color: "var(--accent)" }}
                 >
                   <UserCheck className="h-3 w-3" /> Recomendado A&P
                 </span>

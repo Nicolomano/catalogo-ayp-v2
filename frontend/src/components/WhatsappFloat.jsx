@@ -21,7 +21,7 @@ export default function WhatsappFloat() {
       rel="noopener noreferrer"
       aria-label="Consultar por WhatsApp"
       className="fixed right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all hover:scale-110 active:scale-95 group md:bottom-6 bottom-[88px]"
-      style={{ background: "#25D366", boxShadow: "0 8px 24px rgba(37,211,102,0.4)" }}
+      style={{ background: "#25D366", boxShadow: "0 8px 24px rgba(37,211,102,0.4), 0 0 0 3px var(--accent-tint)" }}
     >
       {/* Label tooltip — solo desktop */}
       <span

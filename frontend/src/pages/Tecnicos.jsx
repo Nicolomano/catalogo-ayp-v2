@@ -53,7 +53,7 @@ function TecnicoCard({ tecnico }) {
         {tecnico.recommended && (
           <span
             className="absolute top-2.5 left-2.5 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
-            style={{ background: "#16A34A", color: "#fff" }}
+            style={{ background: "var(--accent)", color: "#fff" }}
           >
             <UserCheck className="h-3 w-3" /> Recomendado A&P
           </span>

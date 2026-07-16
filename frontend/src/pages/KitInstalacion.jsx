@@ -119,7 +119,7 @@ export default function KitInstalacion() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* ── Configurador ── */}
-        <section className="bento p-6 space-y-4">
+        <section className="bento p-4 sm:p-6 space-y-4">
           <h2 className="text-base font-bold pb-2 border-b"
             style={{ color: "var(--text)", borderColor: "var(--border)" }}>
             Configuración
@@ -128,14 +128,14 @@ export default function KitInstalacion() {
           {!meta.length ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between gap-3">
+                <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <div className="flex-1 space-y-1.5">
                     <div className="skeleton skeleton-text w-3/4" />
                     <div className="skeleton skeleton-text w-1/2" style={{ height: "1.5rem" }} />
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1.5 self-end sm:self-auto">
                     <div className="skeleton w-11 h-11 rounded-xl" />
-                    <div className="skeleton w-20 h-11 rounded-xl" />
+                    <div className="skeleton w-16 h-11 rounded-xl" />
                     <div className="skeleton w-11 h-11 rounded-xl" />
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export default function KitInstalacion() {
             </div>
           ) : (
             meta.map((item) => (
-              <div key={item.key} className="flex items-center justify-between gap-3">
+              <div key={item.key} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
                     {item.label}
@@ -171,7 +171,7 @@ export default function KitInstalacion() {
                 </div>
 
                 {/* Stepper */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1.5 self-end sm:self-auto">
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) - (item.step || 0.5))}
                     className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
@@ -183,7 +183,7 @@ export default function KitInstalacion() {
                     min="0"
                     value={qty[item.key] ?? 0}
                     onChange={(e) => handleQty(item.key, e.target.value)}
-                    className="input-field w-20 text-center text-sm"
+                    className="input-field w-16 text-center text-sm"
                     style={{ padding: "6px 4px" }}
                   />
                   <button
