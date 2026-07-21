@@ -1,9 +1,20 @@
 import { useEffect, useState, useRef } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Move, Crosshair } from "lucide-react";
 import API from "../api/axios";
 
+// Velo azul del hero (Opción A) — debe coincidir con el de Landing.jsx
+const HERO_VEIL =
+  "linear-gradient(180deg, rgba(0,13,64,0.72) 0%, rgba(0,16,74,0.86) 100%), radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(0,8,40,0.55) 100%)";
+
+function parsePos(str) {
+  if (!str || str === "center") return { x: 50, y: 50 };
+  const m = String(str).match(/(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%/);
+  return m ? { x: Number(m[1]), y: Number(m[2]) } : { x: 50, y: 50 };
+}
+const clampPct = (v) => Math.max(0, Math.min(100, v));
+
 const DEFAULT = {
-  heroImage: "", heroBadge: "Stock permanente · Buenos Aires",
+  heroImage: "", heroImagePosition: "center", heroBadge: "Stock permanente · Buenos Aires",
   heroTitle: "Repuestos para", heroHighlight: "Refrigeración",
   heroSubtitle: "Distribuidora oficial. Más de 2000 productos para el técnico profesional.",
   heroCTA1: "Ver productos →", heroCTA2: "Precio Service",
@@ -49,13 +60,41 @@ export default function AdminLanding() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg]             = useState(null);
   const [preview, setPreview]     = useState(null);
+  const [heroPos, setHeroPos]     = useState({ x: 50, y: 50 });
   const fileRef                   = useRef();
+  const heroBoxRef                = useRef(null);
+  const dragRef                   = useRef({ on: false, x: 0, y: 0, px: 50, py: 50 });
 
   useEffect(() => {
-    API.get("/site-config").then((r) => setConfig((p) => ({ ...p, ...r.data }))).catch(() => {});
+    API.get("/site-config").then((r) => {
+      setConfig((p) => ({ ...p, ...r.data }));
+      setHeroPos(parsePos(r.data.heroImagePosition));
+    }).catch(() => {});
   }, []);
 
   const set = (field, value) => setConfig((p) => ({ ...p, [field]: value }));
+
+  // Arrastre para encuadrar la foto del hero
+  const onHeroPointerDown = (e) => {
+    if (!currentImage) return;
+    dragRef.current = { on: true, x: e.clientX, y: e.clientY, px: heroPos.x, py: heroPos.y };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onHeroPointerMove = (e) => {
+    if (!dragRef.current.on || !heroBoxRef.current) return;
+    const r = heroBoxRef.current.getBoundingClientRect();
+    const dx = e.clientX - dragRef.current.x;
+    const dy = e.clientY - dragRef.current.y;
+    const nx = clampPct(dragRef.current.px - (dx / r.width) * 130);
+    const ny = clampPct(dragRef.current.py - (dy / r.height) * 130);
+    setHeroPos({ x: nx, y: ny });
+    set("heroImagePosition", `${Math.round(nx)}% ${Math.round(ny)}%`);
+  };
+  const onHeroPointerUp = () => { dragRef.current.on = false; };
+  const centerHero = () => {
+    setHeroPos({ x: 50, y: 50 });
+    set("heroImagePosition", "center");
+  };
 
   const setCard = (i, field, value) =>
     setConfig((p) => {
@@ -74,7 +113,9 @@ export default function AdminLanding() {
       fd.append("image", file);
       const { data } = await API.post("/site-config/hero-image", fd);
       set("heroImage", data.url);
-      setMsg({ type: "ok", text: "Imagen subida correctamente." });
+      setHeroPos({ x: 50, y: 50 });
+      set("heroImagePosition", "center");
+      setMsg({ type: "ok", text: "Imagen subida. Arrastrala en el preview para encuadrarla." });
     } catch {
       setMsg({ type: "err", text: "Error al subir la imagen." });
     } finally {
@@ -158,35 +199,70 @@ export default function AdminLanding() {
       {/* HERO */}
       <Section title="Hero principal">
 
-        {/* Preview mini del hero */}
-        <div className="relative rounded-2xl overflow-hidden h-36 flex items-center px-6"
-          style={{ background: currentImage ? `linear-gradient(rgba(0,26,128,0.75), rgba(0,51,204,0.75)), url(${currentImage}) center/cover` : "var(--hero-grad)" }}>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-1">
-              {config.heroBadge}
-            </p>
-            <p className="text-lg font-black text-white leading-tight">
-              {config.heroTitle}<br/>
-              <span style={{ color: "#99BBFF" }}>{config.heroHighlight}</span>
-            </p>
+        {/* Preview en formato celular con arrastre para encuadrar */}
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wider self-start" style={{ color: "var(--muted)" }}>
+            Vista en teléfono
+          </p>
+          <div
+            ref={heroBoxRef}
+            onPointerDown={onHeroPointerDown}
+            onPointerMove={onHeroPointerMove}
+            onPointerUp={onHeroPointerUp}
+            onPointerCancel={onHeroPointerUp}
+            className="relative w-full max-w-[340px] rounded-2xl overflow-hidden flex flex-col justify-between p-5 select-none"
+            style={{
+              aspectRatio: "347 / 230",
+              background: currentImage
+                ? `${HERO_VEIL}, url(${currentImage}) ${heroPos.x}% ${heroPos.y}%/cover`
+                : "var(--hero-grad)",
+              touchAction: currentImage ? "none" : "auto",
+              cursor: currentImage ? "grab" : "default",
+            }}
+          >
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/60 mb-1">
+                {config.heroBadge}
+              </p>
+              <p className="text-lg font-black text-white leading-tight" style={{ textShadow: "0 1px 10px rgba(0,0,0,0.4)" }}>
+                {config.heroTitle}<br/>
+                <span style={{ color: "#99BBFF" }}>{config.heroHighlight}</span>
+              </p>
+            </div>
+            {currentImage && (
+              <div className="flex items-center gap-1.5 self-start text-[11px] font-semibold text-white/80 px-2.5 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.35)" }}>
+                <Move className="h-3 w-3" /> Arrastrá para encuadrar
+              </div>
+            )}
           </div>
-          <div className="absolute top-3 right-3 flex gap-2">
+
+          {/* Controles */}
+          <div className="flex flex-wrap justify-center gap-2 w-full max-w-[340px]">
             <button onClick={() => fileRef.current?.click()}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors flex items-center gap-1">
-              <Upload className="h-3 w-3" />
+              className="flex-1 min-w-[130px] flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl text-white transition-colors"
+              style={{ background: "var(--brand)" }}>
+              <Upload className="h-3.5 w-3.5" />
               {uploading ? "Subiendo…" : currentImage ? "Cambiar foto" : "Agregar foto"}
             </button>
             {currentImage && (
-              <button onClick={removeImage}
-                className="p-1.5 rounded-lg bg-white/20 text-white hover:bg-red-500/60 transition-colors">
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <>
+                <button onClick={centerHero}
+                  className="flex items-center justify-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl transition-colors"
+                  style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                  <Crosshair className="h-3.5 w-3.5" /> Centrar
+                </button>
+                <button onClick={removeImage}
+                  className="flex items-center justify-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl transition-colors"
+                  style={{ background: "var(--error-tint)", color: "var(--error)" }}>
+                  <X className="h-3.5 w-3.5" /> Quitar
+                </button>
+              </>
             )}
           </div>
         </div>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
         <p className="text-xs" style={{ color: "var(--muted)" }}>
-          La foto se muestra detrás del gradiente azul. Recomendado: horizontal, mínimo 1200px de ancho.
+          La foto se muestra detrás del velo azul. Subí una imagen horizontal (mínimo 1200px de ancho) y arrastrala en el preview para elegir qué parte se ve. Acordate de <strong>Guardar cambios</strong>.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-3">

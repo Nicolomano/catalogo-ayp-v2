@@ -117,7 +117,7 @@ function Landing() {
               className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-6 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg min-h-[230px] sm:min-h-[300px]"
               style={{
                 background: siteConfig.heroImage
-                  ? `linear-gradient(to right, rgba(0,13,64,0.88) 0%, rgba(0,20,90,0.6) 55%, rgba(0,26,128,0.35) 100%), url(${siteConfig.heroImage}) center/cover`
+                  ? `linear-gradient(180deg, rgba(0,13,64,0.72) 0%, rgba(0,16,74,0.86) 100%), radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(0,8,40,0.55) 100%), url(${siteConfig.heroImage}) ${siteConfig.heroImagePosition || "center"}/cover`
                   : "linear-gradient(135deg, #000D40 0%, #001A80 45%, #0033CC 100%)"
               }}
             >

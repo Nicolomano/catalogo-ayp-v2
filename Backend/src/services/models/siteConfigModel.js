@@ -4,6 +4,7 @@ const siteConfigSchema = new mongoose.Schema(
   {
     // ── Hero ──────────────────────────────────────────────────
     heroImage:     { type: String, default: "" },          // URL imagen de fondo (opcional)
+    heroImagePosition: { type: String, default: "center" }, // background-position (encuadre), ej: "50% 30%"
     heroBadge:     { type: String, default: "Stock permanente · Buenos Aires" },
     heroTitle:     { type: String, default: "Repuestos para" },
     heroHighlight: { type: String, default: "Refrigeración" },
