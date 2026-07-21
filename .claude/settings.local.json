@@ -23,7 +23,11 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\nieze\\\\OneDrive\\\\Documentos\\\\GitHub\\\\catalogo-ayp-v2\" -Recurse -Filter \"*.jsx\")",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\nieze\\\\OneDrive\\\\Documentos\\\\GitHub\\\\catalogo-ayp-v2\\\\src\" -Recurse)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(pkill -f \"vite\")",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)"
     ]
   }
 }

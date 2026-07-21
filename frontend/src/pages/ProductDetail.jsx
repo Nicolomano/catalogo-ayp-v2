@@ -8,6 +8,7 @@ import { useAuth } from "../Context/AuthContext";
 import toast from "react-hot-toast";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
 import { useScrollProgress } from "../hooks/useScrollProgress.js";
+import { calcCuota6 } from "../utils/pricing.js";
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://catalogoayp.vercel.app";
 
@@ -86,8 +87,6 @@ function ProductDetail() {
       })
       .catch(() => {});
   }, [product]);
-
-  const calcCuota6 = (price) => price ? Math.round((price * 1.3) / 6) : null;
 
   /* ── Compartir ── */
   const handleShare = async () => {

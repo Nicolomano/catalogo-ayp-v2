@@ -8,6 +8,7 @@ import { useAuth } from "../Context/AuthContext.jsx";
 import toast from "react-hot-toast";
 import Sidebar from "../components/Sidebar.jsx";
 import HeroCarousel from "../components/HeroCarousel.jsx";
+import { calcCuota6 } from "../utils/pricing.js";
 
 const PAGE_SIZE = 24;
 const SKELETON_INITIAL = 8;
@@ -145,7 +146,6 @@ function Catalogo() {
 
   const handleIncrease = (code) => setQuantities((prev) => ({ ...prev, [code]: (prev[code] || 1) + 1 }));
   const handleDecrease = (code) => setQuantities((prev) => ({ ...prev, [code]: Math.max(1, (prev[code] || 1) - 1) }));
-  const calcCuota6 = (price) => price ? Math.round((price * 1.3) / 6) : null;
 
   const handleCategoryChange = (cat) => {
     setCategory(cat); setSubcategory("all");

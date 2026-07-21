@@ -5,6 +5,8 @@ import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePer
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
+import { useAuth } from "../Context/AuthContext.jsx";
+import { calcCuota6 } from "../utils/pricing.js";
 
 const INFO_ICONS = [
   <Zap className="h-5 w-5" />,
@@ -31,6 +33,9 @@ const DEFAULT_CONFIG = {
 };
 
 function ProductCard({ product }) {
+  const { isServiceApproved, servicePrice } = useAuth();
+  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
+
   return (
     <Link
       to={`/product/${product.productCode}`}
@@ -48,6 +53,14 @@ function ProductCard({ product }) {
         ) : (
           <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
         )}
+        {product.inStock === false && (
+          <span
+            className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{ background: "var(--error-tint)", color: "var(--error)" }}
+          >
+            Sin stock
+          </span>
+        )}
         <div className="product-card-overlay rounded-t-[20px]">
           <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
             Ver producto
@@ -61,12 +74,98 @@ function ProductCard({ product }) {
         <h3 className="text-sm font-semibold line-clamp-2 flex-1" style={{ color: "var(--text)" }}>
           {product.name}
         </h3>
-        {product.priceARS ? (
+        {displayPrice ? (
           <p className="text-base font-bold mt-2" style={{ color: "var(--brand)" }}>
-            ${product.priceARS.toLocaleString("es-AR")}
+            ${displayPrice.toLocaleString("es-AR")}
+            {isServiceApproved && (
+              <span className="ml-1 text-xs font-semibold" style={{ color: "#16A34A" }}>service</span>
+            )}
           </p>
         ) : (
           <p className="text-sm italic mt-2" style={{ color: "var(--muted)" }}>Consultar precio</p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function FeaturedProductCard({ product }) {
+  const { isServiceApproved, servicePrice } = useAuth();
+  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
+
+  return (
+    <Link
+      to={`/product/${product.productCode}`}
+      className="bento product-card flex flex-col group"
+    >
+      <div className="product-img-wrap rounded-t-[20px] p-6 relative">
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="object-contain max-h-full w-full h-full group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <Package className="h-16 w-16 opacity-15" style={{ color: "var(--muted)" }} />
+        )}
+        <span
+          className="absolute top-3 left-3 flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-full"
+          style={{ background: "var(--accent)", color: "#fff" }}
+        >
+          <TrendingUp className="h-3 w-3" /> Más vendido
+        </span>
+        {product.inStock === false && (
+          <span
+            className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1.5 rounded-full"
+            style={{ background: "var(--error-tint)", color: "var(--error)" }}
+          >
+            Sin stock
+          </span>
+        )}
+        <div className="product-card-overlay rounded-t-[20px]">
+          <span className="text-white text-sm font-bold px-4 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
+            Ver producto
+          </span>
+        </div>
+      </div>
+      <div className="p-5 flex flex-col flex-1">
+        {product.brand && (
+          <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
+            {product.brand}
+          </p>
+        )}
+        <h3 className="text-lg sm:text-xl font-bold line-clamp-2 mb-2" style={{ color: "var(--text)" }}>
+          {product.name}
+        </h3>
+
+        {displayPrice ? (
+          <div className="mt-auto">
+            <p className="text-2xl sm:text-3xl font-black" style={{ color: "var(--brand)" }}>
+              ${displayPrice.toLocaleString("es-AR")}
+              {isServiceApproved && (
+                <span className="ml-2 text-sm font-semibold" style={{ color: "#16A34A" }}>service</span>
+              )}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+              ó 6 cuotas de ${calcCuota6(displayPrice)?.toLocaleString("es-AR")}
+            </p>
+            {isServiceApproved && product.priceARS ? (
+              <p className="text-xs mt-0.5 line-through" style={{ color: "var(--muted)" }}>
+                Precio público: ${product.priceARS.toLocaleString("es-AR")}
+              </p>
+            ) : !isServiceApproved && (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-2"
+                style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+              >
+                <BadgePercent className="h-3.5 w-3.5" /> Técnicos: -10% con precio service
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm italic mt-auto" style={{ color: "var(--muted)" }}>Consultar precio</p>
         )}
       </div>
     </Link>
@@ -103,7 +202,7 @@ function SectionHeader({ tag, title, linkTo, linkLabel }) {
 }
 
 function Landing() {
-  const [landingData, setLandingData] = useState({ featured: [], newArrivals: [] });
+  const [landingData, setLandingData] = useState({ featured: [] });
   const [categories, setCategories]   = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
   const [banners, setBanners]         = useState(null);
@@ -111,14 +210,12 @@ function Landing() {
   const infoRef  = useReveal();
   const catRef   = useReveal();
   const featRef  = useReveal();
-  const newRef   = useReveal();
   const ctaRef   = useReveal();
 
   useEffect(() => {
     API.get("/products/landing")
       .then((r) => setLandingData({
-        featured:    Array.isArray(r.data?.featured)    ? r.data.featured    : [],
-        newArrivals: Array.isArray(r.data?.newArrivals) ? r.data.newArrivals : [],
+        featured: Array.isArray(r.data?.featured) ? r.data.featured : [],
       }))
       .catch(() => {});
     API.get("/products/meta/categories")
@@ -138,7 +235,9 @@ function Landing() {
       .catch(() => setBanners([]));
   }, []);
 
-  const { featured, newArrivals } = landingData;
+  const { featured } = landingData;
+  const heroFeatured = featured.slice(0, 2);
+  const restFeatured = featured.slice(2);
 
   return (
     <>
@@ -365,22 +464,21 @@ function Landing() {
         )}
 
         {/* ── PRODUCTOS DESTACADOS ── */}
-        {featured.length > 0 && (
+        {heroFeatured.length > 0 && (
           <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
             <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {featured.map((p) => <ProductCard key={p._id} product={p} />)}
-            </div>
-          </section>
-        )}
 
-        {/* ── NUEVOS INGRESOS ── */}
-        {newArrivals.length > 0 && (
-          <section ref={newRef} className="reveal">
-            <SectionHeader tag="Nuevos ingresos" title="Últimas novedades" linkTo="/catalogo?sort=createdAt:desc" linkLabel="Ver todos" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {newArrivals.map((p) => <ProductCard key={p._id} product={p} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {heroFeatured.map((p) => <FeaturedProductCard key={p._id} product={p} />)}
             </div>
+
+            {restFeatured.length > 0 && (
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {restFeatured.map((p) => <ProductCard key={p._id} product={p} />)}
+                </div>
+              </div>
+            )}
           </section>
         )}
 
