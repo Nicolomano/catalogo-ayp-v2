@@ -9,10 +9,10 @@ import { useAuth } from "../Context/AuthContext.jsx";
 import { calcCuota6 } from "../utils/pricing.js";
 
 const INFO_ICONS = [
-  <Zap className="h-5 w-5" />,
-  <Phone className="h-5 w-5" />,
-  <Wrench className="h-5 w-5" />,
-  <Clock className="h-5 w-5" />,
+  <Zap className="h-3.5 w-3.5" />,
+  <Phone className="h-3.5 w-3.5" />,
+  <Wrench className="h-3.5 w-3.5" />,
+  <Clock className="h-3.5 w-3.5" />,
 ];
 
 const DEFAULT_CONFIG = {
@@ -399,35 +399,59 @@ function Landing() {
           </div>
         </section>
 
-        {/* ── INFO CARDS ── */}
+        {/* ── TIRA DE INFO (compacta) ── */}
         <section
           ref={infoRef}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 reveal"
+          className="flex overflow-x-auto reveal"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "16px",
+            boxShadow: "var(--shadow)",
+            scrollbarWidth: "none",
+          }}
         >
-          {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i) => (
+          {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i, arr) => (
             <div
               key={i}
-              className={`bento p-5 flex items-center gap-4 relative overflow-hidden reveal reveal-delay-${i + 1}`}
+              className="flex items-center gap-2 px-4 py-2.5 flex-1"
+              style={{
+                whiteSpace: "nowrap",
+                borderRight: i < arr.length - 1 ? "1px solid var(--border)" : "none",
+              }}
             >
-              <div className="absolute top-0 left-0 bottom-0 w-[3px]"
-                style={{ background: "linear-gradient(180deg, var(--brand) 0%, var(--brand-tint-t) 100%)" }} />
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ml-1"
-                style={{
-                  background: "linear-gradient(135deg, var(--brand) 0%, #1a4de8 100%)",
-                  color: "white",
-                  boxShadow: "0 4px 14px rgba(0,51,204,0.3)",
-                }}
+                className="rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ width: "26px", height: "26px", background: "var(--brand-tint)", color: "var(--brand)" }}
               >
                 {INFO_ICONS[i]}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm" style={{ color: "var(--text)" }}>{card.title}</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--muted)" }}>{card.desc}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs leading-tight" style={{ color: "var(--text)" }}>{card.title}</p>
+                <p className="text-[10.5px] leading-tight" style={{ color: "var(--muted)" }}>{card.desc}</p>
               </div>
             </div>
           ))}
         </section>
+
+        {/* ── PRODUCTOS DESTACADOS ── */}
+        {heroFeatured.length > 0 && (
+          <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
+            <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {heroFeatured.map((p) => <FeaturedProductCard key={p._id} product={p} />)}
+            </div>
+
+            {restFeatured.length > 0 && (
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {restFeatured.map((p) => <ProductCard key={p._id} product={p} />)}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ── CATEGORÍAS ── */}
         {categories.length > 0 && (
@@ -460,25 +484,6 @@ function Landing() {
                 <span className="text-xs">Ver todas</span>
               </Link>
             </div>
-          </section>
-        )}
-
-        {/* ── PRODUCTOS DESTACADOS ── */}
-        {heroFeatured.length > 0 && (
-          <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
-            <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {heroFeatured.map((p) => <FeaturedProductCard key={p._id} product={p} />)}
-            </div>
-
-            {restFeatured.length > 0 && (
-              <div className="mt-8 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {restFeatured.map((p) => <ProductCard key={p._id} product={p} />)}
-                </div>
-              </div>
-            )}
           </section>
         )}
 
