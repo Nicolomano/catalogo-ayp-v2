@@ -39,6 +39,7 @@ const productSchema = new mongoose.Schema(
     active:    { type: Boolean, default: true },
     inStock:   { type: Boolean, default: true },
     featured:  { type: Boolean, default: false },
+    featuredOrder: { type: Number, default: 0 },
     views:     { type: Number, default: 0 },
     soldCount: { type: Number, default: 0 },
   },
@@ -59,6 +60,7 @@ productSchema.index({ active: 1, priceARS: 1 });
 productSchema.index({ active: 1, soldCount: -1 });
 productSchema.index({ active: 1, views: -1 });
 productSchema.index({ active: 1, createdAt: -1 });
+productSchema.index({ featured: 1, featuredOrder: 1 });
 
 // ⚙️ recalcula el precio en ARS si no es fijo
 productSchema.pre("save", async function (next) {

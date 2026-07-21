@@ -4,6 +4,8 @@ import { Helmet } from "react-helmet-async";
 import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+import ProductCarousel from "../components/ProductCarousel.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
 import { useAuth } from "../Context/AuthContext.jsx";
 import { calcCuota6 } from "../utils/pricing.js";
@@ -32,63 +34,6 @@ const DEFAULT_CONFIG = {
   kitCTA:      "Armar mi kit →",
 };
 
-function ProductCard({ product }) {
-  const { isServiceApproved, servicePrice } = useAuth();
-  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
-
-  return (
-    <Link
-      to={`/product/${product.productCode}`}
-      className="bento product-card flex flex-col group"
-    >
-      <div className="product-img-wrap rounded-t-[20px] p-4 relative">
-        {product.image ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="object-contain max-h-full w-full h-full group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
-        )}
-        {product.inStock === false && (
-          <span
-            className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
-            style={{ background: "var(--error-tint)", color: "var(--error)" }}
-          >
-            Sin stock
-          </span>
-        )}
-        <div className="product-card-overlay rounded-t-[20px]">
-          <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
-            Ver producto
-          </span>
-        </div>
-      </div>
-      <div className="p-3 flex flex-col flex-1">
-        <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
-          {product.brand || ""}
-        </p>
-        <h3 className="text-sm font-semibold line-clamp-2 flex-1" style={{ color: "var(--text)" }}>
-          {product.name}
-        </h3>
-        {displayPrice ? (
-          <p className="text-base font-bold mt-2" style={{ color: "var(--brand)" }}>
-            ${displayPrice.toLocaleString("es-AR")}
-            {isServiceApproved && (
-              <span className="ml-1 text-xs font-semibold" style={{ color: "#16A34A" }}>service</span>
-            )}
-          </p>
-        ) : (
-          <p className="text-sm italic mt-2" style={{ color: "var(--muted)" }}>Consultar precio</p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
 function FeaturedProductCard({ product }) {
   const { isServiceApproved, servicePrice } = useAuth();
   const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
@@ -96,9 +41,9 @@ function FeaturedProductCard({ product }) {
   return (
     <Link
       to={`/product/${product.productCode}`}
-      className="bento product-card flex flex-col group"
+      className="bento product-card group grid grid-cols-1 sm:grid-cols-2 items-stretch"
     >
-      <div className="product-img-wrap rounded-t-[20px] p-6 relative">
+      <div className="product-img-wrap p-6 relative">
         {product.image ? (
           <img
             src={product.image}
@@ -124,13 +69,13 @@ function FeaturedProductCard({ product }) {
             Sin stock
           </span>
         )}
-        <div className="product-card-overlay rounded-t-[20px]">
+        <div className="product-card-overlay">
           <span className="text-white text-sm font-bold px-4 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
             Ver producto
           </span>
         </div>
       </div>
-      <div className="p-5 flex flex-col flex-1">
+      <div className="p-5 sm:p-7 flex flex-col sm:justify-center flex-1">
         {product.brand && (
           <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
             {product.brand}
@@ -141,7 +86,7 @@ function FeaturedProductCard({ product }) {
         </h3>
 
         {displayPrice ? (
-          <div className="mt-auto">
+          <div>
             <p className="text-2xl sm:text-3xl font-black" style={{ color: "var(--brand)" }}>
               ${displayPrice.toLocaleString("es-AR")}
               {isServiceApproved && (
@@ -236,8 +181,8 @@ function Landing() {
   }, []);
 
   const { featured } = landingData;
-  const heroFeatured = featured.slice(0, 2);
-  const restFeatured = featured.slice(2);
+  const bigFeatured = featured[0];
+  const carouselFeatured = featured.slice(1);
 
   return (
     <>
@@ -435,19 +380,18 @@ function Landing() {
         </section>
 
         {/* ── PRODUCTOS DESTACADOS ── */}
-        {heroFeatured.length > 0 && (
+        {bigFeatured && (
           <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
             <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {heroFeatured.map((p) => <FeaturedProductCard key={p._id} product={p} />)}
-            </div>
+            {/* Card grande fija (destacado #1) */}
+            <FeaturedProductCard product={bigFeatured} />
 
-            {restFeatured.length > 0 && (
+            {/* Carrusel con el resto de destacados */}
+            {carouselFeatured.length > 0 && (
               <div className="mt-8 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {restFeatured.map((p) => <ProductCard key={p._id} product={p} />)}
-                </div>
+                <p className="text-sm font-semibold mb-4" style={{ color: "var(--muted)" }}>Más destacados</p>
+                <ProductCarousel products={carouselFeatured} />
               </div>
             )}
           </section>

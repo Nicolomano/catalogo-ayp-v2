@@ -21,6 +21,7 @@ import AdminUsers from "./pages/AdminUsers.jsx";
 import KitInstalacion from "./pages/KitInstalacion.jsx";
 import AdminInstallKit from "./pages/AdminInstallKit.jsx";
 import AdminCategories from "./pages/AdminCategories.jsx";
+import AdminDestacados from "./pages/AdminDestacados.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
 import Tecnicos from "./pages/Tecnicos.jsx";
@@ -77,6 +78,7 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="destacados" element={<AdminDestacados />} />
           <Route path="banners" element={<AdminBanners />} />
           <Route path="config" element={<AdminConfig />} />
           <Route path="install-kit" element={<AdminInstallKit />} />

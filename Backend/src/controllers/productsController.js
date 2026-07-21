@@ -483,8 +483,8 @@ export const getLandingProducts = async (req, res) => {
     const [featured, newArrivals] = await Promise.all([
       productModel
         .find({ active: true, featured: true })
-        .sort({ soldCount: -1 })
-        .limit(8)
+        .sort({ featuredOrder: 1, soldCount: -1 })
+        .limit(12)
         .lean(),
       productModel
         .find({ active: true })
@@ -517,11 +517,43 @@ export const toggleFeatured = async (req, res) => {
     const { id } = req.params;
     const product = await productModel.findById(id);
     if (!product) return res.status(404).json({ message: "Producto no encontrado" });
+
+    // Al destacar, se agrega al final del orden actual de destacados.
+    if (!product.featured) {
+      product.featuredOrder = await productModel.countDocuments({ featured: true });
+    }
     product.featured = !product.featured;
     await product.save();
     res.json({ message: `Producto ${product.featured ? "destacado" : "quitado de destacados"}`, product });
   } catch (error) {
     res.status(500).json({ message: "Error al cambiar destacado", error: error.message });
+  }
+};
+
+/* ----------------------- DESTACADOS (ADMIN) ----------------------- */
+// Lista todos los destacados en su orden manual (sin paginar; son pocos).
+export const listFeaturedAdmin = async (req, res) => {
+  try {
+    const featured = await productModel
+      .find({ featured: true })
+      .sort({ featuredOrder: 1, soldCount: -1 })
+      .lean();
+    res.json(featured);
+  } catch (error) {
+    res.status(500).json({ message: "Error obteniendo destacados", error: error.message });
+  }
+};
+
+// Persiste el orden manual: recibe { ids: [...] } y asigna featuredOrder = índice.
+export const reorderFeatured = async (req, res) => {
+  try {
+    const { ids = [] } = req.body;
+    await Promise.all(
+      ids.map((id, idx) => productModel.findByIdAndUpdate(id, { featuredOrder: idx }))
+    );
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ message: "Error reordenando destacados", error: error.message });
   }
 };
 

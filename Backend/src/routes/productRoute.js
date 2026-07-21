@@ -16,6 +16,8 @@ import {
   getLandingProducts,
   getProductBrands,
   migrateCategories,
+  listFeaturedAdmin,
+  reorderFeatured,
 } from "../controllers/productsController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import uploadCloud, { uploadExcel } from "../middlewares/multer.js";
@@ -33,6 +35,8 @@ productRouter.get("/export/excel",    exportProductsExcel);
 
 // Admin
 productRouter.get("/admin/all",             protect, getProductsAdmin);
+productRouter.get("/featured/list",         protect, listFeaturedAdmin);
+productRouter.patch("/featured/reorder",    protect, reorderFeatured);
 productRouter.post("/admin/migrate-categories", protect, migrateCategories);
 productRouter.post("/import/excel",         protect, uploadExcel.single("file"), importProductsExcel);
 productRouter.post("/upload",         protect, uploadCloud.single("image"), uploadImage);
