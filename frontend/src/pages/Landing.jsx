@@ -4,18 +4,18 @@ import { Helmet } from "react-helmet-async";
 import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
-import ProductCard from "../components/ProductCard.jsx";
 import ProductCarousel from "../components/ProductCarousel.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
-import { useAuth } from "../Context/AuthContext.jsx";
-import { calcCuota6 } from "../utils/pricing.js";
 
 const INFO_ICONS = [
-  <Zap className="h-3.5 w-3.5" />,
-  <Phone className="h-3.5 w-3.5" />,
-  <Wrench className="h-3.5 w-3.5" />,
-  <Clock className="h-3.5 w-3.5" />,
+  <Zap className="h-4 w-4" />,
+  <Phone className="h-4 w-4" />,
+  <Wrench className="h-4 w-4" />,
+  <Clock className="h-4 w-4" />,
 ];
+
+// Índices de infoCards que se muestran en la tira del home (0=Envíos, 3=Horario)
+const INFO_STRIP_INDEXES = [0, 3];
 
 const DEFAULT_CONFIG = {
   infoCards: [
@@ -33,89 +33,6 @@ const DEFAULT_CONFIG = {
   kitSubtitle: "Calculá todo lo que necesitás para una instalación completa. Seleccioná los componentes y armá tu pedido en minutos.",
   kitCTA:      "Armar mi kit →",
 };
-
-function FeaturedProductCard({ product }) {
-  const { isServiceApproved, servicePrice } = useAuth();
-  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
-
-  return (
-    <Link
-      to={`/product/${product.productCode}`}
-      className="bento product-card group grid grid-cols-1 sm:grid-cols-2 items-stretch"
-    >
-      <div className="product-img-wrap p-6 relative">
-        {product.image ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="object-contain max-h-full w-full h-full group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <Package className="h-16 w-16 opacity-15" style={{ color: "var(--muted)" }} />
-        )}
-        <span
-          className="absolute top-3 left-3 flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-full"
-          style={{ background: "var(--accent)", color: "#fff" }}
-        >
-          <TrendingUp className="h-3 w-3" /> Más vendido
-        </span>
-        {product.inStock === false && (
-          <span
-            className="absolute top-3 right-3 text-xs font-bold px-2.5 py-1.5 rounded-full"
-            style={{ background: "var(--error-tint)", color: "var(--error)" }}
-          >
-            Sin stock
-          </span>
-        )}
-        <div className="product-card-overlay">
-          <span className="text-white text-sm font-bold px-4 py-2 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
-            Ver producto
-          </span>
-        </div>
-      </div>
-      <div className="p-5 sm:p-7 flex flex-col sm:justify-center flex-1">
-        {product.brand && (
-          <p className="text-xs font-medium mb-1" style={{ color: "var(--muted)" }}>
-            {product.brand}
-          </p>
-        )}
-        <h3 className="text-lg sm:text-xl font-bold line-clamp-2 mb-2" style={{ color: "var(--text)" }}>
-          {product.name}
-        </h3>
-
-        {displayPrice ? (
-          <div>
-            <p className="text-2xl sm:text-3xl font-black" style={{ color: "var(--brand)" }}>
-              ${displayPrice.toLocaleString("es-AR")}
-              {isServiceApproved && (
-                <span className="ml-2 text-sm font-semibold" style={{ color: "#16A34A" }}>service</span>
-              )}
-            </p>
-            <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
-              ó 6 cuotas de ${calcCuota6(displayPrice)?.toLocaleString("es-AR")}
-            </p>
-            {isServiceApproved && product.priceARS ? (
-              <p className="text-xs mt-0.5 line-through" style={{ color: "var(--muted)" }}>
-                Precio público: ${product.priceARS.toLocaleString("es-AR")}
-              </p>
-            ) : !isServiceApproved && (
-              <span
-                className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-2"
-                style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
-              >
-                <BadgePercent className="h-3.5 w-3.5" /> Técnicos: -10% con precio service
-              </span>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm italic mt-auto" style={{ color: "var(--muted)" }}>Consultar precio</p>
-        )}
-      </div>
-    </Link>
-  );
-}
 
 function SectionHeader({ tag, title, linkTo, linkLabel }) {
   return (
@@ -181,8 +98,6 @@ function Landing() {
   }, []);
 
   const { featured } = landingData;
-  const bigFeatured = featured[0];
-  const carouselFeatured = featured.slice(1);
 
   return (
     <>
@@ -191,7 +106,7 @@ function Landing() {
         <meta name="description" content="A&P Refrigeración: productos y repuestos de refrigeración comercial e industrial." />
       </Helmet>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10 sm:space-y-14">
 
         {/* ── HERO BENTO GRID ── */}
         <section>
@@ -199,10 +114,10 @@ function Landing() {
 
             {/* Hero principal — 8 cols, 2 rows */}
             <div
-              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg min-h-[300px]"
+              className="col-span-12 md:col-span-8 row-span-2 rounded-3xl p-6 sm:p-10 flex flex-col justify-between relative overflow-hidden aurora-bg min-h-[230px] sm:min-h-[300px]"
               style={{
                 background: siteConfig.heroImage
-                  ? `linear-gradient(rgba(0,26,128,0.78), rgba(0,51,204,0.72)), url(${siteConfig.heroImage}) center/cover`
+                  ? `linear-gradient(to right, rgba(0,13,64,0.88) 0%, rgba(0,20,90,0.6) 55%, rgba(0,26,128,0.35) 100%), url(${siteConfig.heroImage}) center/cover`
                   : "linear-gradient(135deg, #000D40 0%, #001A80 45%, #0033CC 100%)"
               }}
             >
@@ -240,13 +155,13 @@ function Landing() {
                   {siteConfig.heroBadge}
                 </span>
                 <h1
-                  className="text-4xl sm:text-5xl font-black text-white leading-tight mb-3"
-                  style={{ letterSpacing: "var(--tracking-display)" }}
+                  className="text-3xl sm:text-5xl font-black text-white leading-tight mb-3"
+                  style={{ letterSpacing: "var(--tracking-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
                 >
                   {siteConfig.heroTitle}<br/>
                   <span style={{ color: "#99BBFF" }}>{siteConfig.heroHighlight}</span>
                 </h1>
-                <p className="text-white/60 text-sm sm:text-base max-w-sm leading-relaxed">
+                <p className="text-white/70 text-sm sm:text-base max-w-sm leading-relaxed" style={{ textShadow: "0 1px 10px rgba(0,0,0,0.4)" }}>
                   {siteConfig.heroSubtitle}
                 </p>
               </div>
@@ -344,56 +259,47 @@ function Landing() {
           </div>
         </section>
 
-        {/* ── TIRA DE INFO (compacta) ── */}
+        {/* ── TIRA DE INFO (2 ítems: Envíos + Horario) ── */}
         <section
           ref={infoRef}
-          className="flex overflow-x-auto reveal"
+          className="flex reveal"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--border)",
             borderRadius: "16px",
             boxShadow: "var(--shadow)",
-            scrollbarWidth: "none",
+            overflow: "hidden",
           }}
         >
-          {(Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards : []).map((card, i, arr) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 px-4 py-2.5 flex-1"
-              style={{
-                whiteSpace: "nowrap",
-                borderRight: i < arr.length - 1 ? "1px solid var(--border)" : "none",
-              }}
-            >
+          {INFO_STRIP_INDEXES.map((idx, pos) => {
+            const card = Array.isArray(siteConfig.infoCards) ? siteConfig.infoCards[idx] : null;
+            if (!card) return null;
+            return (
               <div
-                className="rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ width: "26px", height: "26px", background: "var(--brand-tint)", color: "var(--brand)" }}
+                key={idx}
+                className="flex items-center gap-2.5 px-4 py-3 flex-1 min-w-0"
+                style={{ borderLeft: pos > 0 ? "1px solid var(--border)" : "none" }}
               >
-                {INFO_ICONS[i]}
+                <div
+                  className="rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ width: "32px", height: "32px", background: "var(--brand-tint)", color: "var(--brand)" }}
+                >
+                  {INFO_ICONS[idx]}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs sm:text-sm leading-tight whitespace-nowrap" style={{ color: "var(--text)" }}>{card.title}</p>
+                  <p className="text-[10.5px] leading-tight truncate" style={{ color: "var(--muted)" }}>{card.desc}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-bold text-xs leading-tight" style={{ color: "var(--text)" }}>{card.title}</p>
-                <p className="text-[10.5px] leading-tight" style={{ color: "var(--muted)" }}>{card.desc}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         {/* ── PRODUCTOS DESTACADOS ── */}
-        {bigFeatured && (
-          <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "28px" }}>
+        {featured.length > 0 && (
+          <section ref={featRef} className="reveal" style={{ background: "var(--surface)", borderRadius: "24px", padding: "24px" }}>
             <SectionHeader tag="Destacados" title="Más vendidos" linkTo="/catalogo" linkLabel="Ver todos" />
-
-            {/* Card grande fija (destacado #1) */}
-            <FeaturedProductCard product={bigFeatured} />
-
-            {/* Carrusel con el resto de destacados */}
-            {carouselFeatured.length > 0 && (
-              <div className="mt-8 pt-6 border-t" style={{ borderColor: "var(--border)" }}>
-                <p className="text-sm font-semibold mb-4" style={{ color: "var(--muted)" }}>Más destacados</p>
-                <ProductCarousel products={carouselFeatured} />
-              </div>
-            )}
+            <ProductCarousel products={featured} />
           </section>
         )}
 

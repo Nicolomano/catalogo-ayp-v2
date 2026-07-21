@@ -330,8 +330,14 @@ body {
   z-index: 5;
   pointer-events: none;
 }
+/* Aparece con retardo: un toque rápido navega antes de que se muestre;
+   hay que mantener apretado (~0.35s) para verlo. Se oculta al instante. */
 .product-card:hover .product-card-overlay {
   opacity: 1;
+  transition-delay: 0.35s;
+}
+.product-card:not(:hover) .product-card-overlay {
+  transition-delay: 0s;
 }
 .product-img-wrap {
   width: 100%;
