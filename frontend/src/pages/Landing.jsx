@@ -306,7 +306,7 @@ function Landing() {
         {/* ── CATEGORÍAS ── */}
         {categories.length > 0 && (
           <section ref={catRef} className="reveal">
-            <SectionHeader tag="Categorías" title="Navegá por categoría" linkTo="/catalogo" linkLabel="Ver todas" />
+            <SectionHeader tag="Categorías" linkTo="/catalogo" linkLabel="Ver todas" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {categories.map((cat, i) => (
                 <Link
