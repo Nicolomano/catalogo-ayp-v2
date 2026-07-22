@@ -47,7 +47,7 @@ function Layout() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <Logo height={38} />
+            <Logo height={46} />
           </Link>
 
           {/* Links desktop */}
