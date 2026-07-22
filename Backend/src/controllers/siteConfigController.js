@@ -36,8 +36,11 @@ export const uploadHeroImage = async (req, res) => {
     if (!req.file?.buffer) return res.status(400).json({ message: "No se recibió imagen" });
 
     const filename = `hero/${uuidv4()}.webp`;
+    // Guardamos la foto COMPLETA (sin recortar a una tira) para que el encuadre
+    // se controle 100% desde el admin con background-position. Solo limitamos el
+    // ancho máximo para no subir un archivo gigante.
     const buffer = await sharp(req.file.buffer)
-      .resize(1500, 600, { fit: "cover", position: "attention" })
+      .resize({ width: 1600, withoutEnlargement: true })
       .webp({ quality: 85 })
       .toBuffer();
 

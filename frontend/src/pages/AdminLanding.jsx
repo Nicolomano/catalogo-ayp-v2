@@ -113,6 +113,9 @@ export default function AdminLanding() {
       fd.append("image", file);
       const { data } = await API.post("/site-config/hero-image", fd);
       set("heroImage", data.url);
+      // Usar la imagen ya servida (no el blob local) para que el encuadre del
+      // preview coincida exactamente con lo que se ve en el sitio.
+      setPreview(null);
       setHeroPos({ x: 50, y: 50 });
       set("heroImagePosition", "center");
       setMsg({ type: "ok", text: "Imagen subida. Arrastrala en el preview para encuadrarla." });
