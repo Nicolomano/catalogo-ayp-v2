@@ -27,7 +27,18 @@
       "Bash(npm install *)",
       "Bash(pkill -f \"vite\")",
       "Skill(artifact-design)",
-      "Skill(artifact-design:*)"
+      "Skill(artifact-design:*)",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git ls-remote *)",
+      "Bash(echo \"---exit $?\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5174/)",
+      "Bash(pkill -f vite)",
+      "Bash(node --check src/services/models/siteConfigModel.js)",
+      "Read(//c/Users/asori/Documents/GitHub/**)",
+      "Bash(node --check src/controllers/siteConfigController.js)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const b=fs.readFileSync\\('logo-mark.png'\\).toString\\('base64'\\);console.log\\('base64 chars:',b.length\\);fs.writeFileSync\\('C:/Users/asori/AppData/Local/Temp/claude/c--Users-asori-Documents-GitHub-catalogo-ayp-v2/71d93760-fd2f-40f8-ba70-36203c494ed7/scratchpad/logo-b64.txt', b\\);console.log\\('escrito a logo-b64.txt'\\);\")"
     ]
   }
 }
