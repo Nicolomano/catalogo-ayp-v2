@@ -4,6 +4,7 @@ import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench, UserCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import WhatsappFloat from "./WhatsappFloat.jsx";
+import Logo from "./Logo.jsx";
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
@@ -46,12 +47,7 @@ function Layout() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img
-              src="/logo.png"
-              alt="A&P Refrigeración"
-              className="h-10 w-auto"
-              onError={(e) => { e.target.style.display = "none"; }}
-            />
+            <Logo height={38} />
           </Link>
 
           {/* Links desktop */}
@@ -250,12 +246,7 @@ function Layout() {
         />
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-10 relative">
           <div className="max-w-xs">
-            <img
-              src="/logo.png"
-              alt="A&P Refrigeración"
-              className="h-10 w-auto mb-4"
-              onError={(e) => { e.target.style.display = "none"; }}
-            />
+            <Logo height={40} color="#fff" className="mb-4" />
             <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
               Distribuidora de repuestos para refrigeración comercial e industrial. Buenos Aires, Argentina.
             </p>

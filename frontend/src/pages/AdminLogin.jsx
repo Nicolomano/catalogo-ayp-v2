@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 import API from "../api/axios";
+import Logo from "../components/Logo.jsx";
 
 function AdminLogin({ onLogin }) {
   const [email, setEmail]       = useState("");
@@ -55,12 +56,7 @@ function AdminLogin({ onLogin }) {
           >
             <Lock className="h-6 w-6 text-white" />
           </div>
-          <img
-            src="/logo.png"
-            alt="A&P Refrigeración"
-            className="h-9 w-auto mx-auto mb-3"
-            onError={(e) => { e.target.style.display = "none"; }}
-          />
+          <Logo height={36} color="#fff" className="mx-auto mb-3" />
           <h1 className="text-xl font-bold text-white">Panel de administración</h1>
           <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>A&P Refrigeración</p>
         </div>

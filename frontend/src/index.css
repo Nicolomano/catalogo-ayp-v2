@@ -22,6 +22,7 @@
   --brand-tint-t: #C7D0FF;
   --hero-grad:    linear-gradient(135deg, #001A80 0%, #0033CC 60%, #1a4de8 100%);
   --dark-card:    #001A80;
+  --logo:         #0033CC;   /* color del logo en modo claro (azul marca) */
   --shadow:       0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
   --shadow-lg:    0 8px 32px rgba(0,51,204,0.12);
 
@@ -78,6 +79,7 @@ html.dark {
   --brand-tint-t: rgba(102, 153, 255, 0.28);
   --hero-grad:    linear-gradient(135deg, #000D40 0%, #001A80 60%, #0033CC 100%);
   --dark-card:    #000D40;
+  --logo:         #FFFFFF;   /* color del logo en modo oscuro (blanco) */
   --shadow:       0 1px 3px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.3);
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.4);
 

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Snowflake } from "lucide-react";
+import Logo from "../components/Logo.jsx";
 
 export default function MaintenancePage() {
   return (
@@ -8,13 +9,8 @@ export default function MaintenancePage() {
       style={{ background: "var(--bg)", color: "var(--text)" }}
     >
       {/* Logo */}
-      <div className="mb-10">
-        <img
-          src="/logo.png"
-          alt="A&P Refrigeración"
-          className="h-20 w-auto mx-auto invert dark:invert-0 opacity-90"
-          onError={(e) => { e.target.style.display = "none"; }}
-        />
+      <div className="mb-10 flex justify-center">
+        <Logo height={72} />
       </div>
 
       {/* Ícono animado */}

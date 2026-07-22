@@ -5,6 +5,9 @@ import toast from "react-hot-toast";
 
 const UNITS = ["m", "u"];
 
+const inputCls = "border rounded px-2 py-1 text-sm outline-none focus:ring-2 transition-colors";
+const inputStyle = { background: "var(--surface2)", borderColor: "var(--border)", color: "var(--text)" };
+
 export default function AdminInstallKit() {
   const [kit, setKit] = useState({ items: [] });
   const [loading, setLoading] = useState(false);
@@ -144,22 +147,22 @@ export default function AdminInstallKit() {
     }
   };
 
-  if (loading) return <div className="p-4 text-gray-600">Cargando…</div>;
+  if (loading) return <div className="p-4" style={{ color: "var(--muted)" }}>Cargando…</div>;
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold">
+        <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
           Configuración de Kit de Instalación
         </h2>
-        <p className="text-gray-600">
+        <p style={{ color: "var(--muted)" }}>
           Agregá o modificá los ítems disponibles.
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border text-sm bg-white">
-          <thead className="bg-ayp text-white text-left">
+      <div className="bento overflow-x-auto" style={{ borderRadius: "16px" }}>
+        <table className="w-full text-sm" style={{ color: "var(--text)" }}>
+          <thead className="text-left" style={{ background: "var(--brand)", color: "#fff" }}>
             <tr>
               <th className="p-2">Acciones</th>
               <th className="p-2">Key</th>
@@ -173,11 +176,12 @@ export default function AdminInstallKit() {
           </thead>
           <tbody>
             {kit.items.map((it, i) => (
-              <tr key={i} className="border-t align-top">
+              <tr key={i} className="align-top" style={{ borderTop: "1px solid var(--border)" }}>
                 <td className="p-2 space-x-2 whitespace-nowrap">
                   <button
                     onClick={() => removeItem(i)}
-                    className="px-2 py-1 rounded bg-red-600 text-white"
+                    className="px-2 py-1 rounded text-sm font-medium"
+                    style={{ background: "var(--error-tint)", color: "var(--error)" }}
                     title="Eliminar ítem"
                   >
                     Eliminar
@@ -188,7 +192,8 @@ export default function AdminInstallKit() {
                   <input
                     value={it.key || ""}
                     onChange={(e) => updateItem(i, { key: e.target.value })}
-                    className="border rounded px-2 py-1 w-40"
+                    className={inputCls + " w-40"}
+                    style={inputStyle}
                     placeholder="copper_small"
                   />
                 </td>
@@ -197,7 +202,8 @@ export default function AdminInstallKit() {
                   <input
                     value={it.label || ""}
                     onChange={(e) => updateItem(i, { label: e.target.value })}
-                    className="border rounded px-2 py-1 w-56"
+                    className={inputCls + " w-56"}
+                    style={inputStyle}
                     placeholder="Caño cobre (líquido)"
                   />
                 </td>
@@ -206,7 +212,8 @@ export default function AdminInstallKit() {
                   <select
                     value={it.unit || "m"}
                     onChange={(e) => updateItem(i, { unit: e.target.value })}
-                    className="border rounded px-2 py-1"
+                    className={inputCls}
+                    style={inputStyle}
                   >
                     {UNITS.map((u) => (
                       <option key={u} value={u}>
@@ -225,7 +232,8 @@ export default function AdminInstallKit() {
                     onChange={(e) =>
                       updateItem(i, { step: Number(e.target.value) })
                     }
-                    className="border rounded px-2 py-1 w-20 text-right"
+                    className={inputCls + " w-20 text-right"}
+                    style={inputStyle}
                   />
                 </td>
 
@@ -238,7 +246,8 @@ export default function AdminInstallKit() {
                     onChange={(e) =>
                       updateItem(i, { defaultQty: Number(e.target.value) })
                     }
-                    className="border rounded px-2 py-1 w-20 text-right"
+                    className={inputCls + " w-20 text-right"}
+                    style={inputStyle}
                   />
                 </td>
 
@@ -253,7 +262,8 @@ export default function AdminInstallKit() {
                     onChange={(e) =>
                       updateItem(i, { productCode: e.target.value })
                     }
-                    className="border rounded px-2 py-1 w-56"
+                    className={inputCls + " w-56"}
+                    style={{ ...inputStyle, opacity: it.variants?.length ? 0.5 : 1 }}
                     placeholder={
                       it.variants?.length ? "— con variantes —" : "SKU único"
                     }
@@ -270,10 +280,11 @@ export default function AdminInstallKit() {
                           onChange={(e) =>
                             updateVariant(i, vi, { value: e.target.value })
                           }
-                          className="border rounded px-2 py-1 w-28"
+                          className={inputCls + " w-28"}
+                          style={inputStyle}
                           placeholder="1/4 | 5×1.5 | 52"
                         />
-                        <span className="self-center">→</span>
+                        <span className="self-center" style={{ color: "var(--muted)" }}>→</span>
                         <input
                           value={v.productCode || ""}
                           onChange={(e) =>
@@ -281,12 +292,14 @@ export default function AdminInstallKit() {
                               productCode: e.target.value,
                             })
                           }
-                          className="border rounded px-2 py-1 w-44"
+                          className={inputCls + " w-44"}
+                          style={inputStyle}
                           placeholder="SKU (COBRE-1-4)"
                         />
                         <button
                           onClick={() => removeVariant(i, vi)}
-                          className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                          className="px-2 py-1 rounded text-sm font-medium"
+                          style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
                           title="Quitar variante"
                         >
                           Quitar
@@ -295,7 +308,8 @@ export default function AdminInstallKit() {
                     ))}
                     <button
                       onClick={() => addVariant(i)}
-                      className="px-2 py-1 rounded bg-blue-600 text-white"
+                      className="px-2 py-1 rounded text-sm font-medium text-white"
+                      style={{ background: "var(--brand)" }}
                     >
                       + Agregar variante
                     </button>
@@ -304,11 +318,12 @@ export default function AdminInstallKit() {
               </tr>
             ))}
             {/* Fila "agregar" */}
-            <tr className="border-t">
+            <tr style={{ borderTop: "1px solid var(--border)" }}>
               <td className="p-2" colSpan={8}>
                 <button
                   onClick={addItem}
-                  className="px-3 py-2 rounded bg-ayp text-white"
+                  className="px-3 py-2 rounded text-sm font-semibold text-white"
+                  style={{ background: "var(--brand)" }}
                 >
                   + Agregar ítem
                 </button>
@@ -322,7 +337,8 @@ export default function AdminInstallKit() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          className="px-4 py-2 rounded text-sm font-semibold text-white disabled:opacity-50"
+          style={{ background: "var(--success)" }}
         >
           {saving ? "Guardando..." : "Guardar cambios"}
         </button>

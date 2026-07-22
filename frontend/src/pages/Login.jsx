@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../Context/AuthContext";
 import toast from "react-hot-toast";
+import Logo from "../components/Logo.jsx";
 
 function Login() {
   const { loginService, loading } = useAuth();
@@ -42,7 +43,7 @@ function Login() {
           </svg>
         </div>
 
-        <img src="/logo.png" alt="A&P" className="h-11 w-auto" onError={(e) => { e.target.style.display = "none"; }} />
+        <Logo height={44} color="#fff" />
 
         <div>
           <h2 className="text-3xl font-black text-white leading-tight mb-3">

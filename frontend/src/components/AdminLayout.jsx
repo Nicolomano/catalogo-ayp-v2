@@ -17,6 +17,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import Logo from "./Logo.jsx";
 
 const NAV_GROUPS = [
   {
@@ -111,16 +112,7 @@ function AdminLayout() {
           className="px-5 py-5 border-b"
           style={{ borderColor: "rgba(255,255,255,0.1)" }}
         >
-          <img
-            src="/logo.png"
-            alt="A&P Refrigeración"
-            className="h-8 w-auto mb-1"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextSibling.style.display = "block";
-            }}
-          />
-          <p className="text-white font-black text-lg tracking-tight hidden">A&P</p>
+          <Logo height={30} color="#fff" className="mb-1" />
           <p className="text-white/40 text-xs font-medium tracking-widest uppercase mt-1">
             Panel admin
           </p>
