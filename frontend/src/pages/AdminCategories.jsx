@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { PlusCircle, Trash2, FolderTree, ChevronRight } from "lucide-react";
+import { useConfirm } from "../Context/ConfirmContext.jsx";
 
 const inputCls =
   "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
@@ -12,6 +13,7 @@ const inputStyle = {
 };
 
 export default function AdminCategories() {
+  const confirm = useConfirm();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newCat, setNewCat] = useState({ name: "", slug: "", parent: "" });
@@ -44,7 +46,12 @@ export default function AdminCategories() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("¿Eliminar esta categoría?")) return;
+    if (!(await confirm({
+      title: "Eliminar categoría",
+      message: "¿Eliminar esta categoría? Los productos asignados perderán esta categoría.",
+      confirmText: "Eliminar",
+      tone: "danger",
+    }))) return;
     try {
       await API.delete(`/categories/${id}`);
       toast.success("Categoría eliminada");

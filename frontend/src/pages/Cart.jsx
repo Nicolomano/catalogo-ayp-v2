@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, ShoppingCart, Package, MessageCircle, Info } from "lucide-react";
 import API from "../api/axios";
+import toast from "react-hot-toast";
 
 function Cart() {
   const { cart, removeFromCart, clearCart, updateQuantity } = useCart();
@@ -34,7 +35,7 @@ function Cart() {
 
   const handleConfirm = async () => {
     if (!customerName || !customerPhone) {
-      alert("Por favor, ingresá tu nombre y teléfono.");
+      toast.error("Por favor, ingresá tu nombre y teléfono.");
       return;
     }
     try {
@@ -48,7 +49,7 @@ function Cart() {
       window.open(res.data.waLink, "_blank");
     } catch (err) {
       console.error("Error creando orden:", err.response?.data || err);
-      alert("Error al procesar la orden. Intentá nuevamente.");
+      toast.error("Error al procesar la orden. Intentá nuevamente.");
     } finally {
       setLoading(false);
     }

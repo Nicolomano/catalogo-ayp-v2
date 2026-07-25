@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Image, PlusCircle } from "lucide-react";
+import { useConfirm } from "../Context/ConfirmContext.jsx";
 
 
 
@@ -14,6 +15,7 @@ const inputStyle = {
 };
 
 export default function AdminBanners() {
+  const confirm = useConfirm();
   const [items, setItems] = useState([]);
   const [editing, setEditing] = useState(null);
   const [typeFilter, setTypeFilter] = useState("home");
@@ -59,7 +61,12 @@ export default function AdminBanners() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("¿Eliminar este banner?")) return;
+    if (!(await confirm({
+      title: "Eliminar banner",
+      message: "¿Eliminar este banner?",
+      confirmText: "Eliminar",
+      tone: "danger",
+    }))) return;
     await API.delete(`/banners/${id}`, {});
     setItems((prev) => prev.filter((i) => i._id !== id));
     toast.success("Banner eliminado");

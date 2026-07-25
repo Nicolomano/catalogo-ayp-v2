@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { useConfirm } from "../Context/ConfirmContext.jsx";
 
 const PAGE_SIZE = 50;
 
@@ -15,6 +16,7 @@ const inputStyle = {
 };
 
 function AdminProducts() {
+  const confirm = useConfirm();
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -130,7 +132,12 @@ function AdminProducts() {
 
   /* -------------------- Acciones -------------------- */
   const handleDelete = async (id) => {
-    if (!confirm("¿Seguro que querés eliminar este producto?")) return;
+    if (!(await confirm({
+      title: "Eliminar producto",
+      message: "¿Seguro que querés eliminar este producto? Esta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      tone: "danger",
+    }))) return;
     try {
       await API.delete(`/products/${id}`, );
       setProducts((prev) => prev.filter((p) => p._id !== id));
@@ -177,7 +184,11 @@ function AdminProducts() {
   const [migrating, setMigrating] = useState(false);
 
   const handleMigrateCategories = async () => {
-    if (!window.confirm("¿Migrar el campo 'category' (string) a 'categories' (array) en todos los productos que lo necesiten?")) return;
+    if (!(await confirm({
+      title: "Migrar categorías",
+      message: "¿Migrar el campo 'category' (texto) a 'categories' (lista) en todos los productos que lo necesiten?",
+      confirmText: "Migrar",
+    }))) return;
     setMigrating(true);
     try {
       const res = await API.post("/products/admin/migrate-categories", {}, );

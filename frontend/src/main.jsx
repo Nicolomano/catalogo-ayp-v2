@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import { CartProvider } from "./Context/CartContext.jsx";
 import { AuthProvider } from "./Context/AuthContext.jsx";
+import { ConfirmProvider } from "./Context/ConfirmContext.jsx";
 import { Toaster } from "react-hot-toast";
 import { HelmetProvider } from "react-helmet-async";
 
@@ -14,7 +15,9 @@ createRoot(document.getElementById("root")).render(
       <HelmetProvider>
         <AuthProvider>
           <CartProvider>
-            <App />
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
           </CartProvider>
         </AuthProvider>
         <Toaster position="top-right" />

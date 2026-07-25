@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import API from "../api/axios";
+import { useConfirm } from "../Context/ConfirmContext.jsx";
 
 const inputCls = "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
 const inputStyle = { background: "var(--surface2)", borderColor: "var(--border)", color: "var(--text)" };
@@ -133,6 +134,7 @@ function ServicesList({ value, onChange }) {
 }
 
 function WorkGallery({ tecnicoId, recentWork, onUpdate }) {
+  const confirm = useConfirm();
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -156,7 +158,12 @@ function WorkGallery({ tecnicoId, recentWork, onUpdate }) {
   };
 
   const remove = async (idx) => {
-    if (!confirm("¿Eliminar esta foto?")) return;
+    if (!(await confirm({
+      title: "Eliminar foto",
+      message: "¿Eliminar esta foto de la galería?",
+      confirmText: "Eliminar",
+      tone: "danger",
+    }))) return;
     try {
       const res = await API.delete(`/tecnicos/${tecnicoId}/works/${idx}`);
       onUpdate(res.data.recentWork);
@@ -214,6 +221,7 @@ function WorkGallery({ tecnicoId, recentWork, onUpdate }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminTecnicos() {
+  const confirm = useConfirm();
   const [tecnicos, setTecnicos] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [editing, setEditing]   = useState(null); // null | "new" | tecnico object
@@ -317,7 +325,12 @@ export default function AdminTecnicos() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("¿Eliminar este técnico?")) return;
+    if (!(await confirm({
+      title: "Eliminar técnico",
+      message: "¿Eliminar este técnico? Esta acción no se puede deshacer.",
+      confirmText: "Eliminar",
+      tone: "danger",
+    }))) return;
     try {
       await API.delete(`/tecnicos/${id}`);
       setTecnicos((prev) => prev.filter((t) => t._id !== id));
