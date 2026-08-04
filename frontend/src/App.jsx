@@ -24,9 +24,6 @@ import AdminCategories from "./pages/AdminCategories.jsx";
 import AdminDestacados from "./pages/AdminDestacados.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
-import Tecnicos from "./pages/Tecnicos.jsx";
-import TecnicoDetalle from "./pages/TecnicoDetalle.jsx";
-import AdminTecnicos from "./pages/AdminTecnicos.jsx";
 import API from "./api/axios.js";
 
 function PublicLayout() {
@@ -58,8 +55,6 @@ function App() {
           <Route path="contacto" element={<Contacto />} />
           <Route path="register" element={<Register />} />
           <Route path="login" element={<Login />} />
-          <Route path="tecnicos" element={<Tecnicos />} />
-          <Route path="tecnicos/:id" element={<TecnicoDetalle />} />
         </Route>
 
         {/* Admin: login público */}
@@ -85,7 +80,6 @@ function App() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="landing" element={<AdminLanding />} />
           <Route path="users" element={<AdminUsers />} />
-          <Route path="tecnicos" element={<AdminTecnicos />} />
         </Route>
       </Routes>
     </BrowserRouter>

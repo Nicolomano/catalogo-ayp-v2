@@ -12,7 +12,6 @@ import {
   LogOut,
   ChevronRight,
   LayoutDashboard,
-  UserCheck,
   Star,
   Menu,
   X,
@@ -25,7 +24,6 @@ const NAV_GROUPS = [
     items: [
       { to: "/admin/landing",   icon: Home,      label: "Página de inicio" },
       { to: "/admin/banners",   icon: Image,     label: "Banners / Slider" },
-      { to: "/admin/tecnicos",  icon: UserCheck, label: "Instaladores" },
     ],
   },
   {

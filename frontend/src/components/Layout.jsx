@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
-import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench, UserCheck } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench } from "lucide-react";
 import { useState, useEffect } from "react";
 import WhatsappFloat from "./WhatsappFloat.jsx";
 import Logo from "./Logo.jsx";
@@ -55,7 +55,6 @@ function Layout() {
             <NavLink to="/" end className={navLinkCls}>Inicio</NavLink>
             <NavLink to="/catalogo" className={navLinkCls}>Productos</NavLink>
             <NavLink to="/kit-instalacion" className={navLinkCls}>Kit</NavLink>
-            <NavLink to="/tecnicos" className={navLinkCls}>Técnicos</NavLink>
             <NavLink to="/contacto" className={navLinkCls}>Contacto</NavLink>
             {isAdmin && <NavLink to="/admin" className={navLinkCls}>Admin</NavLink>}
           </nav>
@@ -144,7 +143,6 @@ function Layout() {
               { to: "/", label: "Inicio", end: true },
               { to: "/catalogo", label: "Productos" },
               { to: "/kit-instalacion", label: "Kit de Instalación" },
-              { to: "/tecnicos", label: "Técnicos Recomendados" },
               { to: "/contacto", label: "Contacto" },
             ].map(({ to, label, end }) => (
               <NavLink
@@ -207,10 +205,6 @@ function Layout() {
         <NavLink to="/kit-instalacion" className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
           <Wrench className="h-5 w-5" />
           Kit
-        </NavLink>
-        <NavLink to="/tecnicos" className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
-          <UserCheck className="h-5 w-5" />
-          Técnicos
         </NavLink>
         <NavLink to="/cart" className={({ isActive }) => `bottom-nav-item relative${isActive ? " active" : ""}`}>
           <div className="relative">

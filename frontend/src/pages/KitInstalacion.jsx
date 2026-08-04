@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
+import { useAuth } from "../Context/AuthContext.jsx";
 
 const stepperClamp = (n, step = 0.5) =>
   Math.max(0, Math.round(n / step) * step);
@@ -14,6 +15,10 @@ const inputStyle = {
 };
 
 export default function KitInstalacion() {
+  const { isServiceApproved } = useAuth();
+  // Aplica 10% de descuento service a un precio (solo si el técnico está aprobado)
+  const disc = (v) => (isServiceApproved ? Math.round((v || 0) * 0.9) : v);
+
   const [meta, setMeta]       = useState([]);
   const [qty, setQty]         = useState({});
   const [variant, setVariant] = useState({});
@@ -83,11 +88,12 @@ export default function KitInstalacion() {
         const varLabel = l.variant
           ? ` (${l.key === "bracket" ? `${l.variant} cm` : l.variant})`
           : "";
-        return `• ${l.label}${varLabel}: ${l.qty} ${l.unit} — $${l.unitPriceARS.toLocaleString("es-AR")} c/u`;
+        return `• ${l.label}${varLabel}: ${l.qty} ${l.unit} — $${disc(l.unitPriceARS).toLocaleString("es-AR")} c/u`;
       })
       .join("%0A");
-    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${pricing.total.toLocaleString("es-AR")}`;
-  }, [pricing]);
+    const serviceNote = isServiceApproved ? "%0A(Precios con descuento service -10%)" : "";
+    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${disc(pricing.total).toLocaleString("es-AR")}${serviceNote}`;
+  }, [pricing, isServiceApproved]);
 
   const variantLabel = (key) => {
     if (key === "copper_small" || key === "copper_big") return "Medida:";
@@ -232,21 +238,31 @@ export default function KitInstalacion() {
                           : ""}
                       </p>
                       <p className="text-xs" style={{ color: "var(--muted)" }}>
-                        {l.qty} {l.unit} × ${l.unitPriceARS.toLocaleString("es-AR")}
+                        {l.qty} {l.unit} × ${disc(l.unitPriceARS).toLocaleString("es-AR")}
                       </p>
                     </div>
                     <span className="text-sm font-semibold flex-shrink-0" style={{ color: "var(--text)" }}>
-                      ${l.subtotal.toLocaleString("es-AR")}
+                      ${disc(l.subtotal).toLocaleString("es-AR")}
                     </span>
                   </li>
                 ))}
               </ul>
 
-              <div className="pt-3 border-t flex items-center justify-between"
+              <div className="pt-3 border-t flex items-center justify-between gap-2"
                 style={{ borderColor: "var(--border)" }}>
-                <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>Total estimado</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>Total estimado</span>
+                  {isServiceApproved && (
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+                    >
+                      Precio service · -10%
+                    </span>
+                  )}
+                </div>
                 <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>
-                  ${pricing.total.toLocaleString("es-AR")}
+                  ${disc(pricing.total).toLocaleString("es-AR")}
                 </span>
               </div>
 
