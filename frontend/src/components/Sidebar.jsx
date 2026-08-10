@@ -102,7 +102,7 @@ function Sidebar({
                       style={{ color: selectedSubcategory === "all" ? "var(--brand)" : "var(--muted)", fontWeight: selectedSubcategory === "all" ? 600 : 400 }}>
                       — Todas
                     </button>
-                    {subcategories.map((s) => (
+                    {[...subcategories].sort((a, b) => a.localeCompare(b)).map((s) => (
                       <button key={s} onClick={() => onSubcategoryChange(s)}
                         className="w-full text-left text-xs px-2 py-1 rounded transition-colors"
                         style={{ color: selectedSubcategory === s ? "var(--brand)" : "var(--muted)", fontWeight: selectedSubcategory === s ? 600 : 400 }}>

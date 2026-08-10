@@ -31,7 +31,7 @@ export const createCategory = async (req, res) => {
 /* -------------------- LISTAR TODAS LAS CATEGORÍAS -------------------- */
 export const getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.find().lean();
+    const categories = await Category.find().sort({ name: 1 }).lean();
     res.json(categories);
   } catch (error) {
     res.status(500).json({
@@ -55,7 +55,7 @@ export const getAllCategories = async (req, res) => {
  */
 export const getCategoriesTree = async (req, res) => {
   try {
-    const categories = await Category.find().lean();
+    const categories = await Category.find().sort({ name: 1 }).lean();
 
     // Indexamos las categorías por ID
     const map = {};

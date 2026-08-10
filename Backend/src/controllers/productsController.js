@@ -467,7 +467,11 @@ export const getCategoriesMeta = async (req, res) => {
       { $sort: { category: 1 } },
     ]);
 
-    res.json(docs);
+    const sorted = docs.map((d) => ({
+      ...d,
+      subcategories: [...d.subcategories].sort((a, b) => a.localeCompare(b)),
+    }));
+    res.json(sorted);
   } catch (error) {
     console.error("Error obteniendo categorías y subcategorías:", error);
     res.status(500).json({
