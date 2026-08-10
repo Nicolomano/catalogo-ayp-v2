@@ -530,6 +530,7 @@ function AdminProducts() {
 
       {/* Paginación */}
       {totalPages > 1 && (
+        <>
         <div className="flex items-center justify-center gap-2 pt-2 pb-4">
           <button
             onClick={() => handlePageChange(page - 1)}
@@ -605,6 +606,7 @@ function AdminProducts() {
             Ir
           </button>
         </form>
+        </>
       )}
 
       {/* Modal crear / editar */}
