@@ -577,6 +577,34 @@ function AdminProducts() {
             Siguiente <ChevronRight size={15} />
           </button>
         </div>
+
+        <form
+          className="flex items-center justify-center gap-2 pb-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const val = parseInt(e.target.pageInput.value, 10);
+            if (val >= 1 && val <= totalPages) handlePageChange(val);
+            e.target.reset();
+          }}
+        >
+          <span className="text-xs" style={{ color: "var(--muted)" }}>Ir a la página</span>
+          <input
+            name="pageInput"
+            type="number"
+            min={1}
+            max={totalPages}
+            placeholder={page}
+            className="input-field text-center text-sm"
+            style={{ width: "64px", padding: "5px 4px" }}
+          />
+          <button
+            type="submit"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
+            style={{ background: "var(--brand)", color: "#fff" }}
+          >
+            Ir
+          </button>
+        </form>
       )}
 
       {/* Modal crear / editar */}
