@@ -90,6 +90,15 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error("Error capturado:", err);
+  // Asegurar headers de CORS también en errores, así el browser muestra el
+  // error real (500 con mensaje) en vez de un error de CORS genérico.
+  const origin = req.headers.origin;
+  const allowed = Array.isArray(corsOptions.origin) ? corsOptions.origin : [];
+  if (origin && allowed.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Vary", "Origin");
+  }
   res.status(500).json({
     message: "Error interno del servidor",
     error: err.message,
