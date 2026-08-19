@@ -100,6 +100,11 @@ const httpServer = app.listen(SERVER_PORT, () => {
   console.log("server run on port:", SERVER_PORT);
 });
 
+// El default de Node (requestTimeout = 300000 ms = 5 min) cortaba la importación
+// de Excel grande antes de que el server respondiera. Subimos a 15 min.
+httpServer.requestTimeout = 900000;
+httpServer.headersTimeout = 920000;
+
 const connectMongoDB = async () => {
   try {
     MongoSingleton.getInstance();
