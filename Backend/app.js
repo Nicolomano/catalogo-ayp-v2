@@ -90,6 +90,15 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error("Error capturado:", err);
+  // Asegurar headers de CORS también en errores, así el browser muestra el
+  // error real (500 con mensaje) en vez de un error de CORS genérico.
+  const origin = req.headers.origin;
+  const allowed = Array.isArray(corsOptions.origin) ? corsOptions.origin : [];
+  if (origin && allowed.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Vary", "Origin");
+  }
   res.status(500).json({
     message: "Error interno del servidor",
     error: err.message,
@@ -99,6 +108,11 @@ app.use((err, req, res, next) => {
 const httpServer = app.listen(SERVER_PORT, () => {
   console.log("server run on port:", SERVER_PORT);
 });
+
+// El default de Node (requestTimeout = 300000 ms = 5 min) cortaba la importación
+// de Excel grande antes de que el server respondiera. Subimos a 15 min.
+httpServer.requestTimeout = 900000;
+httpServer.headersTimeout = 920000;
 
 const connectMongoDB = async () => {
   try {
