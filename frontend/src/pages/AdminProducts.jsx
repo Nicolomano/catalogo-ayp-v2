@@ -213,7 +213,11 @@ function AdminProducts() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.skipped > 0 && res.data.errors?.length > 0) {
-        const errSample = res.data.errors.slice(0, 3).join(" | ");
+        // errors ahora es [{ fila, motivo }] (antes eran strings); soportar ambos
+        const errSample = res.data.errors
+          .slice(0, 3)
+          .map((e) => (typeof e === "string" ? e : `Fila ${e.fila ?? "?"}: ${e.motivo}`))
+          .join(" | ");
         toast.error(`${res.data.message}\nErrores: ${errSample}`, { duration: 8000 });
         console.warn("Import errors:", res.data.errors);
         console.info("Detected columns:", res.data.detectedColumns);
