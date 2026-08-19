@@ -610,13 +610,138 @@ function detectFormat(rows) {
 }
 
 /* ----------------------- IMPORTAR EXCEL ----------------------- */
+/**
+ * Extrae los campos de una fila del Excel (misma lógica que la versión anterior,
+ * separada en helper para poder armar las operaciones en memoria).
+ * Devuelve { code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag }.
+ */
+function extractRow(row, format) {
+  if (format === "new") {
+    const code = String(
+      row["Codigo_catalogo"] ?? row["Codigo_catalogo"] ??
+      row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
+    ).trim();
+
+    const nombre = String(row["Descripcion"] ?? row["descripcion"] ?? code).trim();
+
+    const rubro = String(row["Rubro"] ?? row["rubro"] ?? "").trim();
+    const subrubro = String(row["SubRubro"] ?? row["Subrubro"] ?? row["subrubro"] ?? "").trim();
+    const parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
+    const parsedSubs = subrubro ? [subrubro] : [];
+
+    const priceARS = parseARNumber(
+      row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"] ??
+      row["Precio"] ?? row["precio"] ?? row["PrecioVenta"] ?? row["Precio_Venta"]
+    );
+    const priceUSD = null;
+    const fixedFlag = priceARS !== null;
+
+    const stockRaw =
+      row["Moneda"] ?? row["moneda"] ??
+      row["Cotizador"] ?? row["cotizador"] ??
+      row["Cotizacion"] ?? row["cotizacion"];
+    const stockQty = parseARNumber(stockRaw);
+    const inStock = stockQty !== null ? stockQty > 0 : true;
+
+    return { code, nombre, priceARS, priceUSD, inStock, brandVal: null, parsedCats, parsedSubs, fixedFlag };
+  }
+
+  // ── Formato clásico ──
+  const code = String(row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? "").trim();
+  const nombre = String(row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code).trim();
+
+  const rawARSv = row["Precio (ARS)"];
+  const rawUSDv = row["Precio (USD)"];
+  const rawStock = row["Stock"];
+  const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
+  const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
+  const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
+
+  const priceARS = rawARSv !== undefined && rawARSv !== "" ? Number(rawARSv) : null;
+  const priceUSD = rawUSDv !== undefined && rawUSDv !== "" ? Number(rawUSDv) : null;
+  const fixedFlag = priceARS !== null && priceUSD === null;
+  const inStock = rawStock !== undefined
+    ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
+    : undefined;
+  const brandVal = rawBrand ? String(rawBrand).trim() || null : undefined;
+  const parsedCats = rawCats ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const parsedSubs = rawSubs ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+
+  return { code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag };
+}
+
+/** Arma el objeto $set para un producto EXISTENTE (misma lógica que antes; nunca toca `name`). */
+function buildUpdate(p, existing, format, exchangeRate) {
+  const update = {};
+  if (format === "new") {
+    if (p.priceARS !== null) {
+      update.priceARS = Math.round(p.priceARS);
+      update.fixedInARS = true;
+    }
+    update.inStock = p.inStock;
+    if (p.parsedCats.length > 0 && (!existing.categories || existing.categories.length === 0)) {
+      update.categories = p.parsedCats;
+    }
+    if (p.parsedSubs.length > 0 && (!existing.subcategories || existing.subcategories.length === 0)) {
+      update.subcategories = p.parsedSubs;
+    }
+  } else {
+    // Formato clásico: respetar fixedInARS (precio fijado a mano no se recalcula por dólar)
+    if (existing.fixedInARS) {
+      if (p.priceARS !== null) update.priceARS = p.priceARS;
+      if (p.priceUSD !== null) update.priceUSD = p.priceUSD;
+    } else {
+      if (p.priceUSD !== null) {
+        update.priceUSD = p.priceUSD;
+        update.priceARS = p.priceUSD * exchangeRate;
+      } else if (p.priceARS !== null) {
+        update.priceARS = p.priceARS;
+      }
+    }
+    if (p.inStock !== undefined) update.inStock = p.inStock;
+    if (p.brandVal !== undefined) update.brand = p.brandVal;
+    if (p.parsedCats !== undefined) update.categories = p.parsedCats;
+    if (p.parsedSubs !== undefined) update.subcategories = p.parsedSubs;
+  }
+  return update;
+}
+
+/**
+ * Arma el documento para un producto NUEVO (misma lógica que antes).
+ * Calcula priceARS en memoria porque bulkWrite no dispara el hook pre-save del modelo.
+ */
+function buildInsert(p, format, exchangeRate) {
+  const newProd = {
+    name:          p.nombre,
+    description:   p.nombre,
+    productCode:   p.code,
+    brand:         p.brandVal ?? null,
+    categories:    p.parsedCats ?? [],
+    subcategories: p.parsedSubs ?? [],
+    active:        true,
+    inStock:       p.inStock !== undefined ? p.inStock : true,
+  };
+  if (p.priceARS !== null && !isNaN(p.priceARS)) {
+    newProd.priceARS = Math.round(p.priceARS);
+    if (p.fixedFlag) newProd.fixedInARS = true;
+  }
+  if (p.priceUSD !== null && p.priceUSD !== undefined && !isNaN(p.priceUSD)) {
+    newProd.priceUSD = p.priceUSD;
+    if (!p.fixedFlag) newProd.priceARS = p.priceUSD * exchangeRate;
+  }
+  return newProd;
+}
+
 export const importProductsExcel = async (req, res) => {
+  const t0 = Date.now();
   try {
     if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
 
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const tParse = Date.now();
+    console.log(`[import] parseo ${tParse - t0}ms · filas=${rows.length}`);
 
     if (!rows.length) return res.json({ message: "Archivo vacío", updated: 0, created: 0, skipped: 0, errors: [] });
 
@@ -630,151 +755,93 @@ export const importProductsExcel = async (req, res) => {
     const cfg = await Config.findOne();
     const exchangeRate = Number(cfg?.exchangeRate || 1);
 
-    let updated = 0, created = 0, skipped = 0;
+    let created = 0, updated = 0, skipped = 0;
     const errors = [];
 
-    for (const row of rows) {
-      let code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag;
+    // ── 1) Extraer todas las filas (nº de fila del Excel = índice + 2, por el encabezado) ──
+    const parsed = [];
+    for (let i = 0; i < rows.length; i++) {
+      const p = extractRow(rows[i], format);
+      if (!p.code) { skipped++; continue; }
+      parsed.push({ rowNum: i + 2, ...p });
+    }
 
-      // ── NUEVO FORMATO del sistema contable (Tango/similar) ──────────────
-      // Columnas: Codigo_catalogo | precio_venta | Cotizador | Rubro | SubRubro
-      if (format === "new") {
-        // productCode: primero Codigo_catalogo, luego Codigo_ze como fallback
-        code = String(
-          row["Codigo_catalogo"] ?? row["Codigo_catalogo"] ??
-          row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
-        ).trim();
-        if (!code) { skipped++; continue; }
-
-        nombre = String(row["Descripcion"] ?? row["descripcion"] ?? code).trim();
-
-        // Categoría desde Rubro (ignorar "TODOS" = sin categoría)
-        const rubro = String(row["Rubro"] ?? row["rubro"] ?? "").trim();
-        const subrubro = String(row["SubRubro"] ?? row["Subrubro"] ?? row["subrubro"] ?? "").trim();
-        parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
-        parsedSubs = subrubro ? [subrubro] : [];
-
-        // Precio en ARS — intentar múltiples nombres de columna
-        priceARS = parseARNumber(
-          row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"] ??
-          row["Precio"] ?? row["precio"] ?? row["PrecioVenta"] ?? row["Precio_Venta"]
-        );
-        priceUSD = null;
-        fixedFlag = priceARS !== null;
-
-        // Stock desde columna Moneda (formato contable: "(1,00) $" → stock=1)
-        // También intenta Cotizador / Cotizacion como fallback
-        const stockRaw =
-          row["Moneda"] ?? row["moneda"] ??
-          row["Cotizador"] ?? row["cotizador"] ??
-          row["Cotizacion"] ?? row["cotizacion"];
-        const stockQty = parseARNumber(stockRaw);
-        inStock = stockQty !== null ? stockQty > 0 : true;
-
-        brandVal = null; // el nuevo formato no tiene columna de marca
-
-      // ── FORMATO CLÁSICO (exportación del sistema: Código, Precio (ARS), Stock, Marca, etc.) ──
-      } else {
-        code = String(row["Código"] ?? row["Codigo"] ?? row["productCode"] ?? "").trim();
-        if (!code) { skipped++; continue; }
-
-        nombre = String(row["Nombre"] ?? row["nombre"] ?? row["name"] ?? code).trim();
-
-        const rawARSv = row["Precio (ARS)"];
-        const rawUSDv = row["Precio (USD)"];
-        const rawStock = row["Stock"];
-        const rawBrand = row["Marca"] ?? row["marca"] ?? row["brand"] ?? undefined;
-
-        const rawCats = row["Categorías"] ?? row["Categorias"] ?? row["categories"] ?? undefined;
-        const rawSubs = row["Subcategorías"] ?? row["Subcategorias"] ?? row["subcategories"] ?? undefined;
-
-        priceARS = rawARSv !== undefined && rawARSv !== "" ? Number(rawARSv) : null;
-        priceUSD = rawUSDv !== undefined && rawUSDv !== "" ? Number(rawUSDv) : null;
-        fixedFlag = priceARS !== null && priceUSD === null;
-        inStock = rawStock !== undefined
-          ? String(rawStock).toLowerCase() !== "no" && rawStock !== 0 && String(rawStock) !== "0"
-          : undefined;
-        brandVal = rawBrand ? String(rawBrand).trim() || null : undefined;
-        parsedCats = rawCats ? String(rawCats).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
-        parsedSubs = rawSubs ? String(rawSubs).split(",").map((s) => s.trim()).filter(Boolean) : undefined;
-      }
-
-      // ── Guardar en BD ──────────────────────────────────────────────────────────
-      const existing = await productModel.findOne({ productCode: code });
-
-      if (existing) {
-        const update = {};
-
-        if (format === "new") {
-          // Nuevo formato: solo actualizar precio ARS y stock (no tocar categorías existentes si ya las tiene)
-          if (priceARS !== null) {
-            update.priceARS = Math.round(priceARS);
-            update.fixedInARS = true;
-          }
-          update.inStock = inStock;
-          // Actualizar categorías solo si el producto no tiene ninguna aún
-          if (parsedCats.length > 0 && (!existing.categories || existing.categories.length === 0)) {
-            update.categories = parsedCats;
-          }
-          if (parsedSubs.length > 0 && (!existing.subcategories || existing.subcategories.length === 0)) {
-            update.subcategories = parsedSubs;
-          }
-        } else {
-          // Formato clásico: respetar lógica de fixedInARS
-          if (existing.fixedInARS) {
-            if (priceARS !== null) update.priceARS = priceARS;
-            if (priceUSD !== null) update.priceUSD = priceUSD;
-          } else {
-            if (priceUSD !== null) {
-              update.priceUSD = priceUSD;
-              update.priceARS = priceUSD * exchangeRate;
-            } else if (priceARS !== null) {
-              update.priceARS = priceARS;
-            }
-          }
-          if (inStock !== undefined) update.inStock = inStock;
-          if (brandVal !== undefined) update.brand = brandVal;
-          if (parsedCats !== undefined) update.categories = parsedCats;
-          if (parsedSubs !== undefined) update.subcategories = parsedSubs;
-        }
-
-        if (Object.keys(update).length > 0) {
-          await productModel.updateOne({ _id: existing._id }, { $set: update });
-          updated++;
-        } else {
-          skipped++;
-        }
-      } else {
-        // ── Producto nuevo ─────────────────────────────────────────────────────
-        const newProd = {
-          name:          nombre,
-          description:   nombre,
-          productCode:   code,
-          brand:         brandVal ?? null,
-          categories:    parsedCats ?? [],
-          subcategories: parsedSubs ?? [],
-          active:        true,
-          inStock:       inStock !== undefined ? inStock : true,
-        };
-
-        if (priceARS !== null && !isNaN(priceARS)) {
-          newProd.priceARS = Math.round(priceARS);
-          if (fixedFlag) newProd.fixedInARS = true;
-        }
-        if (priceUSD !== null && priceUSD !== undefined && !isNaN(priceUSD)) {
-          newProd.priceUSD = priceUSD;
-          if (!fixedFlag) newProd.priceARS = priceUSD * exchangeRate;
-        }
-
-        try {
-          await productModel.create(newProd);
-          created++;
-        } catch (e) {
-          errors.push(`${code}: ${e.message}`);
-          skipped++;
-        }
+    // ── 2) Dedup por código dentro del archivo (última fila gana; se reportan duplicados) ──
+    const lastByCode = new Map();
+    const lastRowNum = new Map();
+    for (const p of parsed) { lastByCode.set(p.code, p); lastRowNum.set(p.code, p.rowNum); }
+    for (const p of parsed) {
+      if (lastRowNum.get(p.code) !== p.rowNum) {
+        skipped++;
+        errors.push({ fila: p.rowNum, motivo: `Código ${p.code} duplicado en el archivo (se usó la última fila)` });
       }
     }
+    const finalRows = [...lastByCode.values()];
+
+    // ── 3) Prefetch de existentes en una sola query ──
+    const codes = finalRows.map((p) => p.code);
+    const existingDocs = await productModel
+      .find({ productCode: { $in: codes } })
+      .select("productCode _id fixedInARS categories subcategories")
+      .lean();
+    const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
+    const tPrefetch = Date.now();
+    console.log(`[import] prefetch ${tPrefetch - tParse}ms · a-buscar=${codes.length} existentes=${existingMap.size}`);
+
+    // ── 4) Armar operaciones en memoria (validación por fila que no aborta) ──
+    const ops = [];
+    const opMeta = []; // paralelo a ops: { rowNum, code, type }
+    for (const p of finalRows) {
+      const existing = existingMap.get(p.code);
+      if (existing) {
+        const update = buildUpdate(p, existing, format, exchangeRate);
+        if (Object.keys(update).length > 0) {
+          ops.push({ updateOne: { filter: { _id: existing._id }, update: { $set: update } } });
+          opMeta.push({ rowNum: p.rowNum, code: p.code, type: "update" });
+        } else {
+          skipped++;
+        }
+      } else {
+        ops.push({ insertOne: { document: buildInsert(p, format, exchangeRate) } });
+        opMeta.push({ rowNum: p.rowNum, code: p.code, type: "insert" });
+      }
+    }
+
+    // ── 5) bulkWrite en lotes de 500, no ordenado (una fila con error no aborta el resto) ──
+    const errored = new Set();
+    const BATCH = 500;
+    for (let start = 0; start < ops.length; start += BATCH) {
+      const batch = ops.slice(start, start + BATCH);
+      const tb = Date.now();
+      try {
+        await productModel.bulkWrite(batch, { ordered: false });
+      } catch (e) {
+        const wErrors = e?.writeErrors
+          || (typeof e?.result?.getWriteErrors === "function" ? e.result.getWriteErrors() : [])
+          || [];
+        if (wErrors.length) {
+          for (const we of wErrors) {
+            const gi = start + (we.index ?? 0);
+            errored.add(gi);
+            const meta = opMeta[gi] || {};
+            errors.push({ fila: meta.rowNum ?? null, motivo: we.errmsg || we.err?.errmsg || "error de escritura" });
+          }
+        } else {
+          errors.push({ fila: null, motivo: `Lote ${start}-${start + batch.length}: ${e.message}` });
+        }
+      }
+      console.log(`[import] lote ${Math.floor(start / BATCH) + 1} (${batch.length} ops) ${Date.now() - tb}ms`);
+    }
+
+    // Contadores: ops que no fallaron
+    for (let i = 0; i < opMeta.length; i++) {
+      if (errored.has(i)) { skipped++; continue; }
+      if (opMeta[i].type === "insert") created++;
+      else updated++;
+    }
+
+    const ms = Date.now() - t0;
+    console.log(`[import] total ${ms}ms · creados=${created} actualizados=${updated} omitidos=${skipped} errores=${errors.length}`);
 
     const detectedColumns = rows.length ? Object.keys(rows[0]) : [];
     res.json({
@@ -783,8 +850,9 @@ export const importProductsExcel = async (req, res) => {
       updated,
       created,
       skipped,
-      errors: errors.slice(0, 20), // primeros 20 errores
+      errors: errors.slice(0, 50),
       detectedColumns,
+      ms,
     });
   } catch (error) {
     console.error("Error importando Excel:", error);
