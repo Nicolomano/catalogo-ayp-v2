@@ -956,6 +956,112 @@ export const importProductsExcel = async (req, res) => {
   }
 };
 
+/* --------- COMMIT del import (aplica con las decisiones confirmadas) --------- */
+export const commitImportExcel = async (req, res) => {
+  const t0 = Date.now();
+  try {
+    if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
+
+    let decisions = {};
+    try { decisions = JSON.parse(req.body.decisions || "{}"); } catch { decisions = {}; }
+    const skipNew = new Set((decisions.skipNewCodes || []).map(String));
+    const wantDelete = new Set((decisions.deleteCodes || []).map(String));
+    const wantDeactivate = new Set((decisions.deactivateCodes || []).map(String));
+
+    const { format, finalRows, excelCodeSet } = analyzeImport(req.file.buffer);
+    if (format === "unknown") {
+      return res.status(400).json({ message: "Formato de Excel no reconocido." });
+    }
+
+    const cfg = await Config.findOne();
+    const exchangeRate = Number(cfg?.exchangeRate || 1);
+
+    const codes = [...excelCodeSet];
+    const existingDocs = await productModel
+      .find({ productCode: { $in: codes } })
+      .select("productCode _id fixedInARS categories subcategories")
+      .lean();
+    const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
+
+    // ── Armar creates/updates (misma lógica que Parte A) ──
+    let created = 0, updated = 0, skipped = 0;
+    const errors = [];
+    const ops = [];
+    const opMeta = [];
+    for (const p of finalRows) {
+      const ex = existingMap.get(p.code);
+      if (ex) {
+        const update = buildUpdate(p, ex, format, exchangeRate);
+        if (Object.keys(update).length > 0) {
+          ops.push({ updateOne: { filter: { _id: ex._id }, update: { $set: update } } });
+          opMeta.push({ rowNum: p.rowNum, type: "update" });
+        } else {
+          skipped++;
+        }
+      } else {
+        if (skipNew.has(p.code)) { skipped++; continue; } // nuevo destildado por el admin
+        ops.push({ insertOne: { document: buildInsert(p, format, exchangeRate) } });
+        opMeta.push({ rowNum: p.rowNum, type: "insert" });
+      }
+    }
+
+    const errored = new Set();
+    const BATCH = 500;
+    for (let start = 0; start < ops.length; start += BATCH) {
+      const batch = ops.slice(start, start + BATCH);
+      try {
+        await productModel.bulkWrite(batch, { ordered: false });
+      } catch (e) {
+        const wErrors = e?.writeErrors
+          || (typeof e?.result?.getWriteErrors === "function" ? e.result.getWriteErrors() : [])
+          || [];
+        if (wErrors.length) {
+          for (const we of wErrors) {
+            const gi = start + (we.index ?? 0);
+            errored.add(gi);
+            errors.push({ fila: opMeta[gi]?.rowNum ?? null, motivo: we.errmsg || "error de escritura" });
+          }
+        } else {
+          errors.push({ fila: null, motivo: `Lote ${start}: ${e.message}` });
+        }
+      }
+    }
+    for (let i = 0; i < opMeta.length; i++) {
+      if (errored.has(i)) { skipped++; continue; }
+      if (opMeta[i].type === "insert") created++;
+      else updated++;
+    }
+
+    // ── Faltantes: validar contra los que realmente NO están en el Excel ──
+    const activeCodes = await productModel.find({ active: true }).select("productCode").lean();
+    const missingSet = new Set(
+      activeCodes.map((d) => d.productCode).filter((c) => !excelCodeSet.has(c))
+    );
+    const toDelete = [...wantDelete].filter((c) => missingSet.has(c));
+    const toDeactivate = [...wantDeactivate].filter((c) => missingSet.has(c) && !wantDelete.has(c));
+
+    let deleted = 0, deactivated = 0;
+    if (toDelete.length) {
+      const r = await productModel.deleteMany({ productCode: { $in: toDelete } });
+      deleted = r.deletedCount || 0;
+    }
+    if (toDeactivate.length) {
+      const r = await productModel.updateMany(
+        { productCode: { $in: toDeactivate } },
+        { $set: { active: false } }
+      );
+      deactivated = r.modifiedCount || 0;
+    }
+
+    const ms = Date.now() - t0;
+    console.log(`[import-commit] ${ms}ms · creados=${created} actualizados=${updated} eliminados=${deleted} desactivados=${deactivated} omitidos=${skipped} errores=${errors.length}`);
+    res.json({ created, updated, skipped, deleted, deactivated, errors: errors.slice(0, 50), ms });
+  } catch (error) {
+    console.error("Error en commit de import:", error);
+    res.status(500).json({ message: "Error importando Excel", error: error.message });
+  }
+};
+
 export const exportProductsExcel = async (req, res) => {
   try {
     const products = await productModel

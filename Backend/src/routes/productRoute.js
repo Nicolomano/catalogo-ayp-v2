@@ -14,6 +14,7 @@ import {
   exportProductsExcel,
   importProductsExcel,
   previewImportExcel,
+  commitImportExcel,
   getLandingProducts,
   getProductBrands,
   migrateCategories,
@@ -41,6 +42,7 @@ productRouter.patch("/featured/reorder",    protect, reorderFeatured);
 productRouter.post("/admin/migrate-categories", protect, migrateCategories);
 productRouter.post("/import/excel",         protect, uploadExcel.single("file"), importProductsExcel);
 productRouter.post("/import/preview",        protect, uploadExcel.single("file"), previewImportExcel);
+productRouter.post("/import/commit",         protect, uploadExcel.single("file"), commitImportExcel);
 productRouter.post("/upload",         protect, uploadCloud.single("image"), uploadImage);
 productRouter.post("/",               protect, uploadCloud.single("image"), createProduct);
 productRouter.put("/:id",             protect, uploadCloud.single("image"), updateProduct);
