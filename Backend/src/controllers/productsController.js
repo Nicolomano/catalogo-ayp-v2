@@ -732,6 +732,102 @@ function buildInsert(p, format, exchangeRate) {
   return newProd;
 }
 
+/**
+ * Parsea el buffer del Excel y devuelve las filas ya extraídas y deduplicadas
+ * (misma lógica de parseo/dedup que el import). No escribe nada. Lo usan el
+ * preview y el commit del flujo con confirmación.
+ */
+function analyzeImport(fileBuffer) {
+  const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  const format = detectFormat(rows);
+  const detectedColumns = rows.length ? Object.keys(rows[0]) : [];
+
+  const parsed = [];
+  let noCodeCount = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const p = extractRow(rows[i], format);
+    if (!p.code) { noCodeCount++; continue; }
+    parsed.push({ rowNum: i + 2, ...p });
+  }
+
+  // Dedup por código (última fila gana; se registran los duplicados anteriores)
+  const lastByCode = new Map();
+  const lastRowNum = new Map();
+  for (const p of parsed) { lastByCode.set(p.code, p); lastRowNum.set(p.code, p.rowNum); }
+  const duplicates = [];
+  for (const p of parsed) {
+    if (lastRowNum.get(p.code) !== p.rowNum) duplicates.push({ fila: p.rowNum, code: p.code });
+  }
+  const finalRows = [...lastByCode.values()];
+  const excelCodeSet = new Set(finalRows.map((p) => p.code));
+
+  return { format, detectedColumns, finalRows, duplicates, noCodeCount, excelCodeSet };
+}
+
+/* --------- PREVIEW del import (dry-run, no escribe) --------- */
+export const previewImportExcel = async (req, res) => {
+  const t0 = Date.now();
+  try {
+    if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
+
+    const { format, detectedColumns, finalRows, duplicates, excelCodeSet } = analyzeImport(req.file.buffer);
+    if (format === "unknown") {
+      return res.status(400).json({
+        message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_catalogo' (sistema contable) o 'Código' (exportación clásica).",
+      });
+    }
+
+    const cfg = await Config.findOne();
+    const exchangeRate = Number(cfg?.exchangeRate || 1);
+
+    // Existentes que están en el Excel
+    const codes = [...excelCodeSet];
+    const existingDocs = await productModel
+      .find({ productCode: { $in: codes } })
+      .select("productCode _id fixedInARS categories subcategories")
+      .lean();
+    const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
+
+    const toCreate = [];
+    let toUpdate = 0;
+    for (const p of finalRows) {
+      const ex = existingMap.get(p.code);
+      if (!ex) {
+        toCreate.push({
+          fila: p.rowNum, code: p.code, nombre: p.nombre,
+          priceARS: p.priceARS, inStock: p.inStock, categories: p.parsedCats ?? [],
+        });
+      } else if (Object.keys(buildUpdate(p, ex, format, exchangeRate)).length > 0) {
+        toUpdate++;
+      }
+    }
+
+    // Faltantes: productos ACTIVOS en la web cuyo código no está en el Excel
+    const activeProducts = await productModel
+      .find({ active: true })
+      .select("_id productCode name priceARS image")
+      .lean();
+    const missing = activeProducts.filter((d) => !excelCodeSet.has(d.productCode));
+
+    res.json({
+      format,
+      detectedColumns,
+      counts: { toCreate: toCreate.length, toUpdate, missing: missing.length, duplicates: duplicates.length },
+      toCreate,
+      missing: missing.map((d) => ({
+        _id: d._id, productCode: d.productCode, name: d.name, priceARS: d.priceARS, image: d.image,
+      })),
+      duplicates,
+      ms: Date.now() - t0,
+    });
+  } catch (error) {
+    console.error("Error en preview de import:", error);
+    res.status(500).json({ message: "Error analizando Excel", error: error.message });
+  }
+};
+
 export const importProductsExcel = async (req, res) => {
   const t0 = Date.now();
   try {
