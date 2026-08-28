@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   Star,
+  Upload,
   Menu,
   X,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const NAV_GROUPS = [
     label: "Tienda",
     items: [
       { to: "/admin/products", icon: Package, label: "Productos" },
+      { to: "/admin/importar", icon: Upload, label: "Importar Excel" },
       { to: "/admin/destacados", icon: Star, label: "Destacados" },
       { to: "/admin/categories", icon: FolderTree, label: "Categorías" },
       { to: "/admin/install-kit", icon: Wrench, label: "Kit de instalación" },

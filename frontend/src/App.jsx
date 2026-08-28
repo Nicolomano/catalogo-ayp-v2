@@ -22,6 +22,7 @@ import KitInstalacion from "./pages/KitInstalacion.jsx";
 import AdminInstallKit from "./pages/AdminInstallKit.jsx";
 import AdminCategories from "./pages/AdminCategories.jsx";
 import AdminDestacados from "./pages/AdminDestacados.jsx";
+import AdminImportar from "./pages/AdminImportar.jsx";
 import Register from "./pages/Register.jsx";
 import Login from "./pages/Login.jsx";
 import API from "./api/axios.js";
@@ -74,6 +75,7 @@ function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="destacados" element={<AdminDestacados />} />
+          <Route path="importar" element={<AdminImportar />} />
           <Route path="banners" element={<AdminBanners />} />
           <Route path="config" element={<AdminConfig />} />
           <Route path="install-kit" element={<AdminInstallKit />} />
