@@ -16,6 +16,7 @@
     "@aws-sdk/client-s3": "^3.1001.0",
     "bcryptjs": "^3.0.2",
     "commander": "^13.1.0",
+    "compression": "^1.8.1",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
