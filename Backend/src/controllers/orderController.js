@@ -47,8 +47,11 @@ export const createOrder = async (req, res) => {
       // Incremento atómico para evitar race condition entre pedidos concurrentes
       await Product.updateOne({ _id: prod._id }, { $inc: { soldCount: qty } });
 
-      const subUSD = prod.priceUSD * qty;
-      const subARS = prod.priceARS * qty; // ya persistido con tu lógica de exchangeRate
+      // Los productos fijados en ARS no tienen priceUSD → evitar NaN en los totales
+      const priceUSD = Number(prod.priceUSD) || 0;
+      const priceARS = Number(prod.priceARS) || 0;
+      const subUSD = priceUSD * qty;
+      const subARS = priceARS * qty; // ya persistido con tu lógica de exchangeRate
 
       totalUSD += subUSD;
       totalARS += subARS;
@@ -58,8 +61,8 @@ export const createOrder = async (req, res) => {
         name: prod.name,
         productCode: prod.productCode,
         quantity: qty,
-        priceUSD: prod.priceUSD,
-        priceARS: prod.priceARS,
+        priceUSD,
+        priceARS,
       });
     }
 
