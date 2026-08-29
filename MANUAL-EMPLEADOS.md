@@ -21,6 +21,8 @@
    - [Kit de instalación (config)](#86-configuración-del-kit-de-instalación)
    - [Página de inicio (config)](#87-configuración-de-la-página-de-inicio)
    - [Configuración general](#88-configuración-general)
+   - [Importar Excel (con vista previa)](#89-importar-excel-con-vista-previa)
+   - [Destacados](#810-gestión-de-destacados)
 9. [Modo oscuro](#9-modo-oscuro)
 10. [Preguntas frecuentes](#10-preguntas-frecuentes)
 
@@ -180,6 +182,9 @@ La calculadora de kit permite armar un presupuesto estimado para una instalació
 ### Reglas especiales
 - **Patas de ménsula** y **Patas de piso** son mutuamente excluyentes: si se pone cantidad en una, la otra se pone en 0 automáticamente.
 
+### Precio service en el kit
+Si un técnico **inició sesión y su cuenta está aprobada**, el resumen del kit muestra los precios y el total **con el 10% de descuento service** ya aplicado, con una etiqueta **"Precio service"**. El mensaje de WhatsApp también sale con esos precios con descuento. Para un visitante no logueado, se ven los precios normales.
+
 ### Enviar por WhatsApp
 Si hay un número de WhatsApp configurado, aparece el botón verde **"Enviar por WhatsApp"**. Al tocarlo se abre WhatsApp con el detalle completo del kit y el total para cotizar.
 
@@ -195,12 +200,14 @@ Los técnicos matriculados pueden registrarse para obtener un **10% de descuento
    - Nombre y apellido
    - Email
    - Contraseña (mínimo 6 caracteres)
+   - **CUIT** (obligatorio)
    - Empresa / Taller (opcional)
-   - Número de matrícula (opcional)
    - Provincia
    - Teléfono
+   - **Foto de la matrícula o certificado** (opcional). Si el técnico no tiene matrícula, puede tocar **"No tengo matrícula"**, que abre un WhatsApp a la administración para resolverlo.
 3. Enviar la solicitud
 4. La cuenta queda **pendiente de aprobación** hasta que un administrador la apruebe
+5. Cuando se aprueba, el administrador le asigna un **número de cliente** y el técnico recibe un **email** avisándole (lo mismo si se rechaza, con el motivo)
 
 ### Una vez aprobado
 Al iniciar sesión, el técnico ve:
@@ -262,9 +269,7 @@ El botón **"★ Destacar"** / **"Destacado"** hace que el producto aparezca en 
 El botón **"Sin stock"** / **"Con stock"** cambia el estado de disponibilidad. Los productos sin stock se muestran igual en el catálogo pero con un badge rojo y el botón de agregar deshabilitado.
 
 #### Importar productos desde Excel
-1. Clic en **"Importar Excel"**
-2. Seleccionar un archivo `.xlsx`, `.xls` o `.csv`
-3. El sistema procesa el archivo y agrega/actualiza los productos
+Clic en **"Importar Excel"** abre la pantalla **Importar Excel** (también está en el menú del admin), que ahora tiene **vista previa y confirmación** antes de aplicar los cambios. Ver el detalle en la sección [8.9 Importar Excel (con vista previa)](#89-importar-excel-con-vista-previa).
 
 #### Exportar a Excel
 Clic en **"Exportar Excel"** para descargar todos los productos en un archivo de planilla de cálculo.
@@ -363,21 +368,25 @@ Los botones en la parte superior permiten filtrar por:
 Cada tarjeta muestra:
 - Nombre completo y estado
 - Email
+- **CUIT**
 - Empresa / Taller
-- Número de matrícula
 - Provincia
 - Teléfono
 - Fecha de registro
+- **"Ver foto de matrícula"** (si el técnico subió una imagen; se abre en grande)
+- **Número de cliente** (si ya está aprobado)
 
 #### Aprobar un usuario
-Clic en **"Aprobar"** (verde). El técnico recibe acceso inmediato al precio service en su próximo inicio de sesión.
+1. Escribir el **número de cliente** que se le asigna al técnico (es obligatorio para aprobar)
+2. Clic en **"Aprobar"** (verde)
+3. El técnico recibe un **email** con su número de cliente y ya puede acceder al precio service en su próximo inicio de sesión
 
 #### Rechazar un usuario
 1. Clic en **"Rechazar"** (rojo)
-2. Optionalmente, escribir el motivo del rechazo en el campo de texto
+2. Escribir el **motivo del rechazo** (es obligatorio)
 3. Clic en **"Confirmar rechazo"**
 
-El motivo del rechazo queda visible en la tarjeta del usuario (en rojo).
+El motivo queda visible en la tarjeta del usuario (en rojo) y el técnico recibe un **email** avisándole del rechazo con el motivo.
 
 ---
 
@@ -479,6 +488,48 @@ Ingresar el valor del dólar oficial o el tipo de cambio que se usa internamente
 
 ---
 
+### 8.9 Importar Excel (con vista previa)
+
+Es la forma recomendada de cargar/actualizar muchos productos de una vez. **Ya no aplica los cambios de un solo click**: primero muestra una **vista previa** para que revises y confirmes.
+
+#### Paso 1 — Subir el archivo
+1. Entrar a **Importar Excel** (en el menú del admin, o desde el botón "Importar Excel" en Productos)
+2. Elegir el archivo `.xlsx`, `.xls` o `.csv`
+3. El sistema **lo analiza sin cambiar nada todavía** y muestra la vista previa
+
+#### Paso 2 — Revisar la vista previa
+Aparecen tres secciones con un resumen arriba (*nuevos · a actualizar · faltantes*):
+
+- **Productos nuevos:** los que están en el Excel y todavía no están en la web. Vienen **todos tildados**; destildá los que **no** quieras cargar.
+- **Actualizaciones:** un contador de productos existentes que van a actualizar precio/stock. Se aplican solas.
+  > Importante: **el nombre editado a mano no se toca**, y un **precio fijado a mano** no se pisa por la cotización del dólar.
+- **No están en el Excel:** productos activos en la web que **no aparecen** en el archivo. Por cada uno elegís **Mantener** (por defecto), **Desactivar** o **Eliminar**. Hay botones para marcar todos de una.
+
+#### Paso 3 — Confirmar
+1. Clic en **"Confirmar importación"**
+2. Aparece un resumen ("se crean X, actualizan Y, eliminan D, desactivan E") — confirmar
+3. Al terminar se muestra el resultado (creados / actualizados / eliminados / desactivados / omitidos)
+
+> **Seguridad:** por defecto **no se borra nada**. Solo se eliminan o desactivan los productos que marcaste explícitamente. **"Desactivar" es reversible** (el producto se oculta pero se puede reactivar); "Eliminar" es permanente. Si el Excel es una lista parcial, dejá los faltantes en "Mantener".
+
+---
+
+### 8.10 Gestión de destacados
+
+Los **destacados** son los productos que aparecen en la sección "Más vendidos" de la página de inicio (una card grande arriba y un carrusel debajo). Se administran en **Admin → Destacados**.
+
+#### Ver y ordenar
+- La pantalla lista todos los destacados **en orden**. El **primero** es la **card grande** del inicio; el resto va en el **carrusel**.
+- Usar las flechas **↑ / ↓** de cada producto para cambiar el orden y luego **"Guardar orden"**.
+
+#### Agregar un destacado
+En **"Agregar destacado"**, buscar el producto por nombre o código y tocar **"Destacar"**. Se agrega al final de la lista.
+
+#### Quitar un destacado
+Tocar la **✕** del producto en la lista. Deja de ser destacado (el producto sigue existiendo en el catálogo).
+
+---
+
 ## 9. Modo oscuro
 
 En el menú superior hay un botón con ícono de sol/luna (🌙/☀️) para alternar entre modo claro y modo oscuro. La preferencia se guarda en el navegador.
@@ -510,6 +561,9 @@ Los productos con precio en USD muestran el precio en ARS calculado como `precio
 
 **¿Puedo tener un banner inactivo preparado para activar después?**
 Sí. Crear el banner con estado **"Inactivo"** y activarlo cuando sea necesario sin necesidad de crearlo de nuevo.
+
+**Si importo un Excel, ¿me borra los productos que no están en el archivo?**
+No, salvo que vos lo pidas. La importación muestra primero una **vista previa**; los productos que no están en el Excel aparecen en "No están en el Excel" con la opción **Mantener** (por defecto). Solo se eliminan o desactivan los que marques a propósito. Ver [8.9](#89-importar-excel-con-vista-previa).
 
 ---
 
