@@ -273,6 +273,7 @@ export const getProductsByCategory = async (req, res) => {
 
     const products = await productModel
       .find(filter)
+      .select("productCode name brand image priceARS inStock")
       .sort(sortOption)
       .skip(skip)
       .limit(parsedLimit)
@@ -280,6 +281,7 @@ export const getProductsByCategory = async (req, res) => {
 
     const total = await productModel.countDocuments(filter);
 
+    res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({
       total,
       page: Number(page),
@@ -471,6 +473,7 @@ export const getCategoriesMeta = async (req, res) => {
       ...d,
       subcategories: [...d.subcategories].sort((a, b) => a.localeCompare(b)),
     }));
+    res.set("Cache-Control", "public, max-age=300");
     res.json(sorted);
   } catch (error) {
     console.error("Error obteniendo categorías y subcategorías:", error);
@@ -484,18 +487,22 @@ export const getCategoriesMeta = async (req, res) => {
 /* ----------------------- PRODUCTOS LANDING ----------------------- */
 export const getLandingProducts = async (req, res) => {
   try {
+    const cardFields = "productCode name brand image priceARS inStock";
     const [featured, newArrivals] = await Promise.all([
       productModel
         .find({ active: true, featured: true })
+        .select(cardFields)
         .sort({ featuredOrder: 1, soldCount: -1 })
         .limit(12)
         .lean(),
       productModel
         .find({ active: true })
+        .select(cardFields)
         .sort({ createdAt: -1 })
         .limit(8)
         .lean(),
     ]);
+    res.set("Cache-Control", "public, max-age=60");
     res.json({ featured, newArrivals });
   } catch (error) {
     res.status(500).json({ message: "Error obteniendo productos landing", error: error.message });
@@ -509,6 +516,7 @@ export const getProductBrands = async (req, res) => {
       active: true,
       brand: { $exists: true, $ne: null, $ne: "" },
     });
+    res.set("Cache-Control", "public, max-age=300");
     res.json(brands.filter(Boolean).sort());
   } catch (error) {
     res.status(500).json({ message: "Error obteniendo marcas", error: error.message });
