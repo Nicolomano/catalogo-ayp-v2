@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
@@ -179,8 +180,6 @@ function AdminProducts() {
     }
   };
 
-  const importInputRef = useRef(null);
-  const [importing, setImporting] = useState(false);
   const [migrating, setMigrating] = useState(false);
 
   const handleMigrateCategories = async () => {
@@ -201,39 +200,6 @@ function AdminProducts() {
     }
   };
 
-  const handleImportExcel = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await API.post("/products/import/excel", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      if (res.data.skipped > 0 && res.data.errors?.length > 0) {
-        // errors ahora es [{ fila, motivo }] (antes eran strings); soportar ambos
-        const errSample = res.data.errors
-          .slice(0, 3)
-          .map((e) => (typeof e === "string" ? e : `Fila ${e.fila ?? "?"}: ${e.motivo}`))
-          .join(" | ");
-        toast.error(`${res.data.message}\nErrores: ${errSample}`, { duration: 8000 });
-        console.warn("Import errors:", res.data.errors);
-        console.info("Detected columns:", res.data.detectedColumns);
-      } else if (res.data.skipped > 0) {
-        toast.error(`${res.data.message}\nColumnas: ${res.data.detectedColumns?.join(", ")}`, { duration: 8000 });
-        console.info("Detected columns:", res.data.detectedColumns);
-      } else {
-        toast.success(res.data.message);
-      }
-      fetchProducts();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Error al importar");
-    } finally {
-      setImporting(false);
-    }
-  };
 
   /* -------------------- UI -------------------- */
   return (
@@ -270,21 +236,13 @@ function AdminProducts() {
             >
               <Download size={15} /> Exportar Excel
             </button>
-            <button
-              onClick={() => importInputRef.current?.click()}
-              disabled={importing}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            <Link
+              to="/admin/importar"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
               style={{ background: "rgba(234,179,8,0.12)", color: "#B45309" }}
             >
-              <Upload size={15} /> {importing ? "Importando…" : "Importar Excel"}
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleImportExcel}
-            />
+              <Upload size={15} /> Importar Excel
+            </Link>
             <button
               onClick={handleMigrateCategories}
               disabled={migrating}
