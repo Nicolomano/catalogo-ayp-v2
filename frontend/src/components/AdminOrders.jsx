@@ -54,66 +54,83 @@ function AdminOrders() {
         <div className="space-y-3">
           {orders.map((order) => (
             <div key={order._id} className="bento overflow-hidden">
-              {/* Cabecera */}
-              <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Ícono de estado */}
-                <div className="shrink-0">
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                    style={{ background: order.status === "pendiente" ? "rgba(234,179,8,0.15)" : "rgba(22,163,74,0.15)" }}>
-                    {order.status === "pendiente"
-                      ? <Clock size={18} style={{ color: "#B45309" }} />
-                      : <BadgeCheck size={18} style={{ color: "#16A34A" }} />}
-                  </div>
-                </div>
+              {/* Cabecera — toda clickeable para ver el detalle */}
+              {(() => {
+                const hasProducts = order.products?.length > 0;
+                const isOpen = !!expanded[order._id];
+                const onHeaderClick = () => { if (hasProducts) toggleExpand(order._id); };
+                return (
+                  <div
+                    className={`p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors ${hasProducts ? "cursor-pointer hover:bg-[var(--surface2)]" : ""}`}
+                    onClick={onHeaderClick}
+                    role={hasProducts ? "button" : undefined}
+                    tabIndex={hasProducts ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (hasProducts && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleExpand(order._id); }
+                    }}
+                  >
+                    {/* Ícono de estado */}
+                    <div className="shrink-0">
+                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                        style={{ background: order.status === "pendiente" ? "rgba(234,179,8,0.15)" : "rgba(22,163,74,0.15)" }}>
+                        {order.status === "pendiente"
+                          ? <Clock size={18} style={{ color: "#B45309" }} />
+                          : <BadgeCheck size={18} style={{ color: "#16A34A" }} />}
+                      </div>
+                    </div>
 
-                {/* Info cliente */}
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-                      {order.customerName}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{
-                        background: order.status === "pendiente" ? "rgba(234,179,8,0.15)" : "rgba(22,163,74,0.15)",
-                        color: order.status === "pendiente" ? "#B45309" : "#16A34A",
-                      }}>
-                      {order.status === "pendiente" ? "Pendiente" : "Contestada"}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: "var(--muted)" }}>
-                    <span className="flex items-center gap-1"><Phone size={11} />{order.customerPhone}</span>
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} />
-                      {new Date(order.createdAt).toLocaleString("es-AR")}
-                    </span>
-                    <span className="font-semibold" style={{ color: "var(--text)" }}>
-                      {order.totalARS?.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                </div>
+                    {/* Info cliente */}
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+                          {order.customerName}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{
+                            background: order.status === "pendiente" ? "rgba(234,179,8,0.15)" : "rgba(22,163,74,0.15)",
+                            color: order.status === "pendiente" ? "#B45309" : "#16A34A",
+                          }}>
+                          {order.status === "pendiente" ? "Pendiente" : "Contestada"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: "var(--muted)" }}>
+                        <span className="flex items-center gap-1"><Phone size={11} />{order.customerPhone}</span>
+                        <span className="flex items-center gap-1">
+                          <Calendar size={11} />
+                          {new Date(order.createdAt).toLocaleString("es-AR")}
+                        </span>
+                        <span className="font-semibold" style={{ color: "var(--text)" }}>
+                          {order.totalARS?.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      {/* Afordance del detalle */}
+                      {hasProducts ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium mt-0.5" style={{ color: "var(--brand)" }}>
+                          {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                          {isOpen ? "Ocultar productos" : `Ver productos (${order.products.length})`}
+                        </span>
+                      ) : (
+                        <span className="text-xs italic mt-0.5 inline-block" style={{ color: "var(--muted)" }}>
+                          Sin detalle de productos
+                        </span>
+                      )}
+                    </div>
 
-                {/* Acciones */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => toggleStatus(order._id, order.status)}
-                    className="px-3 py-2 rounded-xl text-xs font-medium transition-colors"
-                    style={{
-                      background: order.status === "pendiente" ? "rgba(22,163,74,0.12)" : "rgba(234,179,8,0.12)",
-                      color: order.status === "pendiente" ? "#16A34A" : "#B45309",
-                    }}>
-                    Marcar como {order.status === "pendiente" ? "contestada" : "pendiente"}
-                  </button>
-                  {order.products?.length > 0 && (
-                    <button
-                      onClick={() => toggleExpand(order._id)}
-                      className="p-2 rounded-xl transition-colors"
-                      style={{ background: "var(--surface2)", color: "var(--muted)" }}
-                      title={expanded[order._id] ? "Ocultar productos" : "Ver productos"}>
-                      {expanded[order._id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-                  )}
-                </div>
-              </div>
+                    {/* Acciones — el botón de estado no dispara el desplegado */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleStatus(order._id, order.status); }}
+                        className="px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+                        style={{
+                          background: order.status === "pendiente" ? "rgba(22,163,74,0.12)" : "rgba(234,179,8,0.12)",
+                          color: order.status === "pendiente" ? "#16A34A" : "#B45309",
+                        }}>
+                        Marcar como {order.status === "pendiente" ? "contestada" : "pendiente"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Detalle de productos (expandible) */}
               {expanded[order._id] && order.products?.length > 0 && (
