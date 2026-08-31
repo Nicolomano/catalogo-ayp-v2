@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import mongoose from "mongoose";
 import MongoSingleton from "./src/config/mongoDB-singleton.js";
 import productRouter from "./src/routes/productRoute.js";
@@ -19,6 +20,7 @@ import productModel from "./src/services/models/productModel.js";
 const app = express();
 const SERVER_PORT = process.env.PORT || 8080;
 
+app.use(compression()); // gzip de las respuestas JSON de la API
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));

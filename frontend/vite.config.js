@@ -4,4 +4,14 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Vendor de React/Router en su propio chunk (cachea aparte de la app)
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+        },
+      },
+    },
+  },
 });

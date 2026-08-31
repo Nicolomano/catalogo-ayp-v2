@@ -32,6 +32,7 @@ export const createCategory = async (req, res) => {
 export const getAllCategories = async (req, res) => {
   try {
     const categories = await Category.find().sort({ name: 1 }).lean();
+    res.set("Cache-Control", "public, max-age=300");
     res.json(categories);
   } catch (error) {
     res.status(500).json({
@@ -75,6 +76,7 @@ export const getCategoriesTree = async (req, res) => {
       }
     });
 
+    res.set("Cache-Control", "public, max-age=300");
     res.json(tree);
   } catch (error) {
     res.status(500).json({
