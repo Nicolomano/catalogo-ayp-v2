@@ -38,6 +38,9 @@ function Cart() {
       toast.error("Por favor, ingresá tu nombre y teléfono.");
       return;
     }
+    // Abrir la pestaña de WhatsApp YA, dentro del gesto del click: Safari bloquea
+    // window.open llamado después de un await. Se abre vacía y luego se redirige.
+    const waTab = window.open("", "_blank");
     try {
       setLoading(true);
       const res = await API.post("/orders", {
@@ -46,8 +49,16 @@ function Cart() {
         products: cart.map((item) => ({ productId: item._id, quantity: item.quantity })),
       });
       clearCart();
-      window.open(res.data.waLink, "_blank");
+      const link = res.data?.waLink;
+      if (link) {
+        if (waTab) waTab.location.href = link;   // redirige la pestaña ya abierta
+        else window.location.href = link;         // si el popup fue bloqueado: misma pestaña
+      } else {
+        if (waTab) waTab.close();
+        toast.success("Pedido registrado. Te contactamos por WhatsApp.");
+      }
     } catch (err) {
+      if (waTab) waTab.close();
       console.error("Error creando orden:", err.response?.data || err);
       toast.error("Error al procesar la orden. Intentá nuevamente.");
     } finally {
