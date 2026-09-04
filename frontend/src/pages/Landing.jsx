@@ -99,6 +99,13 @@ function Landing() {
 
   const { featured } = landingData;
 
+  // Link a Google Maps: usa la dirección del CMS; si no está cargada, busca el negocio + zona
+  const addr = (siteConfig.address || "").trim();
+  const mapsQuery = !addr || /direcci[oó]n del local/i.test(addr)
+    ? `A&P Refrigeración ${(siteConfig.heroBadge || "").trim()}`.trim()
+    : addr;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+
   return (
     <>
       <Helmet>
@@ -146,14 +153,20 @@ function Landing() {
               )}
 
               <div className="relative z-10 animate-fade-up">
-                <span className="text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-4 border border-white/15 text-white/70"
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Ver ubicación en Google Maps"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-2 mb-4 border border-white/15 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
                   style={{ background: "rgba(255,255,255,0.08)" }}>
                   <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--accent)" }} />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "var(--accent)" }} />
                   </span>
                   {siteConfig.heroBadge}
-                </span>
+                  <MapPin className="h-3 w-3 opacity-70" />
+                </a>
                 <h1
                   className="text-3xl sm:text-5xl font-black text-white leading-tight mb-3"
                   style={{ letterSpacing: "var(--tracking-display)", textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
