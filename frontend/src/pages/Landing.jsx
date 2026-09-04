@@ -99,12 +99,17 @@ function Landing() {
 
   const { featured } = landingData;
 
-  // Link a Google Maps: usa la dirección del CMS; si no está cargada, busca el negocio + zona
+  // Link a Google Maps para el badge del hero. Prioridad:
+  //   1) link directo a la ficha del local cargado en el admin (mapsUrl) → más visibilidad
+  //   2) búsqueda por dirección del CMS
+  //   3) si no hay dirección, busca el negocio + zona
   const addr = (siteConfig.address || "").trim();
   const mapsQuery = !addr || /direcci[oó]n del local/i.test(addr)
     ? `A&P Refrigeración ${(siteConfig.heroBadge || "").trim()}`.trim()
     : addr;
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+  const mapsUrl =
+    (siteConfig.mapsUrl || "").trim() ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
 
   return (
     <>

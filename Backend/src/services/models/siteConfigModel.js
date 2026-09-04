@@ -47,6 +47,7 @@ const siteConfigSchema = new mongoose.Schema(
     hours:     { type: String, default: "Lunes a Viernes de 8:00 a 18:00hs" },
     email:     { type: String, default: "" },
     mapsEmbed: { type: String, default: "" }, // URL del iframe de Google Maps
+    mapsUrl:   { type: String, default: "" }, // link directo a la ficha de Google Maps (badge del hero)
     // ── Kit CTA ────────────────────────────────────────────────
     kitTitle:    { type: String, default: "Kit de instalación" },
     kitSubtitle: {

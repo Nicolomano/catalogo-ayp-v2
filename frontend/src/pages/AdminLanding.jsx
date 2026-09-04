@@ -27,7 +27,7 @@ const DEFAULT = {
     { title: "Horario", desc: "Lun-Vie 8 a 18hs" },
   ],
   aboutTitle: "¿Quiénes somos?", aboutText: "",
-  address: "", phone: "", whatsapp: "", hours: "", email: "", mapsEmbed: "",
+  address: "", phone: "", whatsapp: "", hours: "", email: "", mapsEmbed: "", mapsUrl: "",
   kitTitle: "Kit de instalación", kitSubtitle: "", kitCTA: "Armar mi kit →",
   maintenanceMode: false,
 };
@@ -345,6 +345,9 @@ export default function AdminLanding() {
         </Field>
         <Field label="Horario"><input className={inputCls} style={inputStyle} value={config.hours} onChange={(e) => set("hours", e.target.value)} /></Field>
         <Field label="Email de contacto"><input className={inputCls} style={inputStyle} value={config.email} onChange={(e) => set("email", e.target.value)} placeholder="info@ejemplo.com" /></Field>
+        <Field label="Link de la ficha de Google Maps" hint="El botón de ubicación del inicio (badge del hero) abre este link. Abrí tu negocio en Google Maps → Compartir → copiá el enlace. Si lo dejás vacío, se busca por la dirección.">
+          <input className={inputCls} style={inputStyle} value={config.mapsUrl} onChange={(e) => set("mapsUrl", e.target.value)} placeholder="https://maps.app.goo.gl/..." />
+        </Field>
         <Field label="URL del iframe de Google Maps" hint="Abrí Google Maps → Compartir → Insertar mapa → copiá la URL del src del iframe">
           <textarea rows={2} className={inputCls} style={inputStyle} value={config.mapsEmbed} onChange={(e) => set("mapsEmbed", e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." />
         </Field>
