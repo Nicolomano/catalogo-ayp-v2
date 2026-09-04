@@ -14,6 +14,7 @@ const Contacto = lazy(() => import("./pages/Contacto.jsx"));
 const KitInstalacion = lazy(() => import("./pages/KitInstalacion.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
+const Privacidad = lazy(() => import("./pages/Privacidad.jsx"));
 
 // ── Admin (lazy: no entra en el bundle público) ──
 const AdminLogin = lazy(() => import("./pages/AdminLogin.jsx"));
@@ -71,6 +72,7 @@ function App() {
             <Route path="contacto" element={<Contacto />} />
             <Route path="register" element={<Register />} />
             <Route path="login" element={<Login />} />
+            <Route path="privacidad" element={<Privacidad />} />
           </Route>
 
           {/* Admin: login público */}

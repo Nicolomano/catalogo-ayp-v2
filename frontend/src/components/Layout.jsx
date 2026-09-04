@@ -4,6 +4,7 @@ import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench } from "lucide-react";
 import { useState, useEffect } from "react";
 import WhatsappFloat from "./WhatsappFloat.jsx";
+import CookieBanner from "./CookieBanner.jsx";
 import Logo from "./Logo.jsx";
 
 function useDarkMode() {
@@ -191,6 +192,7 @@ function Layout() {
       </main>
 
       <WhatsappFloat />
+      <CookieBanner />
 
       {/* Bottom nav mobile */}
       <nav className="bottom-nav">
@@ -263,8 +265,9 @@ function Layout() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/5 text-xs relative" style={{ color: "rgba(255,255,255,0.18)" }}>
-          © {new Date().getFullYear()} A&P Refrigeración. Todos los derechos reservados.
+        <div className="max-w-7xl mx-auto px-6 mt-10 pt-6 border-t border-white/5 text-xs relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ color: "rgba(255,255,255,0.18)" }}>
+          <span>© {new Date().getFullYear()} A&P Refrigeración. Todos los derechos reservados.</span>
+          <Link to="/privacidad" className="hover:text-white/60 transition-colors">Política de Privacidad</Link>
         </div>
       </footer>
     </div>
