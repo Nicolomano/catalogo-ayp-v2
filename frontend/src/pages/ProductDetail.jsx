@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
 import { useScrollProgress } from "../hooks/useScrollProgress.js";
 import { calcCuota6 } from "../utils/pricing.js";
+import { formatTitle } from "../utils/text.js";
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://catalogoayp.vercel.app";
 
@@ -40,7 +41,7 @@ function RelatedCard({ product }) {
       </div>
       <div className="p-2.5 flex flex-col flex-1">
         <p className="text-xs line-clamp-2 font-medium leading-tight" style={{ color: "var(--text)" }}>
-          {product.name}
+          {formatTitle(product.name)}
         </p>
         {product.priceARS
           ? <p className="text-sm font-bold mt-1.5" style={{ color: "var(--brand)" }}>
@@ -244,7 +245,7 @@ function ProductDetail() {
               </p>
             )}
             <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: "var(--text)" }}>
-              {product.name}
+              {formatTitle(product.name)}
             </h1>
             <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>
               Código: <span className="font-mono font-semibold">{product.productCode}</span>

@@ -3,11 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { SlidersHorizontal, X, Package, BadgeCheck } from "lucide-react";
 import API from "../api/axios";
-import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
-import toast from "react-hot-toast";
 import Sidebar from "../components/Sidebar.jsx";
-import { calcCuota6 } from "../utils/pricing.js";
+import ProductCard from "../components/ProductCard.jsx";
 
 const PAGE_SIZE = 24;
 const SKELETON_INITIAL = 8;
@@ -38,9 +36,7 @@ function Catalogo() {
   // Ref para que el observer siempre lea el valor actual sin recrearse
   const isFetchingRef = useRef(true);
 
-  const { addToCart }                           = useCart();
-  const { isServiceApproved, servicePrice }     = useAuth();
-  const [quantities, setQuantities]             = useState({});
+  const { isServiceApproved } = useAuth();
 
   const [search, setSearch]               = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -140,9 +136,6 @@ function Catalogo() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore]); // ya no depende de isFetching (usa el ref)
-
-  const handleIncrease = (code) => setQuantities((prev) => ({ ...prev, [code]: (prev[code] || 1) + 1 }));
-  const handleDecrease = (code) => setQuantities((prev) => ({ ...prev, [code]: Math.max(1, (prev[code] || 1) - 1) }));
 
   const handleCategoryChange = (cat) => {
     setCategory(cat); setSubcategory("all");
@@ -272,71 +265,7 @@ function Catalogo() {
             </p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-              {allProducts.map((p) => {
-                const qty = quantities[p.productCode] || 1;
-                const displayPrice = isServiceApproved ? servicePrice(p.priceARS) : p.priceARS;
-                return (
-                  <div key={p._id} className="bento bento-link product-card flex flex-col group">
-                    <Link to={`/product/${p.productCode}`} className="flex flex-col items-center p-3">
-                      <div className="product-img-wrap rounded-xl mb-2 relative">
-                        {p.image
-                          ? <img src={p.image} alt={p.name} className="object-contain max-h-full w-full h-full transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
-                          : <Package className="h-12 w-12 opacity-15" style={{ color: "var(--muted)" }} />
-                        }
-                        {p.inStock === false && (
-                          <span className="absolute top-1.5 left-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: "var(--error-tint)", color: "var(--error)" }}>
-                            Sin stock
-                          </span>
-                        )}
-                        <div className="product-card-overlay rounded-xl">
-                          <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
-                            Ver más
-                          </span>
-                        </div>
-                      </div>
-                      {p.brand && <span className="text-xs mb-1 font-medium" style={{ color: "var(--muted)" }}>{p.brand}</span>}
-                      <h2 className="text-sm font-semibold text-center line-clamp-2 min-h-[2.5rem]" style={{ color: "var(--text)" }}>
-                        {p.name}
-                      </h2>
-                    </Link>
-
-                    <div className="px-3 pb-3 flex flex-col gap-2 mt-auto">
-                      {displayPrice ? (
-                        <div className="text-center">
-                          <p className="text-base font-bold" style={{ color: "var(--brand)" }}>
-                            ${displayPrice.toLocaleString("es-AR")}
-                            {isServiceApproved && <span className="ml-1 text-xs font-semibold" style={{ color: "#16A34A" }}>service</span>}
-                          </p>
-                          <p className="text-[10px]" style={{ color: "var(--muted)" }}>
-                            ó 6 cuotas de ${calcCuota6(displayPrice)?.toLocaleString("es-AR")}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-center italic" style={{ color: "var(--muted)" }}>Consultar</p>
-                      )}
-
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleDecrease(p.productCode)}
-                          className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
-                          style={{ background: "var(--surface2)", color: "var(--text)" }}>−</button>
-                        <span className="w-6 text-center font-bold text-sm" style={{ color: "var(--brand)" }}>{qty}</span>
-                        <button onClick={() => handleIncrease(p.productCode)}
-                          className="min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--brand)] hover:text-white"
-                          style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
-                      </div>
-
-                      <button
-                        onClick={() => { addToCart(p, qty); toast.success("Agregado al pedido"); }}
-                        disabled={p.inStock === false}
-                        className="btn-primary w-full text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        {p.inStock !== false ? "Agregar" : "Sin stock"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {allProducts.map((p) => <ProductCard key={p._id} product={p} />)}
             </div>
           )}
 
