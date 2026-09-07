@@ -149,21 +149,31 @@ export default function KitInstalacion() {
             </div>
           ) : (
             meta.map((item) => (
-              <div key={item.key} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
+              // min-h fija la altura de la fila para que un label de dos líneas
+              // no desalinee el stepper respecto de las filas de al lado.
+              <div
+                key={item.key}
+                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:min-h-[56px]"
+              >
+                {/* Nombre y variante en la misma fila, con wrap: así un label largo
+                    ("Caño de cobre (chico)") no empuja el select a otro renglón. */}
+                <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <p
+                    className="text-sm font-medium min-w-[9rem] sm:min-w-[11rem]"
+                    style={{ color: "var(--text)" }}
+                  >
                     {item.label}
                   </p>
 
                   {Array.isArray(item.variants) && item.variants.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-xs" style={{ color: "var(--muted)" }}>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs whitespace-nowrap" style={{ color: "var(--muted)" }}>
                         {variantLabel(item.key)}
                       </span>
                       <select
                         value={variant[item.key] || item.variants[0].value}
                         onChange={(e) => handleVariant(item.key, e.target.value)}
-                        className={inputCls + " text-xs py-1 px-2"}
+                        className={inputCls + " text-xs py-1 px-2 w-auto"}
                         style={inputStyle}
                       >
                         {item.variants.map((v) => (
@@ -177,7 +187,7 @@ export default function KitInstalacion() {
                 </div>
 
                 {/* Stepper */}
-                <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
                   <button
                     onClick={() => handleQty(item.key, (qty[item.key] || 0) - (item.step || 0.5))}
                     className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
@@ -197,7 +207,8 @@ export default function KitInstalacion() {
                     className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-sm font-bold transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)]"
                     style={{ background: "var(--surface2)", color: "var(--text)", border: "1.5px solid var(--border)" }}
                   >+</button>
-                  <span className="w-8 text-xs text-right" style={{ color: "var(--muted)" }}>
+                  {/* w-14: con w-8 se cortaban unidades como "metros" o "unidades" */}
+                  <span className="w-14 text-xs leading-tight" style={{ color: "var(--muted)" }}>
                     {item.unit}
                   </span>
                 </div>

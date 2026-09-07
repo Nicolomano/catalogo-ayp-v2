@@ -30,12 +30,11 @@ export default function CookieBanner() {
   if (!visible) return null;
 
   return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-[70] px-4 pb-4 pointer-events-none"
-      style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
-    >
+    // Mobile: barra al ancho completo, por encima del tab bar (antes lo tapaba).
+    // Desktop: toast abajo a la izquierda, para no pelearse con el FAB de WhatsApp.
+    <div className="cookie-banner-wrap pointer-events-none">
       <div
-        className="pointer-events-auto max-w-3xl mx-auto rounded-2xl border shadow-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4"
+        className="pointer-events-auto rounded-2xl border shadow-xl p-4 flex flex-col gap-3"
         style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
       >
         <div className="flex items-start gap-3 flex-1">
@@ -55,14 +54,9 @@ export default function CookieBanner() {
             .
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:shrink-0">
-          <Link
-            to="/privacidad"
-            className="text-sm font-medium px-3 py-2 rounded-xl transition-colors hover:bg-[var(--surface2)]"
-            style={{ color: "var(--text2)" }}
-          >
-            Más info
-          </Link>
+        {/* Sin botón "Más info": el texto ya linkea a la política y en el
+            toast angosto quedaban dos accesos al mismo lado. */}
+        <div className="flex items-center justify-end">
           <button
             onClick={accept}
             className="text-sm font-semibold px-4 py-2 rounded-xl text-white transition-transform hover:scale-[1.02]"

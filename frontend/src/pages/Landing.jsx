@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePercent, TrendingUp } from "lucide-react";
+import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, BadgePercent, TrendingUp } from "lucide-react";
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import ProductCarousel from "../components/ProductCarousel.jsx";
@@ -312,7 +312,7 @@ function Landing() {
             return (
               <div
                 key={idx}
-                className="flex items-center gap-2.5 px-4 py-3 flex-1 min-w-0"
+                className="flex items-center gap-2.5 px-3 sm:px-4 py-3 flex-1 min-w-0"
                 style={{ borderLeft: pos > 0 ? "1px solid var(--border)" : "none" }}
               >
                 <div
@@ -321,9 +321,11 @@ function Landing() {
                 >
                   {INFO_ICONS[idx]}
                 </div>
+                {/* Sin truncate ni whitespace-nowrap: el horario se cortaba con "..."
+                    en mobile. Preferimos que baje a dos líneas. */}
                 <div className="min-w-0">
-                  <p className="font-bold text-xs sm:text-sm leading-tight whitespace-nowrap" style={{ color: "var(--text)" }}>{card.title}</p>
-                  <p className="text-[10.5px] leading-tight truncate" style={{ color: "var(--muted)" }}>{card.desc}</p>
+                  <p className="font-bold text-xs sm:text-sm leading-tight" style={{ color: "var(--text)" }}>{card.title}</p>
+                  <p className="text-[11px] leading-snug" style={{ color: "var(--muted)" }}>{card.desc}</p>
                 </div>
               </div>
             );
@@ -341,28 +343,25 @@ function Landing() {
         {/* ── CATEGORÍAS ── */}
         {categories.length > 0 && (
           <section ref={catRef} className="reveal">
-            <SectionHeader tag="Categorías" linkTo="/catalogo" linkLabel="Ver todas" />
+            <SectionHeader tag="Categorías" title="Explorá por rubro" linkTo="/catalogo" linkLabel="Ver todas" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {categories.map((cat, i) => (
                 <Link
                   key={cat.category}
                   to={`/catalogo?cat=${encodeURIComponent(cat.category)}`}
-                  className={`bento bento-link p-4 flex items-center gap-3 group reveal reveal-delay-${Math.min(i + 1, 4)}`}
+                  className={`bento bento-link px-5 py-6 flex items-center justify-center text-center group reveal reveal-delay-${Math.min(i + 1, 4)}`}
                 >
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-[var(--brand)] group-hover:text-white"
-                    style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+                  <span
+                    className="text-sm font-medium transition-colors group-hover:text-[var(--brand)]"
+                    style={{ color: "var(--text)" }}
                   >
-                    <Tag className="h-4 w-4" />
-                  </div>
-                  <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
                     {cat.category}
                   </span>
                 </Link>
               ))}
               <Link
                 to="/catalogo"
-                className="rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-1 py-4 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-tint)]"
+                className="rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-1 px-5 py-6 transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-tint)]"
                 style={{ borderColor: "var(--brand-tint)", color: "var(--muted)" }}
               >
                 <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>+</span>

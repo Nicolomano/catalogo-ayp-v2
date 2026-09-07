@@ -71,7 +71,7 @@ export default function ProductCarousel({ products = [] }) {
           <button
             onClick={scrollPrev}
             aria-label="Anterior"
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full items-center justify-center backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full items-center justify-center backdrop-blur-sm transition-transform hover:scale-110 z-10"
             style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -79,7 +79,7 @@ export default function ProductCarousel({ products = [] }) {
           <button
             onClick={scrollNext}
             aria-label="Siguiente"
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full items-center justify-center backdrop-blur-sm md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full items-center justify-center backdrop-blur-sm transition-transform hover:scale-110 z-10"
             style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", boxShadow: "var(--shadow)" }}
           >
             <ChevronRight className="h-5 w-5" />
