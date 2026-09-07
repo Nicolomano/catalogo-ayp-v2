@@ -3,11 +3,18 @@
 // leen de process.env y se deja el fallback al backend de producción.
 export const SITE_URL = (process.env.SITE_URL || "https://www.refrigeracionayp.com").replace(/\/$/, "");
 
-export const API_URL = (
+// La API vive bajo /api (sin el prefijo responde 404). Lo normalizamos para no
+// depender de si la variable en Vercel lo trae o no.
+function normalizeApiBase(url) {
+  const clean = url.replace(/\/+$/, "");
+  return /\/api$/.test(clean) ? clean : `${clean}/api`;
+}
+
+export const API_URL = normalizeApiBase(
   process.env.API_URL ||
-  process.env.VITE_API_URL ||
-  "https://catalogo-ayp-v2-production.up.railway.app/api"
-).replace(/\/$/, "");
+    process.env.VITE_API_URL ||
+    "https://catalogo-ayp-v2-production.up.railway.app/api"
+);
 
 /** Escapa texto para meterlo en HTML/XML sin romper el documento. */
 export function escapeXml(value = "") {
