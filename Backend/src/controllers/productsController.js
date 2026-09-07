@@ -420,6 +420,13 @@ export const getProductsAdmin = async (req, res) => {
 };
 
 /* ----------------------- META DE CATEGORÍAS ----------------------- */
+
+// Valores de relleno que trae el Excel en la columna de subcategoría y que no
+// representan una subcategoría real.
+const PLACEHOLDER_SUBCATS = new Set(["", "-", "--", "—", "n/a", "s/d", "sin subcategoria"]);
+const isRealSubcategory = (s) =>
+  typeof s === "string" && !PLACEHOLDER_SUBCATS.has(s.trim().toLowerCase());
+
 export const getCategoriesMeta = async (req, res) => {
   try {
     const onlyActive = req.query.active !== "false";
@@ -469,9 +476,13 @@ export const getCategoriesMeta = async (req, res) => {
       { $sort: { category: 1 } },
     ]);
 
+    // El Excel trae subcategorías de relleno ("-", "", "s/d") que en el filtro
+    // aparecían como una opción más que no acotaba nada.
     const sorted = docs.map((d) => ({
       ...d,
-      subcategories: [...d.subcategories].sort((a, b) => a.localeCompare(b)),
+      subcategories: d.subcategories
+        .filter(isRealSubcategory)
+        .sort((a, b) => a.localeCompare(b)),
     }));
     res.set("Cache-Control", "public, max-age=300");
     res.json(sorted);

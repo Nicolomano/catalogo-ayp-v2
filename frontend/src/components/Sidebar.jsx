@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 function AccordionSection({ title, children, defaultOpen = true }) {
@@ -38,12 +38,29 @@ function CustomCheckbox({ checked }) {
 
 function Sidebar({
   categories, selectedCategory, selectedSubcategory,
-  onCategoryChange, onSubcategoryChange,
+  onSelect,
   brands, selectedBrands, onBrandToggle,
   onClearAll, activeFilterCount, onClose,
 }) {
-  const selectedCatData = categories.find((c) => c.category === selectedCategory);
-  const subcategories   = selectedCatData?.subcategories || [];
+  // Qué categoría está desplegada. Es independiente del filtro aplicado:
+  // tocar una categoría abre sus subcategorías para elegir, no filtra todavía.
+  // Arranca en la categoría activa para no perder el contexto al reabrir.
+  const [expanded, setExpanded] = useState(selectedCategory);
+
+  // El drawer mobile queda montado siempre (solo se desplaza), así que sin esto
+  // no se abriría la categoría con la que se entró desde la home (?cat=...).
+  useEffect(() => {
+    if (selectedCategory && selectedCategory !== "all") setExpanded(selectedCategory);
+  }, [selectedCategory]);
+
+  const handleCategoryTap = (cat, subs) => {
+    // Sin subcategorías no hay nada que elegir: filtra directo.
+    if (!subs.length) {
+      onSelect(cat, "all");
+      return;
+    }
+    setExpanded((prev) => (prev === cat ? null : cat));
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -70,8 +87,8 @@ function Sidebar({
         <AccordionSection title="Categorías">
           <div className="space-y-0.5">
             <button
-              onClick={() => onCategoryChange("all")}
-              className="w-full text-left text-sm py-1.5 rounded-lg transition-all font-medium"
+              onClick={() => onSelect("all", "all")}
+              className="w-full text-left text-sm py-2 rounded-lg transition-all font-medium"
               style={{
                 background: selectedCategory === "all" ? "var(--brand-tint)" : "transparent",
                 color: selectedCategory === "all" ? "var(--brand)" : "var(--text)",
@@ -81,38 +98,66 @@ function Sidebar({
             >
               Todas las categorías
             </button>
-            {categories.map((c) => (
-              <div key={c.category}>
-                <button
-                  onClick={() => onCategoryChange(c.category)}
-                  className="w-full text-left text-sm py-1.5 rounded-lg transition-all font-medium"
-                  style={{
-                    background: selectedCategory === c.category ? "var(--brand-tint)" : "transparent",
-                    color: selectedCategory === c.category ? "var(--brand)" : "var(--text)",
-                    borderLeft: selectedCategory === c.category ? "3px solid var(--brand)" : "3px solid transparent",
-                    paddingLeft: "10px",
-                  }}
-                >
-                  {c.category}
-                </button>
-                {selectedCategory === c.category && subcategories.length > 0 && (
-                  <div className="ml-3 mt-1 space-y-0.5">
-                    <button onClick={() => onSubcategoryChange("all")}
-                      className="w-full text-left text-xs px-2 py-1 rounded transition-colors"
-                      style={{ color: selectedSubcategory === "all" ? "var(--brand)" : "var(--muted)", fontWeight: selectedSubcategory === "all" ? 600 : 400 }}>
-                      — Todas
-                    </button>
-                    {[...subcategories].sort((a, b) => a.localeCompare(b)).map((s) => (
-                      <button key={s} onClick={() => onSubcategoryChange(s)}
-                        className="w-full text-left text-xs px-2 py-1 rounded transition-colors"
-                        style={{ color: selectedSubcategory === s ? "var(--brand)" : "var(--muted)", fontWeight: selectedSubcategory === s ? 600 : 400 }}>
-                        — {s}
+            {categories.map((c) => {
+              const subs = c.subcategories || [];
+              const isOpen = expanded === c.category;
+              const isActive = selectedCategory === c.category;
+              return (
+                <div key={c.category}>
+                  <button
+                    onClick={() => handleCategoryTap(c.category, subs)}
+                    aria-expanded={subs.length ? isOpen : undefined}
+                    className="w-full flex items-center justify-between gap-2 text-left text-sm py-2 rounded-lg transition-all font-medium"
+                    style={{
+                      background: isActive ? "var(--brand-tint)" : "transparent",
+                      color: isActive ? "var(--brand)" : "var(--text)",
+                      borderLeft: isActive ? "3px solid var(--brand)" : "3px solid transparent",
+                      paddingLeft: "10px",
+                      paddingRight: "6px",
+                    }}
+                  >
+                    <span className="min-w-0">{c.category}</span>
+                    {subs.length > 0 && (
+                      <ChevronDown
+                        className="h-3.5 w-3.5 shrink-0 transition-transform"
+                        style={{
+                          transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                          color: "var(--muted)",
+                        }}
+                      />
+                    )}
+                  </button>
+
+                  {isOpen && subs.length > 0 && (
+                    <div className="ml-3 mt-1 mb-2 space-y-0.5">
+                      <button
+                        onClick={() => onSelect(c.category, "all")}
+                        className="w-full text-left text-xs px-2 py-2 rounded transition-colors"
+                        style={{
+                          color: isActive && selectedSubcategory === "all" ? "var(--brand)" : "var(--text2)",
+                          fontWeight: isActive && selectedSubcategory === "all" ? 600 : 500,
+                        }}
+                      >
+                        Ver todo en {c.category}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                      {[...subs].sort((a, b) => a.localeCompare(b)).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => onSelect(c.category, s)}
+                          className="w-full text-left text-xs px-2 py-2 rounded transition-colors"
+                          style={{
+                            color: isActive && selectedSubcategory === s ? "var(--brand)" : "var(--muted)",
+                            fontWeight: isActive && selectedSubcategory === s ? 600 : 400,
+                          }}
+                        >
+                          — {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </AccordionSection>
 

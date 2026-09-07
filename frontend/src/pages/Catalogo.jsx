@@ -137,17 +137,16 @@ function Catalogo() {
     return () => observer.disconnect();
   }, [hasMore]); // ya no depende de isFetching (usa el ref)
 
-  const handleCategoryChange = (cat) => {
-    setCategory(cat); setSubcategory("all");
-    const u = new URL(window.location.href);
-    if (cat === "all") { u.searchParams.delete("cat"); u.searchParams.delete("sub"); }
-    else { u.searchParams.set("cat", cat); u.searchParams.delete("sub"); }
-    navigate(`${u.pathname}${u.search}`, { replace: true });
-  };
-  const handleSubcategoryChange = (sub) => {
+  // Categoría y subcategoría se eligen juntas desde el sidebar (tocar una
+  // categoría solo despliega; el filtro se aplica al elegir dentro).
+  const handleSelect = (cat, sub = "all") => {
+    setCategory(cat);
     setSubcategory(sub);
     const u = new URL(window.location.href);
-    if (sub === "all") u.searchParams.delete("sub"); else u.searchParams.set("sub", sub);
+    if (cat === "all") u.searchParams.delete("cat");
+    else u.searchParams.set("cat", cat);
+    if (sub === "all") u.searchParams.delete("sub");
+    else u.searchParams.set("sub", sub);
     navigate(`${u.pathname}${u.search}`, { replace: true });
   };
   const handleBrandToggle = (brand) =>
@@ -173,7 +172,7 @@ function Catalogo() {
           <div className="bento sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto" style={{ borderRadius: "16px" }}>
             <Sidebar
               categories={categories} selectedCategory={category} selectedSubcategory={subcategory}
-              onCategoryChange={handleCategoryChange} onSubcategoryChange={handleSubcategoryChange}
+              onSelect={handleSelect}
               brands={brands} selectedBrands={selectedBrands} onBrandToggle={handleBrandToggle}
               onClearAll={handleClearAll} activeFilterCount={activeFilterCount}
             />
@@ -291,8 +290,7 @@ function Catalogo() {
         style={{ background: "var(--surface)" }}>
         <Sidebar
           categories={categories} selectedCategory={category} selectedSubcategory={subcategory}
-          onCategoryChange={(c) => { handleCategoryChange(c); setDrawerOpen(false); }}
-          onSubcategoryChange={(s) => { handleSubcategoryChange(s); setDrawerOpen(false); }}
+          onSelect={(c, s) => { handleSelect(c, s); setDrawerOpen(false); }}
           brands={brands} selectedBrands={selectedBrands} onBrandToggle={handleBrandToggle}
           onClearAll={() => { handleClearAll(); setDrawerOpen(false); }}
           activeFilterCount={activeFilterCount} onClose={() => setDrawerOpen(false)}
