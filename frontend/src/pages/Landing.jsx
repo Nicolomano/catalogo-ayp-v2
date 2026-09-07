@@ -5,6 +5,7 @@ import { ChevronRight, Wrench, Phone, MapPin, Clock, Zap, Package, Tag, BadgePer
 import API from "../api/axios";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import ProductCarousel from "../components/ProductCarousel.jsx";
+import PromoBanner from "../components/PromoBanner.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
 
 const INFO_ICONS = [
@@ -68,6 +69,7 @@ function Landing() {
   const [categories, setCategories]   = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
   const [banners, setBanners]         = useState(null);
+  const [promo, setPromo]             = useState(null);
 
   const infoRef  = useReveal();
   const catRef   = useReveal();
@@ -95,6 +97,10 @@ function Landing() {
     API.get("/banners?type=home")
       .then((r) => setBanners(Array.isArray(r.data) ? r.data : []))
       .catch(() => setBanners([]));
+    // Banda promocional: se muestra la primera activa (ordenadas por "order")
+    API.get("/banners?type=promo")
+      .then((r) => setPromo(Array.isArray(r.data) ? r.data[0] || null : null))
+      .catch(() => {});
   }, []);
 
   const { featured } = landingData;
@@ -276,6 +282,17 @@ function Landing() {
             }
           </div>
         </section>
+
+        {/* ── BANDA PROMOCIONAL ── */}
+        {promo && (
+          <PromoBanner
+            label={promo.label}
+            title={promo.title}
+            subtitle={promo.subtitle}
+            image={promo.image}
+            href={promo.linkUrl}
+          />
+        )}
 
         {/* ── TIRA DE INFO (2 ítems: Envíos + Horario) ── */}
         <section

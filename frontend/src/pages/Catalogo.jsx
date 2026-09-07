@@ -7,7 +7,6 @@ import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
 import toast from "react-hot-toast";
 import Sidebar from "../components/Sidebar.jsx";
-import HeroCarousel from "../components/HeroCarousel.jsx";
 import { calcCuota6 } from "../utils/pricing.js";
 
 const PAGE_SIZE = 24;
@@ -35,7 +34,6 @@ function Catalogo() {
   const [hasMore, setHasMore]         = useState(true);
   const [page, setPage]               = useState(1);
   const [isPending, startTransition]  = useTransition();
-  const [catalogBanners, setCatalogBanners] = useState([]);
 
   // Ref para que el observer siempre lea el valor actual sin recrearse
   const isFetchingRef = useRef(true);
@@ -72,7 +70,6 @@ function Catalogo() {
       setCategories(normalized);
     }).catch(() => {});
     API.get("/products/brands").then((res) => setBrands(Array.isArray(res.data) ? res.data : [])).catch(() => {});
-    API.get("/banners?type=catalog").then((res) => setCatalogBanners(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -193,12 +190,8 @@ function Catalogo() {
         {/* Contenido principal */}
         <div className="flex-1 min-w-0">
 
-          {/* Banners del catálogo */}
-          {catalogBanners.length > 0 && (
-            <div className="rounded-[20px] overflow-hidden mb-5" style={{ aspectRatio: "3/1" }}>
-              <HeroCarousel slides={catalogBanners} fillContainer />
-            </div>
-          )}
+          {/* Sin banner acá a propósito: el buscador y los filtros tienen que ser
+              lo primero que se ve, sobre todo en mobile. Las promos van en la Home. */}
 
           {/* Barra de búsqueda + controles */}
           <div className="flex gap-2 mb-4">

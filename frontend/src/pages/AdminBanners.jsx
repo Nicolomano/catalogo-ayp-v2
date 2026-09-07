@@ -32,6 +32,7 @@ export default function AdminBanners() {
     e.preventDefault();
     try {
       const fd = new FormData();
+      fd.append("label", editing.label || "");
       fd.append("title", editing.title || "");
       fd.append("subtitle", editing.subtitle || "");
       fd.append("linkUrl", editing.linkUrl || "");
@@ -103,11 +104,12 @@ export default function AdminBanners() {
             style={inputStyle}
           >
             <option value="home">Home (hero)</option>
-            <option value="catalog">Tienda</option>
+            <option value="promo">Promo (home)</option>
+            <option value="catalog">Tienda (sin uso)</option>
           </select>
           <button
             onClick={() =>
-              setEditing({ title: "", subtitle: "", linkUrl: "", type: typeFilter, order: items.length, active: true })
+              setEditing({ label: "", title: "", subtitle: "", linkUrl: "", type: typeFilter, order: items.length, active: true })
             }
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
             style={{ background: "var(--brand)", color: "#fff" }}
@@ -236,7 +238,19 @@ export default function AdminBanners() {
             </h3>
 
             <form onSubmit={handleSave} className="space-y-4">
+              {editing.type === "promo" && (
+                <p
+                  className="text-xs rounded-xl px-3 py-2 leading-relaxed"
+                  style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+                >
+                  El banner promo se arma con el diseño de la página: el fondo, los colores
+                  y el botón los pone el sitio. Subí <strong>solo la foto del producto</strong>,
+                  recortada y con fondo transparente o blanco liso — no un flyer con texto.
+                </p>
+              )}
+
               {[
+                { label: "Etiqueta (solo promo, ej: NUEVO INGRESO)", key: "label", type: "text" },
                 { label: "Título", key: "title", type: "text" },
                 { label: "Subtítulo", key: "subtitle", type: "text" },
               ].map(({ label, key, type }) => (
@@ -280,7 +294,8 @@ export default function AdminBanners() {
                     style={inputStyle}
                   >
                     <option value="home">Home</option>
-                    <option value="catalog">Tienda</option>
+                    <option value="promo">Promo (home)</option>
+                    <option value="catalog">Tienda (sin uso)</option>
                   </select>
                 </label>
                 <label className="block col-span-1">
@@ -317,6 +332,8 @@ export default function AdminBanners() {
                   <span className="opacity-60">
                     {editing.type === "catalog"
                       ? "(horizontal · mín. 1200×400 px — proporción 3:1)"
+                      : editing.type === "promo"
+                      ? "(foto del producto recortada · mín. 800×800 px · fondo transparente)"
                       : "(cuadrada · mín. 900×900 px)"}
                   </span>
                 </span>
