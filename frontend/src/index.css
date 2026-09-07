@@ -121,10 +121,14 @@ body {
   box-shadow: var(--shadow);
   transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
 }
-.bento:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--brand-tint-t);
+/* Solo en dispositivos con mouse real: en touch el hover queda "pegado"
+   después del tap y la card se ve seleccionada sin motivo. */
+@media (hover: hover) and (pointer: fine) {
+  .bento:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand-tint-t);
+  }
 }
 .bento-link { cursor: pointer; }
 
@@ -180,30 +184,76 @@ body {
 }
 .input-field::placeholder { color: var(--muted2); }
 
-/* ── Navbar flotante ───────────────────────────────────── */
+/* ── Navbar ────────────────────────────────────────────────
+   Mobile: barra sólida pegada arriba. El "margen" es padding
+   interno (incl. safe-area de iOS), nunca espacio vacío: así el
+   contenido no se ve pasar por arriba ni por los costados.
+   Desktop (md+): card flotante. */
 .floating-navbar {
   position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 1280px;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: var(--z-navbar);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  padding-top: env(safe-area-inset-top, 0px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.04);
   transition: box-shadow var(--transition-base);
 }
 .floating-navbar.scrolled {
-  box-shadow: 0 8px 32px rgba(0,51,204,0.12), 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
 }
 
-/* ── Layout body (compensa navbar flotante) ────────────── */
+@media (min-width: 768px) {
+  .floating-navbar {
+    top: 12px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 1280px;
+    padding-top: 0;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .floating-navbar.scrolled {
+    box-shadow: 0 8px 32px rgba(0,51,204,0.12), 0 1px 0 rgba(255,255,255,0.04);
+  }
+}
+
+/* ── Foco: anillo solo con teclado ─────────────────────────
+   El navegador dibuja su outline en :focus, así que el ítem
+   clickeado con mouse quedaba con un recuadro. Lo neutralizamos
+   solo en la navegación y damos un anillo propio en :focus-visible. */
+.floating-navbar a:focus:not(:focus-visible),
+.floating-navbar button:focus:not(:focus-visible),
+.bottom-nav-item:focus:not(:focus-visible),
+.site-footer a:focus:not(:focus-visible) {
+  outline: none;
+}
+.floating-navbar a:focus-visible,
+.floating-navbar button:focus-visible,
+.bottom-nav-item:focus-visible,
+.site-footer a:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.site-footer a:focus-visible {
+  outline-color: #fff;
+}
+
+/* ── Layout body (compensa el navbar fijo) ─────────────── */
 .layout-body {
-  padding-top: calc(var(--navbar-h) + 28px);
+  padding-top: calc(var(--navbar-h) + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 768px) {
+  .layout-body { padding-top: calc(var(--navbar-h) + 28px); }
 }
 
 /* ── Animaciones base ──────────────────────────────────── */
@@ -318,28 +368,30 @@ body {
 .product-card {
   position: relative;
 }
-.product-card-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 26, 128, 0.65);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 5;
-  pointer-events: none;
-}
-/* Aparece con retardo: un toque rápido navega antes de que se muestre;
-   hay que mantener apretado (~0.35s) para verlo. Se oculta al instante. */
-.product-card:hover .product-card-overlay {
-  opacity: 1;
-  transition-delay: 0.35s;
-}
-.product-card:not(:hover) .product-card-overlay {
-  transition-delay: 0s;
+/* El overlay existe solo donde hay mouse: en touch quedaba fijo tras el tap. */
+.product-card-overlay { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .product-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 26, 128, 0.65);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .product-card:hover .product-card-overlay {
+    opacity: 1;
+  }
+  .product-card:not(:hover) .product-card-overlay {
+    transition-delay: 0s;
+  }
 }
 .product-img-wrap {
   width: 100%;
@@ -413,7 +465,7 @@ html.dark .glass-card {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -439,25 +491,20 @@ html.dark .glass-card {
   cursor: pointer;
   text-decoration: none;
 }
-.bottom-nav-item.active,
-.bottom-nav-item:hover {
+.bottom-nav-item.active {
   background: var(--brand-tint);
   color: var(--brand);
 }
-.bottom-nav-item.active::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 0 0 4px 4px;
+/* Separado de .active: si comparten regla, el tab tocado queda pintado en touch. */
+@media (hover: hover) and (pointer: fine) {
+  .bottom-nav-item:hover {
+    background: var(--brand-tint);
+    color: var(--brand);
+  }
 }
 @media (max-width: 767px) {
   .layout-body {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }
 

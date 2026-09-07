@@ -4,8 +4,10 @@ import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench } from "lucide-react";
 import { useState, useEffect } from "react";
 import WhatsappFloat from "./WhatsappFloat.jsx";
+import WhatsappIcon from "./WhatsappIcon.jsx";
 import CookieBanner from "./CookieBanner.jsx";
 import Logo from "./Logo.jsx";
+import useWhatsappNumber from "../hooks/useWhatsappNumber.js";
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
@@ -25,6 +27,7 @@ function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useDarkMode();
   const [scrolled, setScrolled] = useState(false);
+  const whatsapp = useWhatsappNumber();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -107,9 +110,24 @@ function Layout() {
               </Link>
             )}
 
+            {/* Mobile: WhatsApp (el carrito ya vive en el tab bar como "Pedido").
+                Desktop: carrito, porque ahí el FAB de WhatsApp sigue disponible. */}
+            {whatsapp && (
+              <a
+                href={`https://wa.me/${whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Consultar por WhatsApp"
+                className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
+                style={{ color: "#25D366" }}
+              >
+                <WhatsappIcon size={22} />
+              </a>
+            )}
+
             <Link
               to="/cart"
-              className="relative min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
+              className="relative min-w-[44px] min-h-[44px] hidden md:flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
               style={{ color: "var(--muted)" }}
             >
               <ShoppingCart className="h-5 w-5" />
@@ -138,7 +156,7 @@ function Layout() {
         {menuOpen && (
           <nav
             className="md:hidden px-5 py-4 space-y-1 border-t menu-enter"
-            style={{ borderColor: "var(--border)", borderRadius: "0 0 16px 16px", background: "var(--surface)" }}
+            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
           >
             {[
               { to: "/", label: "Inicio", end: true },
@@ -226,7 +244,7 @@ function Layout() {
       </nav>
 
       {/* FOOTER */}
-      <footer className="py-14 mt-8 relative overflow-hidden" style={{ background: "var(--dark-card)" }}>
+      <footer className="site-footer py-14 mt-8 relative overflow-hidden" style={{ background: "var(--dark-card)" }}>
         {/* Dot grid decoration */}
         <div
           className="absolute inset-0 pointer-events-none opacity-30"
