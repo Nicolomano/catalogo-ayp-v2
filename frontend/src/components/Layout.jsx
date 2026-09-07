@@ -20,10 +20,8 @@ function useDarkMode() {
 
 function Layout() {
   const { cart } = useCart();
-  const { serviceUser, logoutService, isServiceApproved } = useAuth();
+  const { serviceUser, logoutService, isServiceApproved, isAdmin } = useAuth();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const adminToken = localStorage.getItem("token");
-  const isAdmin = adminToken && !serviceUser;
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useDarkMode();
   const [scrolled, setScrolled] = useState(false);
@@ -58,7 +56,7 @@ function Layout() {
           <nav className="hidden md:flex items-center gap-7">
             <NavLink to="/" end className={navLinkCls}>Inicio</NavLink>
             <NavLink to="/catalogo" className={navLinkCls}>Productos</NavLink>
-            <NavLink to="/kit-instalacion" className={navLinkCls}>Kit</NavLink>
+            <NavLink to="/kit-instalacion" className={navLinkCls}>Kit instalación</NavLink>
             <NavLink to="/contacto" className={navLinkCls}>Contacto</NavLink>
             {isAdmin && <NavLink to="/admin" className={navLinkCls}>Admin</NavLink>}
           </nav>
@@ -161,7 +159,7 @@ function Layout() {
             {[
               { to: "/", label: "Inicio", end: true },
               { to: "/catalogo", label: "Productos" },
-              { to: "/kit-instalacion", label: "Kit de Instalación" },
+              { to: "/kit-instalacion", label: "Kit instalación" },
               { to: "/contacto", label: "Contacto" },
             ].map(({ to, label, end }) => (
               <NavLink
@@ -222,7 +220,12 @@ function Layout() {
           <Package className="h-5 w-5" />
           Productos
         </NavLink>
-        <NavLink to="/kit-instalacion" className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}>
+        {/* "Kit instalación" no entra en el tab bar (4 columnas, 10px), va como aria-label */}
+        <NavLink
+          to="/kit-instalacion"
+          aria-label="Kit instalación"
+          className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`}
+        >
           <Wrench className="h-5 w-5" />
           Kit
         </NavLink>
