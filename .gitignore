@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 *.mcp.json
+# Variables de entorno locales (nunca versionar: se hornean en el build)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.production
