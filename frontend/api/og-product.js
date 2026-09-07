@@ -10,7 +10,12 @@ import { SITE_URL, API_URL, escapeXml, fetchJson } from "./_shared.js";
  * en vez de la foto y el nombre del producto.
  *
  * vercel.json enruta acá solo cuando el user-agent es uno de esos robots; las
- * personas siguen recibiendo la SPA normal. Igual va un redirect por las dudas.
+ * personas siguen recibiendo la SPA normal.
+ *
+ * A propósito NO hay redirect automático a pageUrl: como esta ruta responde en
+ * la misma URL del producto, un redirect haría un loop infinito si el filtro de
+ * user-agent llegara a matchear a una persona por error. Ante esa falla, lo peor
+ * que puede pasar es ver esta página mínima con un link, no quedar en un bucle.
  */
 export default async function handler(req, res) {
   const code = req.query.code || "";
@@ -62,8 +67,6 @@ export default async function handler(req, res) {
     <meta name="twitter:title" content="${escapeXml(title)}" />
     <meta name="twitter:description" content="${escapeXml(description)}" />
     <meta name="twitter:image" content="${escapeXml(image)}" />
-
-    <meta http-equiv="refresh" content="0; url=${escapeXml(pageUrl)}" />
   </head>
   <body>
     <h1>${escapeXml(product?.name || "A&P Refrigeración")}</h1>
