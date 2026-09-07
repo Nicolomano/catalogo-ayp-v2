@@ -16,6 +16,7 @@ import {
   previewImportExcel,
   commitImportExcel,
   getLandingProducts,
+  getProductsSitemap,
   getProductBrands,
   migrateCategories,
   listFeaturedAdmin,
@@ -33,6 +34,7 @@ productRouter.get("/meta/categories", getCategoriesMeta);
 productRouter.get("/landing",         getLandingProducts);
 productRouter.get("/brands",          getProductBrands);
 productRouter.get("/code/:productCode", getProductByCode);
+productRouter.get("/sitemap",         getProductsSitemap);
 productRouter.get("/export/excel",    exportProductsExcel);
 
 // Admin

@@ -54,11 +54,6 @@ export default function HeroCarousel({ type = "home", slides: slidesProp, fillCo
   const scrollTo   = (i) => { if (emblaApi) { emblaApi.scrollTo(i);  resetAutoplay(); } };
 
   const computeDest = (s) => {
-    if (s.targetCategory) {
-      const cat = encodeURIComponent(s.targetCategory);
-      const sub = s.targetSubcategory ? `&sub=${encodeURIComponent(s.targetSubcategory)}` : "";
-      return `/catalogo?cat=${cat}${sub}`;
-    }
     if (!s.linkUrl) return null;
     try {
       const url = new URL(s.linkUrl, window.location.origin);

@@ -495,6 +495,29 @@ export const getCategoriesMeta = async (req, res) => {
   }
 };
 
+/* ----------------------- ÍNDICE PARA SITEMAP ----------------------- */
+// Lista mínima de productos activos para armar el sitemap.xml desde el front.
+// Solo código y fecha: con ~3000 productos, traerlos completos sería inviable
+// y el endpoint público está paginado de a 100.
+export const getProductsSitemap = async (req, res) => {
+  try {
+    const products = await productModel
+      .find({ active: true })
+      .select("productCode updatedAt")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    res.set("Cache-Control", "public, max-age=3600");
+    res.json(
+      products
+        .filter((p) => p.productCode)
+        .map((p) => ({ productCode: p.productCode, updatedAt: p.updatedAt }))
+    );
+  } catch (error) {
+    res.status(500).json({ message: "Error armando sitemap", error: error.message });
+  }
+};
+
 /* ----------------------- PRODUCTOS LANDING ----------------------- */
 export const getLandingProducts = async (req, res) => {
   try {

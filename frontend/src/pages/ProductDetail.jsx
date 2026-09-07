@@ -11,7 +11,10 @@ import { useScrollProgress } from "../hooks/useScrollProgress.js";
 import { calcCuota6 } from "../utils/pricing.js";
 import { formatTitle } from "../utils/text.js";
 
-const SITE_URL = import.meta.env.VITE_SITE_URL || "https://catalogoayp.vercel.app";
+// Fallback al dominio real (con www: el apex redirige 307). Se usa en los links
+// que se comparten y en el canonical, así que un valor viejo acá manda a los
+// clientes —y a Google— a otro lado.
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
 /* ── Ícono WhatsApp inline (no dependencia extra) ── */
 function WaIcon({ size = 16 }) {

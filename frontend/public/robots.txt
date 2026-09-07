@@ -2,5 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/
+Disallow: /cart
+Disallow: /login
+Disallow: /register
 
-Sitemap: https://catalogoayp-production.up.railway.app/sitemap.xml
+Sitemap: https://www.refrigeracionayp.com/sitemap.xml

@@ -15,6 +15,7 @@ const KitInstalacion = lazy(() => import("./pages/KitInstalacion.jsx"));
 const Register = lazy(() => import("./pages/Register.jsx"));
 const Login = lazy(() => import("./pages/Login.jsx"));
 const Privacidad = lazy(() => import("./pages/Privacidad.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 // ── Admin (lazy: no entra en el bundle público) ──
 const AdminLogin = lazy(() => import("./pages/AdminLogin.jsx"));
@@ -73,6 +74,8 @@ function App() {
             <Route path="register" element={<Register />} />
             <Route path="login" element={<Login />} />
             <Route path="privacidad" element={<Privacidad />} />
+            {/* Cualquier ruta desconocida cae acá en vez de mostrar el layout vacío */}
+            <Route path="*" element={<NotFound />} />
           </Route>
 
           {/* Admin: login público */}

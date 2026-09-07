@@ -1,3 +1,20 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/product/:code",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|googlebot|bingbot|embedly|pinterest|redditbot|applebot|skypeuripreview|vkshare|w3c_validator).*"
+        }
+      ],
+      "destination": "/api/og-product?code=:code"
+    },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
