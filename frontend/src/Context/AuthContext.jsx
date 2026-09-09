@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import API from "../api/axios";
+import { readTokenPayload, isAdminToken, isApprovedServiceToken } from "../utils/auth.js";
 
 const AuthContext = createContext();
 
@@ -11,17 +12,6 @@ function loadServiceUser() {
   try {
     const raw = localStorage.getItem(SERVICE_USER_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Payload del JWT guardado, o null si no hay token o está mal formado. */
-function readTokenPayload() {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return null;
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
   } catch {
     return null;
   }
@@ -87,13 +77,8 @@ export function AuthProvider({ children }) {
   // service escribiendo una línea en la consola; y ahora que el descuento se
   // aplica de verdad en el backend, el precio que se muestra tiene que salir de
   // la misma fuente que el que se cotiza, o vuelven a no coincidir.
-  const payload = readTokenPayload();
-  const tokenVigente = payload && (!payload.exp || payload.exp * 1000 > Date.now());
-
-  const isAdmin = tokenVigente && payload.role === "admin";
-
-  const isServiceApproved =
-    tokenVigente && payload.role === "service" && payload.approved === true;
+  const isAdmin = isAdminToken();
+  const isServiceApproved = isApprovedServiceToken();
 
   // Computes 10% off price for approved service users
   const servicePrice = (priceARS) => {

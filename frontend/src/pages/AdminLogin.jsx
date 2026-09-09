@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 import API from "../api/axios";
 import Logo from "../components/Logo.jsx";
@@ -10,7 +9,6 @@ function AdminLogin({ onLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +18,10 @@ function AdminLogin({ onLogin }) {
       const res = await API.post("/auth/login", { username: email, password });
       localStorage.setItem("token", res.data.token);
       onLogin?.(res.data.user);
-      navigate("/admin/dashboard");
+      // Recarga completa en vez de navigate(): AuthProvider está por encima del
+      // router, así que al navegar no vuelve a leer el token y la sesión nueva
+      // no se reflejaría en el resto de la app (ej. el link Admin de la nav).
+      window.location.href = "/admin/dashboard";
     } catch {
       setError("Credenciales inválidas. Verificá tu email y contraseña.");
     } finally {
