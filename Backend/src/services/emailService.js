@@ -19,7 +19,22 @@ export async function sendMail({ to, subject, html }) {
   return { ok: true, id: data.id };
 }
 
-export function approvalEmail(userName, clientNumber) {
+/**
+ * El nombre y el motivo se interpolan en HTML. Sin escapar, alguien se registra
+ * con un nombre que contiene un <a> y el sistema le manda un correo con un link
+ * de phishing firmado con el DKIM del dominio de la tienda.
+ */
+const esc = (v = "") =>
+  String(v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+export function approvalEmail(rawUserName, rawClientNumber) {
+  const userName = esc(rawUserName);
+  const clientNumber = esc(rawClientNumber);
   return {
     subject: "¡Tu cuenta fue aprobada! — A&P Refrigeración",
     html: `
@@ -37,7 +52,9 @@ export function approvalEmail(userName, clientNumber) {
   };
 }
 
-export function rejectionEmail(userName, reason) {
+export function rejectionEmail(rawUserName, rawReason) {
+  const userName = esc(rawUserName);
+  const reason = esc(rawReason);
   return {
     subject: "Actualización sobre tu solicitud — A&P Refrigeración",
     html: `

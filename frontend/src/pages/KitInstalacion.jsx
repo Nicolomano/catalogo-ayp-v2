@@ -16,8 +16,9 @@ const inputStyle = {
 
 export default function KitInstalacion() {
   const { isServiceApproved } = useAuth();
-  // Aplica 10% de descuento service a un precio (solo si el técnico está aprobado)
-  const disc = (v) => (isServiceApproved ? Math.round((v || 0) * 0.9) : v);
+  // Los precios que llegan del backend YA vienen con el descuento aplicado si
+  // corresponde: antes el -10% lo calculaba el navegador y se escribía en el
+  // WhatsApp sin que nadie lo validara del lado servidor.
 
   const [meta, setMeta]       = useState([]);
   const [qty, setQty]         = useState({});
@@ -88,12 +89,13 @@ export default function KitInstalacion() {
         const varLabel = l.variant
           ? ` (${l.key === "bracket" ? `${l.variant} cm` : l.variant})`
           : "";
-        return `• ${l.label}${varLabel}: ${l.qty} ${l.unit} — $${disc(l.unitPriceARS).toLocaleString("es-AR")} c/u`;
+        return `• ${l.label}${varLabel}: ${l.qty} ${l.unit} — $${l.unitPriceARS.toLocaleString("es-AR")} c/u`;
       })
       .join("%0A");
-    const serviceNote = isServiceApproved ? "%0A(Precios con descuento service -10%)" : "";
-    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${disc(pricing.total).toLocaleString("es-AR")}${serviceNote}`;
-  }, [pricing, isServiceApproved]);
+    // El flag lo confirma el backend, no el navegador.
+    const serviceNote = pricing.conDescuento ? "%0A(Precios con descuento service -10%)" : "";
+    return `Hola! Quiero cotizar el siguiente kit de instalación:%0A${lines}%0A%0ATotal: $${pricing.total.toLocaleString("es-AR")}${serviceNote}`;
+  }, [pricing]);
 
   const variantLabel = (key) => {
     if (key === "copper_small" || key === "copper_big") return "Medida:";
@@ -249,11 +251,11 @@ export default function KitInstalacion() {
                           : ""}
                       </p>
                       <p className="text-xs" style={{ color: "var(--muted)" }}>
-                        {l.qty} {l.unit} × ${disc(l.unitPriceARS).toLocaleString("es-AR")}
+                        {l.qty} {l.unit} × ${l.unitPriceARS.toLocaleString("es-AR")}
                       </p>
                     </div>
                     <span className="text-sm font-semibold flex-shrink-0" style={{ color: "var(--text)" }}>
-                      ${disc(l.subtotal).toLocaleString("es-AR")}
+                      ${l.subtotal.toLocaleString("es-AR")}
                     </span>
                   </li>
                 ))}
@@ -273,7 +275,7 @@ export default function KitInstalacion() {
                   )}
                 </div>
                 <span className="text-2xl font-black" style={{ color: "var(--brand)" }}>
-                  ${disc(pricing.total).toLocaleString("es-AR")}
+                  ${pricing.total.toLocaleString("es-AR")}
                 </span>
               </div>
 

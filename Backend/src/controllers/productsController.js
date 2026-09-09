@@ -89,7 +89,6 @@ export async function createProduct(req, res) {
     console.error("Error creando producto:", error);
     res.status(500).json({
       message: "Error creando producto",
-      error: error.message,
     });
   }
 }
@@ -106,7 +105,8 @@ export async function uploadImage(req, res) {
     const imageUrl = await uploadToR2(buffer, filename, "image/webp");
     res.json({ imageUrl });
   } catch (error) {
-    res.status(500).json({ message: "Error subiendo imagen", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error subiendo imagen"});
   }
 }
 
@@ -178,7 +178,6 @@ export async function updateProduct(req, res) {
     console.error("Error actualizando producto:", error);
     res.status(500).json({
       message: "Error actualizando producto",
-      error: error.message,
     });
   }
 }
@@ -306,7 +305,6 @@ export const getProductsByCategory = async (req, res) => {
     console.error("Error en getProductsByCategory:", error);
     res.status(500).json({
       message: "Error buscando productos",
-      error: error.message,
     });
   }
 };
@@ -323,7 +321,6 @@ export async function deleteProduct(req, res) {
     console.error("Error eliminando producto:", error);
     res.status(500).json({
       message: "Error eliminando producto",
-      error: error.message,
     });
   }
 }
@@ -346,9 +343,9 @@ export const toggleProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error al cambiar estado de producto",
-      error: error.message,
     });
   }
 };
@@ -427,7 +424,6 @@ export const getProductsAdmin = async (req, res) => {
     console.error("Error obteniendo productos (admin):", error);
     res.status(500).json({
       message: "Error obteniendo productos (admin)",
-      error: error.message,
     });
   }
 };
@@ -503,7 +499,6 @@ export const getCategoriesMeta = async (req, res) => {
     console.error("Error obteniendo categorías y subcategorías:", error);
     res.status(500).json({
       message: "Error obteniendo categorías y subcategorías",
-      error: error.message,
     });
   }
 };
@@ -527,7 +522,8 @@ export const getProductsSitemap = async (req, res) => {
         .map((p) => ({ productCode: p.productCode, updatedAt: p.updatedAt }))
     );
   } catch (error) {
-    res.status(500).json({ message: "Error armando sitemap", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error armando sitemap"});
   }
 };
 
@@ -552,7 +548,8 @@ export const getLandingProducts = async (req, res) => {
     res.set("Cache-Control", "public, max-age=60");
     res.json({ featured, newArrivals });
   } catch (error) {
-    res.status(500).json({ message: "Error obteniendo productos landing", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error obteniendo productos landing"});
   }
 };
 
@@ -566,7 +563,8 @@ export const getProductBrands = async (req, res) => {
     res.set("Cache-Control", "public, max-age=300");
     res.json(brands.filter(Boolean).sort());
   } catch (error) {
-    res.status(500).json({ message: "Error obteniendo marcas", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error obteniendo marcas"});
   }
 };
 
@@ -585,7 +583,8 @@ export const toggleFeatured = async (req, res) => {
     await product.save();
     res.json({ message: `Producto ${product.featured ? "destacado" : "quitado de destacados"}`, product });
   } catch (error) {
-    res.status(500).json({ message: "Error al cambiar destacado", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error al cambiar destacado"});
   }
 };
 
@@ -599,7 +598,8 @@ export const listFeaturedAdmin = async (req, res) => {
       .lean();
     res.json(featured);
   } catch (error) {
-    res.status(500).json({ message: "Error obteniendo destacados", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error obteniendo destacados"});
   }
 };
 
@@ -607,12 +607,18 @@ export const listFeaturedAdmin = async (req, res) => {
 export const reorderFeatured = async (req, res) => {
   try {
     const { ids = [] } = req.body;
+    // Tope: sin esto un array gigante dispara esa cantidad de updates a la vez
+    // y agota el pool de conexiones.
+    if (!Array.isArray(ids) || ids.length > 500) {
+      return res.status(400).json({ message: "Lista de orden inválida o demasiado larga." });
+    }
     await Promise.all(
       ids.map((id, idx) => productModel.findByIdAndUpdate(id, { featuredOrder: idx }))
     );
     res.json({ ok: true });
   } catch (error) {
-    res.status(500).json({ message: "Error reordenando destacados", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error reordenando destacados"});
   }
 };
 
@@ -626,7 +632,8 @@ export const toggleStock = async (req, res) => {
     await product.save();
     res.json({ message: `Stock ${product.inStock ? "disponible" : "agotado"}`, product });
   } catch (error) {
-    res.status(500).json({ message: "Error al cambiar stock", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error al cambiar stock"});
   }
 };
 
@@ -879,7 +886,7 @@ export const previewImportExcel = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en preview de import:", error);
-    res.status(500).json({ message: "Error analizando Excel", error: error.message });
+    res.status(500).json({ message: "Error analizando Excel"});
   }
 };
 
@@ -1007,7 +1014,7 @@ export const importProductsExcel = async (req, res) => {
     });
   } catch (error) {
     console.error("Error importando Excel:", error);
-    res.status(500).json({ message: "Error importando Excel", error: error.message });
+    res.status(500).json({ message: "Error importando Excel"});
   }
 };
 
@@ -1095,6 +1102,22 @@ export const commitImportExcel = async (req, res) => {
     const toDelete = [...wantDelete].filter((c) => missingSet.has(c));
     const toDeactivate = [...wantDeactivate].filter((c) => missingSet.has(c) && !wantDelete.has(c));
 
+    // Freno al borrado masivo: si el Excel viene parcial (una hoja sola, un
+    // export cortado), TODOS los productos figuran como faltantes y dos clics
+    // vacían el catálogo. No hay soft-delete ni backup, así que se exige una
+    // confirmación explícita cuando el borrado supera el 20% del catálogo.
+    const LIMITE_BORRADO = Math.max(20, Math.ceil(activeCodes.length * 0.2));
+    if (toDelete.length > LIMITE_BORRADO && String(req.body.confirmMassDelete) !== "true") {
+      return res.status(409).json({
+        message:
+          `El archivo dejaría fuera ${toDelete.length} de ${activeCodes.length} productos activos. ` +
+          `Revisá que el Excel esté completo: si es el archivo correcto, confirmá el borrado masivo.`,
+        requiresMassDeleteConfirm: true,
+        toDeleteCount: toDelete.length,
+        activeCount: activeCodes.length,
+      });
+    }
+
     let deleted = 0, deactivated = 0;
     if (toDelete.length) {
       const r = await productModel.deleteMany({ productCode: { $in: toDelete } });
@@ -1113,7 +1136,7 @@ export const commitImportExcel = async (req, res) => {
     res.json({ created, updated, skipped, deleted, deactivated, errors: errors.slice(0, 50), ms });
   } catch (error) {
     console.error("Error en commit de import:", error);
-    res.status(500).json({ message: "Error importando Excel", error: error.message });
+    res.status(500).json({ message: "Error importando Excel"});
   }
 };
 
@@ -1150,14 +1173,21 @@ export const exportProductsExcel = async (req, res) => {
       fs.mkdirSync(tmpDir);
     }
 
-    const filePath = path.join(tmpDir, "productos_ayp.xlsx");
+    // Nombre único: con un nombre fijo, dos exportaciones simultáneas se pisaban
+    // el archivo y el unlink de la primera hacía fallar la descarga de la
+    // segunda (con la excepción sin capturar tirando el proceso).
+    const filePath = path.join(tmpDir, `productos_ayp_${uuidv4()}.xlsx`);
     XLSX.writeFile(workbook, filePath);
     // Enviar descarga
     res.download(filePath, "productos_ayp.xlsx", (err) => {
       if (err) {
         console.error("❌ Error enviando archivo Excel:", err);
       }
-      fs.unlinkSync(filePath); // eliminar archivo temporal
+      try {
+        fs.unlinkSync(filePath); // eliminar archivo temporal
+      } catch (e) {
+        console.error("No se pudo borrar el temporal del export:", e.message);
+      }
     });
   } catch (error) {
     console.error("❌ Error exportando Excel:", error);
@@ -1190,6 +1220,6 @@ export const migrateCategories = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en migración de categorías:", error);
-    res.status(500).json({ message: "Error en migración", error: error.message });
+    res.status(500).json({ message: "Error en migración"});
   }
 };

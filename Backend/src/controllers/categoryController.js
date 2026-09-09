@@ -21,9 +21,9 @@ export const createCategory = async (req, res) => {
 
     res.status(201).json(newCategory);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error creando categoría",
-      error: error.message,
     });
   }
 };
@@ -35,9 +35,9 @@ export const getAllCategories = async (req, res) => {
     res.set("Cache-Control", "public, max-age=300");
     res.json(categories);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error obteniendo categorías",
-      error: error.message,
     });
   }
 };
@@ -79,9 +79,9 @@ export const getCategoriesTree = async (req, res) => {
     res.set("Cache-Control", "public, max-age=300");
     res.json(tree);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error generando árbol de categorías",
-      error: error.message,
     });
   }
 };
@@ -102,9 +102,9 @@ export const deleteCategory = async (req, res) => {
     await Category.findByIdAndDelete(id);
     res.json({ message: "Categoría eliminada con éxito" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error eliminando categoría",
-      error: error.message,
     });
   }
 };

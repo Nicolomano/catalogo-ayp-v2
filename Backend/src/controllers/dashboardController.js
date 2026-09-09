@@ -15,6 +15,7 @@ export const getDashboardData = async (req, res) => {
       exchangeRate: config?.exchangeRate || 0,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Error al obtener dashboard" });
   }
 };

@@ -149,7 +149,9 @@ export default function Contacto() {
             <iframe
               src={mapsEmbed}
               loading="lazy"
-              allowFullScreen
+              // sandbox: el iframe no puede navegar la pestaña ni abrir popups.
+              // El backend además valida que la URL sea de Google Maps.
+              sandbox="allow-scripts allow-same-origin allow-popups-to-escape-sandbox"
               referrerPolicy="no-referrer-when-downgrade"
               className="w-full h-full border-0"
               style={{ minHeight: "300px" }}

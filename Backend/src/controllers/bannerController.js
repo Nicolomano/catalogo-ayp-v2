@@ -11,9 +11,10 @@ export const listPublicBanners = async (req, res) => {
       .lean();
     res.json(items);
   } catch (e) {
+    console.error(e);
     res
       .status(500)
-      .json({ message: "Error listando banners", error: e.message });
+      .json({ message: "Error listando banners"});
   }
 };
 
@@ -27,7 +28,8 @@ export const listAdminBanners = async (req, res) => {
       .lean();
     res.json(items);
   } catch (e) {
-    res.status(500).json({ message: "Error admin banners", error: e.message });
+    console.error(e);
+    res.status(500).json({ message: "Error admin banners"});
   }
 };
 
@@ -86,7 +88,8 @@ export const createBanner = async (req, res) => {
     });
     res.status(201).json(banner);
   } catch (e) {
-    res.status(500).json({ message: "Error creando banner", error: e.message });
+    console.error(e);
+    res.status(500).json({ message: "Error creando banner"});
   }
 };
 
@@ -105,9 +108,10 @@ export const updateBanner = async (req, res) => {
     if (!updated) return res.status(404).json({ message: "Banner no encontrado" });
     res.json(updated);
   } catch (e) {
+    console.error(e);
     res
       .status(500)
-      .json({ message: "Error actualizando banner", error: e.message });
+      .json({ message: "Error actualizando banner"});
   }
 };
 
@@ -117,9 +121,10 @@ export const deleteBanner = async (req, res) => {
     await Banner.findByIdAndDelete(id);
     res.json({ ok: true });
   } catch (e) {
+    console.error(e);
     res
       .status(500)
-      .json({ message: "Error eliminando banner", error: e.message });
+      .json({ message: "Error eliminando banner"});
   }
 };
 
@@ -132,20 +137,27 @@ export const toggleBanner = async (req, res) => {
     await banner.save();
     res.json({ message: "Estado actualizado", banner });
   } catch (e) {
+    console.error(e);
     res
       .status(500)
-      .json({ message: "Error cambiando estado", error: e.message });
+      .json({ message: "Error cambiando estado"});
   }
 };
 
 export const reorderBanners = async (req, res) => {
   try {
-    const { ids = [] } = req.body; // [id1,id2,...]
+    const { ids = [] } = req.body;
+    // Tope: sin esto un array gigante dispara esa cantidad de updates a la vez
+    // y agota el pool de conexiones.
+    if (!Array.isArray(ids) || ids.length > 500) {
+      return res.status(400).json({ message: "Lista de orden inválida o demasiado larga." });
+    }
     await Promise.all(
       ids.map((id, idx) => Banner.findByIdAndUpdate(id, { order: idx }))
     );
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ message: "Error reordenando", error: e.message });
+    console.error(e);
+    res.status(500).json({ message: "Error reordenando"});
   }
 };

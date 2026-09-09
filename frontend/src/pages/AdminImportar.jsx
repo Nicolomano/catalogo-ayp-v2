@@ -94,19 +94,43 @@ export default function AdminImportar() {
     const deleteCodes = Object.entries(missingAction).filter(([, a]) => a === "delete").map(([c]) => c);
     const deactivateCodes = Object.entries(missingAction).filter(([, a]) => a === "deactivate").map(([c]) => c);
 
-    setCommitting(true);
-    try {
+    const enviar = async (confirmMassDelete = false) => {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("decisions", JSON.stringify({ skipNewCodes, deleteCodes, deactivateCodes }));
+      if (confirmMassDelete) fd.append("confirmMassDelete", "true");
       const res = await API.post("/products/import/commit", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setResult(res.data);
       setStep("result");
       toast.success("Importación aplicada");
+    };
+
+    setCommitting(true);
+    try {
+      await enviar();
     } catch (err) {
-      toast.error(err.response?.data?.message || "No se pudo importar");
+      // 409: el backend frena el borrado si el Excel dejaría fuera más del 20%
+      // del catálogo. Suele pasar con un archivo parcial o un export cortado.
+      const data = err.response?.data;
+      if (err.response?.status === 409 && data?.requiresMassDeleteConfirm) {
+        const okMasivo = await confirm({
+          title: "Vas a borrar gran parte del catálogo",
+          message: `${data.message} Esta acción no se puede deshacer.`,
+          confirmText: `Borrar ${data.toDeleteCount} productos`,
+          tone: "danger",
+        });
+        if (okMasivo) {
+          try {
+            await enviar(true);
+          } catch (e2) {
+            toast.error(e2.response?.data?.message || "No se pudo importar");
+          }
+        }
+      } else {
+        toast.error(data?.message || "No se pudo importar");
+      }
     } finally {
       setCommitting(false);
     }

@@ -132,10 +132,20 @@ export const listServiceUsers = async (req, res) => {
     const users = await serviceUserModel
       .find(filter)
       .select("-password")
-      .sort({ createdAt: -1 });
-    res.json(users);
+      .select("+matriculaKey")
+      .sort({ createdAt: -1 })
+      .lean();
+    // No se manda la key ni la URL: solo si hay imagen. El panel la pide por
+    // GET /api/users/:id/matricula, que va autenticado.
+    res.json(
+      users.map(({ matriculaKey, matriculaImage, ...u }) => ({
+        ...u,
+        hasMatricula: Boolean(matriculaKey || matriculaImage),
+      }))
+    );
   } catch (error) {
-    res.status(500).json({ message: "Error al listar usuarios", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error al listar usuarios"});
   }
 };
 
@@ -176,6 +186,7 @@ export const updateServiceUserStatus = async (req, res) => {
 
     res.json({ ...user.toObject(), emailSent: emailResult?.ok ?? null });
   } catch (error) {
-    res.status(500).json({ message: "Error al actualizar estado", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Error al actualizar estado"});
   }
 };

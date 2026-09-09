@@ -8,7 +8,7 @@ import serviceUserModel from "../services/models/serviceUserModel.js";
 import config from "../config/config.js";
 
 const JWT_SECRET = config.jwtSecret;
-const SERVICE_DISCOUNT = 0.9; // 10% off para técnicos aprobados
+export const SERVICE_DISCOUNT = 0.9; // 10% off para técnicos aprobados
 const MAX_QTY = 999;
 const MAX_ITEMS = 100; // productos distintos por pedido
 
@@ -29,7 +29,7 @@ const formatMoney = (n) => {
  * el `approved` del token porque dura 7 días y el admin puede haber revocado la
  * cuenta en el medio.
  */
-async function esServiceAprobado(req) {
+export async function esServiceAprobado(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return false;
   try {
@@ -197,7 +197,7 @@ export const createOrder = async (req, res) => {
     console.error("❌ Error creando orden:", error);
     res
       .status(400)
-      .json({ message: "Error creando orden", error: error?.message || error });
+      .json({ message: "Error creando orden"});
   }
 };
 
@@ -206,9 +206,9 @@ export const getOrders = async (req, res) => {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error obteniendo órdenes",
-      error: error?.message || error,
     });
   }
 };
@@ -219,9 +219,9 @@ export const getOrderById = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Orden no encontrada" });
     res.json(order);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error obteniendo orden",
-      error: error?.message || error,
     });
   }
 };
@@ -243,9 +243,9 @@ export const updateOrderStatus = async (req, res) => {
 
     res.json(order);
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       message: "Error actualizando estado de orden",
-      error: error.message,
     });
   }
 };

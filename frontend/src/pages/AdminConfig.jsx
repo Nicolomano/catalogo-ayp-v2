@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { DollarSign, MessageCircle } from "lucide-react";
+import { useConfirm } from "../Context/ConfirmContext.jsx";
 
 const inputCls = "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
 const inputStyle = {
@@ -11,6 +12,7 @@ const inputStyle = {
 };
 
 export default function AdminConfig() {
+  const confirm = useConfirm();
   const [exchangeRate, setExchangeRate] = useState(0);
   const [adminWhatsapp, setAdminWhatsapp] = useState("");
   const [loading, setLoading] = useState(true);
@@ -28,11 +30,32 @@ export default function AdminConfig() {
 
   const handleSaveRate = async (e) => {
     e.preventDefault();
-    try {
-      const res = await API.put("/config/", { exchangeRate });
+    const guardar = async (confirmBigChange = false) => {
+      const res = await API.put("/config/", { exchangeRate, confirmBigChange });
       setExchangeRate(res.data.exchangeRate);
       toast.success("Cotización actualizada");
+    };
+    try {
+      await guardar();
     } catch (err) {
+      // 409: el backend frena saltos de más del 30% porque recalculan el precio
+      // de todo el catálogo y las órdenes que entren en el medio lo congelan.
+      const data = err.response?.data;
+      if (err.response?.status === 409 && data?.requiresConfirm) {
+        const ok = await confirm({
+          title: "Cambio grande de cotización",
+          message: data.message,
+          confirmText: "Aplicar igual",
+          tone: "danger",
+        });
+        if (!ok) return;
+        try {
+          await guardar(true);
+        } catch {
+          toast.error("No se pudo guardar");
+        }
+        return;
+      }
       console.error("Error guardando config:", err);
       toast.error("No se pudo guardar");
     }

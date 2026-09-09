@@ -61,7 +61,9 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("Error capturado:", err);
+  // Id corto para poder cruzar lo que ve el usuario con el log del servidor.
+  const ref = Math.random().toString(36).slice(2, 8).toUpperCase();
+  console.error(`[${ref}] Error capturado:`, err);
   // Asegurar headers de CORS también en errores, así el browser muestra el
   // error real (500 con mensaje) en vez de un error de CORS genérico.
   const origin = req.headers.origin;
@@ -71,9 +73,13 @@ app.use((err, req, res, next) => {
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Vary", "Origin");
   }
+  // No se devuelve err.message: filtraba el nombre de la base y de las
+  // colecciones (errores E11000), los campos del schema (CastError,
+  // ValidationError) y, desde el registro público, el mensaje crudo de libvips,
+  // que identifica el decodificador que alguien querría atacar.
   res.status(500).json({
     message: "Error interno del servidor",
-    error: err.message,
+    ref,
   });
 });
 

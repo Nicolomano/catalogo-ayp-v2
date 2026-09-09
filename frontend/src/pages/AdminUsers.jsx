@@ -26,6 +26,23 @@ function AdminUsers() {
   const [clientNumbers, setClientNumbers] = useState({});
   const [imageModal, setImageModal] = useState(null);
 
+  // La matrícula es un documento personal: ya no viaja como URL pública del
+  // bucket. Se pide por un endpoint autenticado y se muestra desde un blob local,
+  // porque un <img src> no puede mandar el header Authorization.
+  const verMatricula = async (userId) => {
+    try {
+      const res = await API.get(`/users/${userId}/matricula`, { responseType: "blob" });
+      setImageModal(URL.createObjectURL(res.data));
+    } catch {
+      toast.error("No se pudo cargar la imagen de la matrícula");
+    }
+  };
+
+  const cerrarModal = () => {
+    if (imageModal?.startsWith("blob:")) URL.revokeObjectURL(imageModal);
+    setImageModal(null);
+  };
+
   const fetchUsers = async (status = filter) => {
     setLoading(true);
     try {
@@ -179,11 +196,11 @@ function AdminUsers() {
                   </div>
 
                   {/* Imagen de matrícula */}
-                  {u.matriculaImage && (
+                  {u.hasMatricula && (
                     <div className="mt-1">
                       <button
                         type="button"
-                        onClick={() => setImageModal(u.matriculaImage)}
+                        onClick={() => verMatricula(u._id)}
                         className="flex items-center gap-1.5 text-xs font-medium underline-offset-2 hover:underline transition"
                         style={{ color: "var(--brand)" }}
                       >
@@ -192,7 +209,7 @@ function AdminUsers() {
                       </button>
                     </div>
                   )}
-                  {!u.matriculaImage && (
+                  {!u.hasMatricula && (
                     <p className="text-xs italic" style={{ color: "var(--muted)" }}>
                       Sin imagen de matrícula
                     </p>
@@ -253,11 +270,11 @@ function AdminUsers() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.75)" }}
-          onClick={() => setImageModal(null)}
+          onClick={cerrarModal}
         >
           <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => setImageModal(null)}
+              onClick={cerrarModal}
               className="absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center text-white z-10"
               style={{ background: "#DC2626" }}
             >
