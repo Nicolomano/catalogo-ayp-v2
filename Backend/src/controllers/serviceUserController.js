@@ -2,7 +2,7 @@ import serviceUserModel from "../services/models/serviceUserModel.js";
 import { sendMail, approvalEmail, rejectionEmail } from "../services/emailService.js";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
-import { uploadPrivateToR2, getFromR2 } from "../utils/r2.js";
+import { uploadPrivateToR2, getFromR2, keyFromUrl } from "../utils/r2.js";
 import { assertImagenValida, ImagenInvalidaError, SHARP_OPTS } from "../utils/imageGuard.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -103,17 +103,20 @@ export const getMatricula = async (req, res) => {
   try {
     const user = await serviceUserModel
       .findById(req.params.id)
-      .select("matriculaKey matriculaImage")
+      .select("+matriculaKey matriculaImage")
       .lean();
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    if (!user.matriculaKey) {
-      // Registros viejos: la imagen quedó como URL pública en el bucket.
-      if (user.matriculaImage) return res.redirect(user.matriculaImage);
+    // Los registros viejos guardaron la URL pública del bucket. No se redirige
+    // hacia allá: además de exponer la URL, el navegador lo trataría como una
+    // petición de datos a otro origen y la CSP la bloquea. Como es el mismo
+    // bucket, se saca la key de la URL y se sirve por acá igual que las nuevas.
+    const key = user.matriculaKey || keyFromUrl(user.matriculaImage);
+    if (!key || key === user.matriculaImage) {
       return res.status(404).json({ message: "Sin matrícula cargada" });
     }
 
-    const obj = await getFromR2(user.matriculaKey);
+    const obj = await getFromR2(key);
     if (!obj) return res.status(404).json({ message: "Sin matrícula cargada" });
 
     res.set("Content-Type", obj.contentType);
