@@ -3,6 +3,7 @@ import {
   registerServiceUser,
   listServiceUsers,
   updateServiceUserStatus,
+  updateServiceUser,
   getMatricula,
 } from "../controllers/serviceUserController.js";
 import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
@@ -24,6 +25,7 @@ userRouter.post(
 // Protegidas — solo admin
 userRouter.get("/", protect, requireAdmin, listServiceUsers);
 userRouter.patch("/:id/status", protect, requireAdmin, updateServiceUserStatus);
+userRouter.patch("/:id", protect, requireAdmin, updateServiceUser);
 // La imagen de matrícula es un documento personal: se sirve acá, autenticada,
 // en vez de exponer una URL pública del bucket.
 userRouter.get("/:id/matricula", protect, requireAdmin, getMatricula);

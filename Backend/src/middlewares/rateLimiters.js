@@ -39,6 +39,16 @@ export const loginLimiter = rateLimit({
   },
 });
 
+/** Recuperación de contraseña: manda emails y hace una escritura por pedido. */
+export const passwordResetLimiter = rateLimit({
+  ...comun,
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: {
+    message: "Demasiados pedidos de recuperación. Probá de nuevo en una hora.",
+  },
+});
+
 /** Registro: crea documentos en Mongo y sube imágenes de matrícula a R2. */
 export const registerLimiter = rateLimit({
   ...comun,

@@ -152,6 +152,94 @@ export const listServiceUsers = async (req, res) => {
   }
 };
 
+/**
+ * Corrige los datos de un técnico (admin). Antes no había forma de arreglar un
+ * CUIT mal tipeado ni un cambio de teléfono: los únicos campos modificables eran
+ * status/approved/clientNumber.
+ *
+ * La whitelist es explícita a propósito. Con un `findByIdAndUpdate(id, req.body)`
+ * el cliente podría mandar `approved`, `role` o `password` — y `password` sería
+ * lo peor: findByIdAndUpdate NO dispara el hook pre("save"), así que se guardaría
+ * en texto plano y el login rompería sin dar error. La contraseña se cambia solo
+ * por el flujo de recuperación.
+ */
+export const updateServiceUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, company, province, cuit, clientNumber } = req.body;
+
+    if (![name, email, phone, company, province, cuit, clientNumber].every(esTexto)) {
+      return res.status(400).json({ message: "Datos inválidos." });
+    }
+
+    const update = {};
+
+    if (name !== undefined) {
+      if (!name.trim()) return res.status(400).json({ message: "El nombre es requerido" });
+      update.name = name.trim();
+    }
+
+    if (email !== undefined) {
+      const norm = email.toLowerCase().trim();
+      if (!EMAIL_RE.test(norm)) {
+        return res.status(400).json({ message: "El email no tiene un formato válido" });
+      }
+      update.email = norm;
+    }
+
+    if (cuit !== undefined) {
+      const limpio = cuit.replace(/\D/g, "");
+      if (limpio.length !== 11) {
+        return res.status(400).json({ message: "El CUIT debe tener 11 dígitos" });
+      }
+      update.cuit = limpio;
+    }
+
+    for (const campo of ["phone", "company", "province"]) {
+      if (req.body[campo] !== undefined) {
+        if (req.body[campo].length > MAX[campo]) {
+          return res.status(400).json({ message: `El campo ${campo} es demasiado largo` });
+        }
+        update[campo] = req.body[campo].trim();
+      }
+    }
+    if (name !== undefined && update.name.length > MAX.name) {
+      return res.status(400).json({ message: "El campo name es demasiado largo" });
+    }
+    if (clientNumber !== undefined) update.clientNumber = clientNumber.trim();
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ message: "No hay cambios para guardar" });
+    }
+
+    // El email va firmado dentro del JWT: si cambia, las sesiones abiertas quedan
+    // con un dato viejo, así que se invalidan.
+    const actual = await serviceUserModel.findById(id).select("email tokenVersion").lean();
+    if (!actual) return res.status(404).json({ message: "Usuario no encontrado" });
+    if (update.email && update.email !== actual.email) {
+      update.tokenVersion = (actual.tokenVersion || 0) + 1;
+    }
+
+    const actualizado = await serviceUserModel
+      .findByIdAndUpdate(id, update, { new: true, runValidators: true })
+      .select("-password")
+      .select("+matriculaKey")
+      .lean();
+
+    // Misma forma que devuelve el listado: sin la key ni la URL, solo el flag.
+    const { matriculaKey, matriculaImage, ...user } = actualizado;
+    res.json({ ...user, hasMatricula: Boolean(matriculaKey || matriculaImage) });
+  } catch (error) {
+    // El email es único: sin este caso, cambiarlo a uno existente daba un 500 sin
+    // explicación.
+    if (error?.code === 11000) {
+      return res.status(409).json({ message: "Ya existe otra cuenta con ese email" });
+    }
+    console.error("Error editando usuario service:", error);
+    res.status(500).json({ message: "No se pudo guardar" });
+  }
+};
+
 export const updateServiceUserStatus = async (req, res) => {
   try {
     const { id } = req.params;

@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import userModel from "../services/models/userModel.js";
 import serviceUserModel from "../services/models/serviceUserModel.js";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
+import { sendMail, passwordResetEmail } from "../services/emailService.js";
 
 const JWT_SECRET = config.jwtSecret;
 
@@ -13,6 +15,13 @@ const JWT_SECRET = config.jwtSecret;
 const DUMMY_HASH = bcrypt.hashSync("contraseña-que-nadie-usa", 11);
 
 const esTexto = (v) => typeof v === "string";
+
+const SITE_URL = (process.env.FRONTEND_URL || "https://www.refrigeracionayp.com").replace(/\/$/, "");
+const RESET_TTL_MS = 60 * 60 * 1000; // 1 hora
+const MIN_PASSWORD = 8;
+
+/** Guardamos el hash del token, no el token: una filtración de la base no sirve para resetear. */
+const hashToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 
 export const registerAdmin = async (req, res) => {
   try {
@@ -78,7 +87,13 @@ export const login = async (req, res) => {
       }
 
       const token = jwt.sign(
-        { id: user._id, email: user.email, role: "service", approved: user.approved },
+        {
+          id: user._id,
+          email: user.email,
+          role: "service",
+          approved: user.approved,
+          tv: user.tokenVersion || 0, // se invalida al cambiar la clave o el email
+        },
         JWT_SECRET,
         { expiresIn: "7d" }
       );
@@ -118,5 +133,81 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error("Error en login:", error);
     res.status(500).json({ message: "No se pudo iniciar sesión" });
+  }
+};
+
+/**
+ * Pide el mail de recuperación. SIEMPRE responde lo mismo, exista o no la cuenta:
+ * si respondiera distinto se convertiría en un detector de qué emails están
+ * registrados.
+ */
+export const forgotPassword = async (req, res) => {
+  const RESPUESTA = {
+    message:
+      "Si el email corresponde a una cuenta registrada, te enviamos las instrucciones para restablecer la contraseña.",
+  };
+  try {
+    const { email } = req.body;
+    if (!esTexto(email)) return res.status(400).json({ message: "Datos inválidos." });
+
+    const user = await serviceUserModel.findOne({ email: email.toLowerCase().trim() });
+    if (!user) return res.json(RESPUESTA);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetTokenHash = hashToken(token);
+    user.resetTokenExp = new Date(Date.now() + RESET_TTL_MS);
+    // save() dispara el hook de bcrypt, pero solo si password fue modificada;
+    // acá no lo es, así que no se re-hashea.
+    await user.save();
+
+    const url = `${SITE_URL}/restablecer-password?token=${token}`;
+    const mail = passwordResetEmail(user.name, url);
+    const enviado = await sendMail({ to: user.email, ...mail });
+    if (!enviado.ok) {
+      console.error("No se pudo enviar el mail de recuperación:", enviado.reason);
+    }
+
+    res.json(RESPUESTA);
+  } catch (error) {
+    console.error("Error en forgotPassword:", error);
+    res.json(RESPUESTA); // tampoco acá se revela nada
+  }
+};
+
+/** Cambia la contraseña con el token del mail. Un solo uso y con vencimiento. */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!esTexto(token) || !esTexto(password)) {
+      return res.status(400).json({ message: "Datos inválidos." });
+    }
+    if (password.length < MIN_PASSWORD) {
+      return res
+        .status(400)
+        .json({ message: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres` });
+    }
+
+    const user = await serviceUserModel
+      .findOne({ resetTokenHash: hashToken(token), resetTokenExp: { $gt: new Date() } })
+      .select("+resetTokenHash +resetTokenExp");
+
+    if (!user) {
+      return res.status(400).json({
+        message: "El enlace no es válido o ya venció. Pedí uno nuevo.",
+      });
+    }
+
+    // save() (no findByIdAndUpdate) para que corra el hook que hashea la clave.
+    user.password = password;
+    user.resetTokenHash = "";
+    user.resetTokenExp = null;
+    // Cierra las sesiones abiertas: si alguien tenía el token robado, deja de servirle.
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    res.json({ message: "Listo, ya podés iniciar sesión con tu contraseña nueva." });
+  } catch (error) {
+    console.error("Error en resetPassword:", error);
+    res.status(500).json({ message: "No se pudo restablecer la contraseña" });
   }
 };

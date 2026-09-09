@@ -21,6 +21,13 @@ const serviceUserSchema = new mongoose.Schema(
     approved:        { type: Boolean, default: false },
     status:          { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     rejectionReason: { type: String, default: "" },
+    // Recuperación de contraseña: se guarda el HASH del token, no el token. Así
+    // una filtración de la base no permite resetear cuentas ajenas.
+    resetTokenHash:  { type: String, default: "", select: false },
+    resetTokenExp:   { type: Date, default: null, select: false },
+    // Permite invalidar los JWT ya emitidos (duran 7 días). Sube al cambiar la
+    // contraseña o el email, que va firmado dentro del token.
+    tokenVersion:    { type: Number, default: 0 },
   },
   { timestamps: true }
 );

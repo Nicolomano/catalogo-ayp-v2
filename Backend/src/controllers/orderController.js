@@ -33,10 +33,16 @@ export async function esServiceAprobado(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return false;
   try {
-    const payload = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
+    const payload = jwt.verify(authHeader.split(" ")[1], JWT_SECRET, { algorithms: ["HS256"] });
     if (payload.role !== "service") return false;
-    const user = await serviceUserModel.findById(payload.id).select("approved").lean();
-    return user?.approved === true;
+    const user = await serviceUserModel
+      .findById(payload.id)
+      .select("approved tokenVersion")
+      .lean();
+    if (!user || user.approved !== true) return false;
+    // Sesiones invalidadas al cambiar la contraseña o el email. Se aprovecha esta
+    // consulta, que ya existía, así que no agrega ninguna query.
+    return (user.tokenVersion || 0) === (payload.tv || 0);
   } catch {
     return false; // token vencido o inválido → precio de lista
   }
