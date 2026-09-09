@@ -34,7 +34,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://pub-849b8cc3f0554d009b9c665fefdaf154.r2.dev https://www.google-analytics.com; connect-src 'self' https://catalogo-ayp-v2-production.up.railway.app https://www.google-analytics.com https://region1.google-analytics.com; frame-src https://www.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://pub-849b8cc3f0554d009b9c665fefdaf154.r2.dev https://www.google-analytics.com; connect-src 'self' https://catalogo-ayp-v2-production.up.railway.app https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com; frame-src https://www.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
         }
       ]
     }
