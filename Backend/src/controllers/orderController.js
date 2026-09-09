@@ -1,7 +1,14 @@
+import jwt from "jsonwebtoken";
 import Order from "../services/models/orderModel.js";
 import Config from "../services/models/configModel.js";
 import SiteConfig from "../services/models/siteConfigModel.js";
 import Product from "../services/models/productModel.js";
+import serviceUserModel from "../services/models/serviceUserModel.js";
+import config from "../config/config.js";
+
+const JWT_SECRET = config.jwtSecret;
+const SERVICE_DISCOUNT = 0.9; // 10% off para técnicos aprobados
+const MAX_QTY = 999;
 
 // helper para formatear texto del detalle
 const formatMoney = (n) => {
@@ -11,6 +18,27 @@ const formatMoney = (n) => {
     maximumFractionDigits: 2,
   });
 };
+
+/**
+ * ¿Quien hace el pedido es un técnico service aprobado?
+ *
+ * El pedido es público (no hace falta estar logueado), así que el token es
+ * opcional: si viene y es válido, se releé el usuario de la base. No alcanza con
+ * el `approved` del token porque dura 7 días y el admin puede haber revocado la
+ * cuenta en el medio.
+ */
+async function esServiceAprobado(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return false;
+  try {
+    const payload = jwt.verify(authHeader.split(" ")[1], JWT_SECRET);
+    if (payload.role !== "service") return false;
+    const user = await serviceUserModel.findById(payload.id).select("approved").lean();
+    return user?.approved === true;
+  } catch {
+    return false; // token vencido o inválido → precio de lista
+  }
+}
 
 export const createOrder = async (req, res) => {
   try {
@@ -32,29 +60,50 @@ export const createOrder = async (req, res) => {
     const exchangeRate = cfg?.exchangeRate || 1;
     const storeWhatsApp = (siteCfg?.whatsapp || "").replace(/\D/g, "");
 
+    const conDescuento = await esServiceAprobado(req);
+
     let totalUSD = 0;
     let totalARS = 0;
     const orderProducts = [];
+    // Ítems que no se pudieron incluir. El carrito vive en localStorage sin
+    // vencimiento, así que es normal que traiga cosas que ya no están a la venta;
+    // antes se descartaban en silencio y el cliente se enteraba de menos.
+    const descartados = [];
 
     // Releemos cada producto desde DB para evitar manipulación del precio
     for (const item of products) {
-      const prod = await Product.findById(item.productId);
-      if (!prod) continue;
+      // Solo productos publicados: uno desactivado desde el admin (o por el
+      // import) no se puede pedir aunque haya quedado en el carrito.
+      const prod = await Product.findOne({ _id: item.productId, active: true }).catch(
+        () => null
+      );
+      if (!prod) {
+        descartados.push({ productId: item.productId, motivo: "no disponible" });
+        continue;
+      }
+      if (prod.inStock === false) {
+        descartados.push({ productId: item.productId, name: prod.name, motivo: "sin stock" });
+        continue;
+      }
 
-      const qty = Number(item.quantity || 0);
-      if (qty <= 0) continue;
-
-      // Incremento atómico para evitar race condition entre pedidos concurrentes
-      await Product.updateOne({ _id: prod._id }, { $inc: { soldCount: qty } });
+      // Number.isInteger descarta NaN, decimales y negativos de una.
+      // Ojo: `qty <= 0` NO alcanzaba, porque NaN <= 0 es false y NaN pasaba.
+      const qty = Number(item.quantity);
+      if (!Number.isInteger(qty) || qty <= 0 || qty > MAX_QTY) {
+        descartados.push({ productId: item.productId, name: prod.name, motivo: "cantidad inválida" });
+        continue;
+      }
 
       // Los productos fijados en ARS no tienen priceUSD → evitar NaN en los totales
-      const priceUSD = Number(prod.priceUSD) || 0;
-      const priceARS = Number(prod.priceARS) || 0;
-      const subUSD = priceUSD * qty;
-      const subARS = priceARS * qty; // ya persistido con tu lógica de exchangeRate
+      const baseUSD = Number(prod.priceUSD) || 0;
+      const baseARS = Number(prod.priceARS) || 0;
+      // El descuento se aplica ACÁ, del lado servidor. Antes solo existía en el
+      // render de las tarjetas: el técnico veía un precio y se le cotizaba otro.
+      const priceUSD = conDescuento ? baseUSD * SERVICE_DISCOUNT : baseUSD;
+      const priceARS = conDescuento ? Math.round(baseARS * SERVICE_DISCOUNT) : baseARS;
 
-      totalUSD += subUSD;
-      totalARS += subARS;
+      totalUSD += priceUSD * qty;
+      totalARS += priceARS * qty;
 
       orderProducts.push({
         productId: prod._id,
@@ -69,7 +118,8 @@ export const createOrder = async (req, res) => {
     if (orderProducts.length === 0) {
       return res.status(400).json({
         message:
-          "No se pudo construir la orden. Verificá los IDs y cantidades.",
+          "Ninguno de los productos del pedido está disponible. Actualizá la página e intentá de nuevo.",
+        descartados,
       });
     }
 
@@ -81,6 +131,15 @@ export const createOrder = async (req, res) => {
       customerPhone,
     });
     await newOrder.save();
+
+    // Recién ahora se suman las ventas: antes el $inc iba dentro del loop, así
+    // que un fallo al guardar dejaba los contadores inflados sin ninguna orden
+    // detrás (y "Más vendidos" ordena por este campo).
+    await Promise.all(
+      orderProducts.map((p) =>
+        Product.updateOne({ _id: p.productId }, { $inc: { soldCount: p.quantity } })
+      )
+    ).catch((e) => console.error("No se pudo actualizar soldCount:", e.message));
 
     // Texto de WhatsApp: va dirigido AL LOCAL
     const lines = orderProducts
@@ -98,6 +157,7 @@ export const createOrder = async (req, res) => {
       `🛒 Nueva orden\n\n` +
         `${lines}\n\n` +
         `Total:  ${formatMoney(totalARS)} ARS\n` +
+        (conDescuento ? `(Precios con descuento service -10%)\n` : "") +
         `Cotización aplicada: ${formatMoney(exchangeRate)} ARS/USD\n\n` +
         `👤 Cliente: ${customerName}\n` +
         `📞 Tel: ${customerPhone}`
@@ -108,7 +168,7 @@ export const createOrder = async (req, res) => {
     // Alternativa compatible:
     // const waLink = `https://api.whatsapp.com/send?phone=${waPhone}&text=${text}`;
 
-    res.status(201).json({ order: newOrder, waLink });
+    res.status(201).json({ order: newOrder, waLink, descartados });
   } catch (error) {
     console.error("❌ Error creando orden:", error);
     res

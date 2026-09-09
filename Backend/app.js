@@ -13,12 +13,16 @@ import categoryRouter from "./src/routes/categoryRoutes.js";
 import kitRouter from "./src/routes/kitRoutes.js";
 import siteConfigRouter from "./src/routes/siteConfigRoutes.js";
 import userRouter from "./src/routes/userRoutes.js";
-import tecnicoRouter from "./src/routes/tecnicoRoutes.js";
 import corsOptions from "./src/utils/cors.js";
 import productModel from "./src/services/models/productModel.js";
 
 const app = express();
 const SERVER_PORT = process.env.PORT || 8080;
+
+// Railway sirve detrás de un proxy: sin esto req.ip es la IP del proxy y los
+// límites por IP se aplicarían a todos los usuarios juntos. El 1 es la cantidad
+// de proxies de confianza (no usar `true`, que acepta cualquier X-Forwarded-For).
+app.set("trust proxy", 1);
 
 app.use(compression()); // gzip de las respuestas JSON de la API
 app.use(express.json());
@@ -35,56 +39,11 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/kits", kitRouter);
 app.use("/api/site-config", siteConfigRouter);
 app.use("/api/users", userRouter);
-app.use("/api/tecnicos", tecnicoRouter);
 
-app.get("/sitemap.xml", async (req, res) => {
-  try {
-    const FRONTEND_URL =
-      process.env.FRONTEND_URL || "https://catalogoayp.vercel.app";
-
-    const products = await productModel
-      .find({ active: true }, "productCode updatedAt")
-      .lean();
-
-    const staticUrls = [
-      { loc: FRONTEND_URL, priority: "1.0", changefreq: "daily" },
-    ];
-
-    const productUrls = products.map((p) => ({
-      loc: `${FRONTEND_URL}/product/${p.productCode}`,
-      priority: "0.8",
-      changefreq: "weekly",
-      lastmod: p.updatedAt
-        ? new Date(p.updatedAt).toISOString().split("T")[0]
-        : undefined,
-    }));
-
-    const allUrls = [...staticUrls, ...productUrls];
-
-    const urlset = allUrls
-      .map(
-        (u) => `
-  <url>
-    <loc>${u.loc}</loc>
-    ${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`
-      )
-      .join("");
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urlset}
-</urlset>`;
-
-    res.set("Content-Type", "application/xml");
-    res.set("Cache-Control", "public, max-age=3600");
-    res.send(xml);
-  } catch (err) {
-    res.status(500).send("Error generando sitemap");
-  }
-});
+// El sitemap lo sirve el frontend en www.refrigeracionayp.com/sitemap.xml
+// (frontend/api/sitemap.js), que es el que referencia robots.txt. Acá había una
+// segunda versión que nadie consumía y que caía al dominio viejo si faltaba
+// FRONTEND_URL. El índice de productos lo expone GET /api/products/sitemap.
 
 app.use((req, res) => {
   res.status(404).send("Ruta no encontrada");

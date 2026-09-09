@@ -27,6 +27,11 @@ function WaIcon({ size = 16 }) {
 
 /* ── Tarjeta mini para productos relacionados ── */
 function RelatedCard({ product }) {
+  // Sin esto, el técnico veía el precio service arriba y el de lista acá abajo,
+  // en la misma pantalla.
+  const { isServiceApproved, servicePrice } = useAuth();
+  const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
+
   return (
     <Link
       to={`/product/${product.productCode}`}
@@ -46,9 +51,9 @@ function RelatedCard({ product }) {
         <p className="text-xs line-clamp-2 font-medium leading-tight" style={{ color: "var(--text)" }}>
           {formatTitle(product.name)}
         </p>
-        {product.priceARS
+        {displayPrice
           ? <p className="text-sm font-bold mt-1.5" style={{ color: "var(--brand)" }}>
-              ${product.priceARS.toLocaleString("es-AR")}
+              ${displayPrice.toLocaleString("es-AR")}
             </p>
           : <p className="text-xs italic mt-1.5" style={{ color: "var(--muted)" }}>Consultar</p>
         }

@@ -1,4 +1,5 @@
 import { useCart } from "../Context/CartContext.jsx";
+import { useAuth } from "../Context/AuthContext.jsx";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, ShoppingCart, Package, MessageCircle, Info } from "lucide-react";
@@ -7,6 +8,7 @@ import toast from "react-hot-toast";
 
 function Cart() {
   const { cart, removeFromCart, clearCart, updateQuantity } = useCart();
+  const { isServiceApproved, servicePrice } = useAuth();
   const [loading, setLoading]             = useState(false);
   const [customerName, setCustomerName]   = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -31,7 +33,12 @@ function Cart() {
     );
   }
 
-  const total = cart.reduce((sum, item) => sum + (item.priceARS || 0) * item.quantity, 0);
+  // El precio que se muestra tiene que salir del mismo criterio que aplica el
+  // backend al crear la orden, o el técnico ve un total y le cotizan otro.
+  const precioUnitario = (item) =>
+    (isServiceApproved ? servicePrice(item.priceARS) : item.priceARS) || 0;
+
+  const total = cart.reduce((sum, item) => sum + precioUnitario(item) * item.quantity, 0);
 
   const handleConfirm = async () => {
     if (!customerName || !customerPhone) {
@@ -48,6 +55,19 @@ function Cart() {
         customerPhone,
         products: cart.map((item) => ({ productId: item._id, quantity: item.quantity })),
       });
+      // El backend descarta lo que ya no está publicado o quedó sin stock. Antes
+      // desaparecía en silencio: el cliente pedía 5 cosas y el WhatsApp listaba 4.
+      const descartados = res.data?.descartados || [];
+      if (descartados.length) {
+        const nombres = descartados.map((d) => d.name).filter(Boolean);
+        toast(
+          nombres.length
+            ? `No se pudieron incluir: ${nombres.join(", ")}. Escribinos si los necesitás.`
+            : `${descartados.length} producto(s) ya no están disponibles y quedaron fuera del pedido.`,
+          { icon: "⚠️", duration: 8000 }
+        );
+      }
+
       clearCart();
       const link = res.data?.waLink;
       if (link) {
@@ -84,9 +104,14 @@ function Cart() {
 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>{item.name}</p>
-              {item.priceARS && (
+              {item.priceARS > 0 && (
                 <p className="text-sm font-bold mt-0.5" style={{ color: "var(--brand)" }}>
-                  ${item.priceARS.toLocaleString("es-AR")} c/u
+                  ${precioUnitario(item).toLocaleString("es-AR")} c/u
+                  {isServiceApproved && (
+                    <span className="ml-1 text-xs font-semibold" style={{ color: "#16A34A" }}>
+                      service
+                    </span>
+                  )}
                 </p>
               )}
               <div className="flex items-center gap-2 mt-2">
@@ -103,9 +128,9 @@ function Cart() {
             </div>
 
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              {item.priceARS && (
+              {item.priceARS > 0 && (
                 <p className="text-sm font-bold" style={{ color: "var(--text)" }}>
-                  ${(item.priceARS * item.quantity).toLocaleString("es-AR")}
+                  ${(precioUnitario(item) * item.quantity).toLocaleString("es-AR")}
                 </p>
               )}
               <button onClick={() => removeFromCart(item._id)}
