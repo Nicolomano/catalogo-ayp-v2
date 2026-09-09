@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import compression from "compression";
+import { apiLimiter } from "./src/middlewares/rateLimiters.js";
 import mongoose from "mongoose";
 import MongoSingleton from "./src/config/mongoDB-singleton.js";
 import productRouter from "./src/routes/productRoute.js";
@@ -24,10 +26,19 @@ const SERVER_PORT = process.env.PORT || 8080;
 // de proxies de confianza (no usar `true`, que acepta cualquier X-Forwarded-For).
 app.set("trust proxy", 1);
 
+// Cabeceras de seguridad. La CSP la sirve Vercel para el HTML (ver
+// frontend/vercel.json); acá solo se responde JSON, así que alcanza con el resto.
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
+app.disable("x-powered-by");
+
 app.use(compression()); // gzip de las respuestas JSON de la API
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 app.use(cors(corsOptions));
+
+// Techo general por IP para toda la API (los límites de login/registro/pedidos
+// se aplican además de este, en sus rutas).
+app.use("/api", apiLimiter);
 
 app.use("/api/products", productRouter);
 app.use("/api/config", configRouter);
@@ -73,7 +84,10 @@ const httpServer = app.listen(SERVER_PORT, () => {
 // El default de Node (requestTimeout = 300000 ms = 5 min) cortaba la importación
 // de Excel grande antes de que el server respondiera. Subimos a 15 min.
 httpServer.requestTimeout = 900000;
-httpServer.headersTimeout = 920000;
+// headersTimeout queda en el default (60s) a propósito: subirlo a 15 min hacía
+// que mantener sockets abiertos mandando un byte de header cada tanto costara
+// nada (slowloris). Los headers de un upload llegan en milisegundos; lo que
+// tarda es el cuerpo, y eso lo gobierna requestTimeout.
 
 const connectMongoDB = async () => {
   try {

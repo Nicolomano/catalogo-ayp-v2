@@ -8,6 +8,12 @@ import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
 /* ---- búsqueda insensible a tildes ---- */
+// El $regex resultante no usa índice: escanea toda la colección, y encima el
+// endpoint corre find + countDocuments. Sin tope, un `search` de 15 KB se
+// expande a un patrón enorme aplicado a cada documento. 64 caracteres alcanzan
+// de sobra para cualquier búsqueda real.
+const MAX_SEARCH = 64;
+
 function toAccentInsensitiveRegex(raw) {
   const map = {
     a: "[aáàâäã]", á: "[aáàâäã]", à: "[aáàâäã]", â: "[aáàâäã]", ä: "[aáàâäã]", ã: "[aáàâäã]",
@@ -181,10 +187,18 @@ export async function updateProduct(req, res) {
 export async function getProductByCode(req, res) {
   const { productCode } = req.params;
   try {
+    // Select explícito: antes devolvía el documento entero, o sea priceUSD (el
+    // costo), soldCount, views y featuredOrder. Hoy ningún producto tiene
+    // priceUSD cargado, pero el día que se cargue uno la lista de costos quedaba
+    // pública y enumerable con los códigos de /products/sitemap.
     const product = await productModel.findOneAndUpdate(
       { productCode: productCode.toString(), active: true },
       { $inc: { views: 1 } },
-      { new: true }
+      {
+        new: true,
+        projection:
+          "productCode name description brand image priceARS inStock categories subcategories",
+      }
     );
 
     if (!product)
@@ -194,9 +208,8 @@ export async function getProductByCode(req, res) {
 
     res.status(200).json(product);
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error buscando producto", error: error.message });
+    console.error("Error buscando producto:", error);
+    res.status(500).json({ message: "Error buscando producto" });
   }
 }
 
@@ -243,7 +256,7 @@ export const getProductsByCategory = async (req, res) => {
     }
 
     if (search) {
-      const pattern = toAccentInsensitiveRegex(search.trim());
+      const pattern = toAccentInsensitiveRegex(String(search).trim().slice(0, MAX_SEARCH));
       andConditions.push({
         $or: [
           { name: { $regex: pattern, $options: "i" } },
@@ -358,7 +371,7 @@ export const getProductsAdmin = async (req, res) => {
     const adminAnd = [];
 
     if (search) {
-      const pattern = toAccentInsensitiveRegex(search.trim());
+      const pattern = toAccentInsensitiveRegex(String(search).trim().slice(0, MAX_SEARCH));
       adminAnd.push({
         $or: [
           { name: { $regex: pattern, $options: "i" } },

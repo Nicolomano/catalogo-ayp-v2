@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import path from "path";
 
@@ -37,7 +42,50 @@ export async function uploadToR2(buffer, key, mimeType = "image/webp") {
   return `${PUBLIC_URL}/${key}`;
 }
 
+/**
+ * Sube un archivo SIN devolver una URL pública: guarda solo la key.
+ *
+ * Se usa para documentos personales (matrículas). El bucket hoy tiene el dominio
+ * público habilitado, así que lo que evita la exposición es no publicar nunca la
+ * URL: se sirven por un endpoint de admin que las baja con credenciales.
+ * Sin `CacheControl` público y sin `immutable`.
+ */
+export async function uploadPrivateToR2(buffer, key, mimeType = "image/webp") {
+  if (!R2_CONFIGURED || !s3) {
+    throw new Error("R2 no está configurado. Completá las variables R2_* en el archivo .env.");
+  }
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+      CacheControl: "private, no-store",
+    })
+  );
+  return key;
+}
+
+/** Descarga un objeto por key. Devuelve { body, contentType } o null si no existe. */
+export async function getFromR2(key) {
+  if (!R2_CONFIGURED || !s3) {
+    throw new Error("R2 no está configurado. Completá las variables R2_* en el archivo .env.");
+  }
+  try {
+    const out = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    return {
+      body: out.Body,
+      contentType: out.ContentType || "application/octet-stream",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteFromR2(key) {
+  if (!R2_CONFIGURED || !s3) {
+    throw new Error("R2 no está configurado. Completá las variables R2_* en el archivo .env.");
+  }
   const command = new DeleteObjectCommand({ Bucket: BUCKET, Key: key });
   await s3.send(command);
 }

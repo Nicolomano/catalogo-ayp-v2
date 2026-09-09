@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
+import userModel from "../services/models/userModel.js";
 const JWT_SECRET = config.jwtSecret;
 
 /**
@@ -9,7 +10,7 @@ const JWT_SECRET = config.jwtSecret;
  * usuario service (el registro de service es público). Para todo lo que sea de
  * administración hay que encadenar `requireAdmin`.
  */
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -20,8 +21,22 @@ export const protect = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // ✅ Verificar validez del token
-    const decoded = jwt.verify(token, JWT_SECRET);
+    // ✅ Verificar validez del token (algoritmo fijado: no aceptamos "none"
+    // ni que el atacante elija cómo se verifica la firma)
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] });
+
+    // Los tokens de admin se contrastan contra la base para poder revocarlos:
+    // al cambiar la contraseña sube tokenVersion y las sesiones viejas mueren.
+    // Es una query extra, pero el tráfico de admin es mínimo.
+    if (decoded.role === "admin") {
+      const admin = await userModel.findById(decoded.id).select("tokenVersion").lean();
+      if (!admin || (admin.tokenVersion || 0) !== (decoded.tv || 0)) {
+        return res
+          .status(401)
+          .json({ message: "Sesión expirada, por favor inicia sesión nuevamente" });
+      }
+    }
+
     req.user = decoded;
 
     next();
@@ -53,13 +68,7 @@ export const requireAdmin = (req, res, next) => {
   next();
 };
 
-/**
- * Autorización: exige un usuario service aprobado. Va después de `protect`.
- * Se usa para lo que dependa del beneficio de precio service.
- */
-export const requireApprovedService = (req, res, next) => {
-  if (req.user?.role !== "service" || req.user?.approved !== true) {
-    return res.status(403).json({ message: "Cuenta service no aprobada" });
-  }
-  next();
-};
+// No hay un `requireApprovedService`: leería `approved` del token, que dura 7
+// días, así que un técnico al que le revocaron la cuenta seguiría pasando. Lo
+// que dependa del beneficio service usa `esServiceAprobado` de
+// orderController.js, que relee el estado de la base en cada pedido.

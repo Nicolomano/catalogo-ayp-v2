@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import Order from "../services/models/orderModel.js";
 import Config from "../services/models/configModel.js";
 import SiteConfig from "../services/models/siteConfigModel.js";
@@ -9,6 +10,7 @@ import config from "../config/config.js";
 const JWT_SECRET = config.jwtSecret;
 const SERVICE_DISCOUNT = 0.9; // 10% off para técnicos aprobados
 const MAX_QTY = 999;
+const MAX_ITEMS = 100; // productos distintos por pedido
 
 // helper para formatear texto del detalle
 const formatMoney = (n) => {
@@ -49,10 +51,23 @@ export const createOrder = async (req, res) => {
         .status(400)
         .json({ message: "La orden debe incluir productos." });
     }
-    if (!customerName || !customerPhone) {
+    // Sin tope entraban ~1900 ítems en el body, y cada uno era una consulta
+    // secuencial a la base dentro de la misma request.
+    if (products.length > MAX_ITEMS) {
+      return res
+        .status(400)
+        .json({ message: `El pedido no puede tener más de ${MAX_ITEMS} productos distintos.` });
+    }
+    if (typeof customerName !== "string" || typeof customerPhone !== "string") {
+      return res.status(400).json({ message: "Datos del cliente inválidos." });
+    }
+    if (!customerName.trim() || !customerPhone.trim()) {
       return res
         .status(400)
         .json({ message: "Faltan datos del cliente (nombre y teléfono)." });
+    }
+    if (customerName.length > 120 || customerPhone.length > 40) {
+      return res.status(400).json({ message: "Datos del cliente demasiado largos." });
     }
 
     // Tomamos la cotización y el número de WhatsApp del LOCAL desde la DB
@@ -70,15 +85,24 @@ export const createOrder = async (req, res) => {
     // antes se descartaban en silencio y el cliente se enteraba de menos.
     const descartados = [];
 
+    // Una sola consulta para todo el pedido, en vez de un findOne por ítem
+    // dentro del loop. Los ids se validan antes: un {"$ne":null} en productId
+    // seleccionaba un producto arbitrario.
+    const idsValidos = products
+      .map((it) => it.productId)
+      .filter((id) => mongoose.isValidObjectId(id));
+    const encontrados = idsValidos.length
+      ? await Product.find({ _id: { $in: idsValidos }, active: true })
+      : [];
+    const porId = new Map(encontrados.map((p) => [String(p._id), p]));
+
     // Releemos cada producto desde DB para evitar manipulación del precio
     for (const item of products) {
       // Solo productos publicados: uno desactivado desde el admin (o por el
       // import) no se puede pedir aunque haya quedado en el carrito.
-      const prod = await Product.findOne({ _id: item.productId, active: true }).catch(
-        () => null
-      );
+      const prod = porId.get(String(item.productId));
       if (!prod) {
-        descartados.push({ productId: item.productId, motivo: "no disponible" });
+        descartados.push({ productId: String(item.productId), motivo: "no disponible" });
         continue;
       }
       if (prod.inStock === false) {

@@ -12,6 +12,22 @@ const comun = {
   legacyHeaders: false,
 };
 
+/**
+ * Techo general para toda la API. Los límites específicos de abajo siguen
+ * aplicando encima de este.
+ *
+ * Existe sobre todo por el buscador: `GET /products?search=` hace un $regex no
+ * anclado que ningún índice cubre, dos veces por request (find + countDocuments),
+ * sobre ~3200 productos. Sin techo, unas pocas decenas de conexiones saturan el
+ * proceso. El valor es holgado para no molestar a un cliente navegando.
+ */
+export const apiLimiter = rateLimit({
+  ...comun,
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { message: "Demasiadas solicitudes. Esperá unos minutos." },
+});
+
 /** Login: fuerza bruta. Los intentos exitosos no cuentan. */
 export const loginLimiter = rateLimit({
   ...comun,
