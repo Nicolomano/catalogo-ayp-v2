@@ -63,7 +63,9 @@ export function AuthProvider({ children }) {
       return { ok: true };
     } catch (err) {
       const msg = err.response?.data?.message || "Error al iniciar sesión";
-      return { ok: false, message: msg };
+      // El backend ahora rechaza con 403 las cuentas sin aprobar (antes devolvía
+      // un token igual y el bloqueo era solo de pantalla).
+      return { ok: false, message: msg, pending: err.response?.data?.pending === true };
     } finally {
       setLoading(false);
     }
@@ -79,18 +81,19 @@ export function AuthProvider({ children }) {
     setServiceUser(null);
   };
 
-  // True when a service user is logged in and approved
-  const isServiceApproved =
-    serviceUser?.role === "service" && serviceUser?.approved === true;
+  // Ambos roles se derivan del JWT, no de localStorage: el token está firmado y
+  // no se puede falsificar desde la consola. Antes `isServiceApproved` salía de
+  // un objeto plano de localStorage, así que cualquiera se activaba el precio
+  // service escribiendo una línea en la consola; y ahora que el descuento se
+  // aplica de verdad en el backend, el precio que se muestra tiene que salir de
+  // la misma fuente que el que se cotiza, o vuelven a no coincidir.
+  const payload = readTokenPayload();
+  const tokenVigente = payload && (!payload.exp || payload.exp * 1000 > Date.now());
 
-  // True solo si el JWT dice role "admin" y no está vencido. Antes se infería
-  // como "hay token y no hay serviceUser", así que un service que borrara
-  // ayp_service_user de localStorage veía el link de Admin en la nav.
-  // Es solo cosmético: las rutas admin las protege el backend.
-  const adminPayload = readTokenPayload();
-  const isAdmin =
-    adminPayload?.role === "admin" &&
-    (!adminPayload.exp || adminPayload.exp * 1000 > Date.now());
+  const isAdmin = tokenVigente && payload.role === "admin";
+
+  const isServiceApproved =
+    tokenVigente && payload.role === "service" && payload.approved === true;
 
   // Computes 10% off price for approved service users
   const servicePrice = (priceARS) => {

@@ -4,6 +4,7 @@ import Layout from "./components/Layout.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import MaintenancePage from "./pages/MaintenancePage.jsx";
 import API from "./api/axios.js";
+import { useAuth } from "./Context/AuthContext.jsx";
 
 // ── Páginas públicas (lazy: cada una en su chunk, no viajan en el primer load) ──
 const Landing = lazy(() => import("./pages/Landing.jsx"));
@@ -45,6 +46,9 @@ function PageLoader() {
 
 function PublicLayout() {
   const [maintenance, setMaintenance] = useState(false);
+  // Solo un admin real saltea el modo mantenimiento. Antes alcanzaba con que
+  // existiera cualquier string en localStorage.token.
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     API.get("/site-config")
@@ -52,9 +56,7 @@ function PublicLayout() {
       .catch(() => {});
   }, []);
 
-  const adminToken = localStorage.getItem("token");
-
-  if (maintenance && !adminToken) return <MaintenancePage />;
+  if (maintenance && !isAdmin) return <MaintenancePage />;
   return <Layout />;
 }
 

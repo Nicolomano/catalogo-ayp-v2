@@ -5,13 +5,13 @@ import {
   getOrderById,
   updateOrderStatus,
 } from "../controllers/orderController.js";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
 
 const orderRouter = Router();
 
 orderRouter.post("/", createOrder);                        // crear orden (público — lo hace el cliente)
-orderRouter.get("/", protect, getOrders);                  // listar todas (solo admin)
-orderRouter.get("/:id", protect, getOrderById);            // ver una (solo admin)
-orderRouter.patch("/:id/status", protect, updateOrderStatus); // cambiar estado (solo admin)
+orderRouter.get("/", protect, requireAdmin, getOrders);                  // listar todas (solo admin)
+orderRouter.get("/:id", protect, requireAdmin, getOrderById);            // ver una (solo admin)
+orderRouter.patch("/:id/status", protect, requireAdmin, updateOrderStatus); // cambiar estado (solo admin)
 
 export default orderRouter;

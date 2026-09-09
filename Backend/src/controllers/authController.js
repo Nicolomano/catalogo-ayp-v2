@@ -35,6 +35,19 @@ export const login = async (req, res) => {
       if (!isMatch)
         return res.status(401).json({ message: "Credenciales inválidas" });
 
+      // La aprobación se valida ACÁ, antes de firmar. Antes se devolvía un token
+      // válido igual y el "esperá la aprobación" vivía solo en el navegador: una
+      // cuenta sin aprobar podía operar la API con ese token.
+      if (!user.approved) {
+        return res.status(403).json({
+          message:
+            "Tu cuenta aún no fue aprobada. Por favor esperá la confirmación del administrador.",
+          approved: false,
+          status: user.status,
+          pending: true,
+        });
+      }
+
       const token = jwt.sign(
         { id: user._id, email: user.email, role: "service", approved: user.approved },
         JWT_SECRET,

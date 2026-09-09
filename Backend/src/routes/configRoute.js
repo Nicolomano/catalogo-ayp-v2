@@ -6,13 +6,13 @@ import {
   updateInstallKit,
 } from "../controllers/configController.js";
 import { config } from "dotenv";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
 const configRouter = express.Router();
 
-configRouter.put("/", protect, updateExchangeRate);
+configRouter.put("/", protect, requireAdmin, updateExchangeRate);
 
 configRouter.get("/", getExchangeRate);
 configRouter.get("/install-kit", getInstallKit);
-configRouter.put("/install-kit", protect, updateInstallKit);
+configRouter.put("/install-kit", protect, requireAdmin, updateInstallKit);
 
 export default configRouter;

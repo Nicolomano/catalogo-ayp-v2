@@ -4,7 +4,7 @@ import {
   listServiceUsers,
   updateServiceUserStatus,
 } from "../controllers/serviceUserController.js";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
 import uploadCloud from "../middlewares/multer.js";
 
 const userRouter = Router();
@@ -13,7 +13,7 @@ const userRouter = Router();
 userRouter.post("/register", uploadCloud.single("matriculaImage"), registerServiceUser);
 
 // Protegidas — solo admin
-userRouter.get("/", protect, listServiceUsers);
-userRouter.patch("/:id/status", protect, updateServiceUserStatus);
+userRouter.get("/", protect, requireAdmin, listServiceUsers);
+userRouter.patch("/:id/status", protect, requireAdmin, updateServiceUserStatus);
 
 export default userRouter;
