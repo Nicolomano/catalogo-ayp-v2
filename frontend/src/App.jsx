@@ -34,6 +34,7 @@ const AdminInstallKit = lazy(() => import("./pages/AdminInstallKit.jsx"));
 const AdminCategories = lazy(() => import("./pages/AdminCategories.jsx"));
 const AdminLanding = lazy(() => import("./pages/AdminLanding.jsx"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers.jsx"));
+const AdminMetricas = lazy(() => import("./pages/AdminMetricas.jsx"));
 
 function PageLoader() {
   return (
@@ -106,6 +107,7 @@ function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="landing" element={<AdminLanding />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="metricas" element={<AdminMetricas />} />
           </Route>
         </Routes>
       </Suspense>

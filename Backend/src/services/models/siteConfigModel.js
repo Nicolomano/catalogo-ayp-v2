@@ -33,6 +33,10 @@ const siteConfigSchema = new mongoose.Schema(
         { title: "Horario",         desc: "Lun-Vie 8 a 18hs" },
       ],
     },
+    // ── Categorías destacadas en el inicio ─────────────────────
+    // Nombres de categoría, en el orden en que se muestran. Si queda vacío, la
+    // home cae al comportamiento anterior: las primeras por orden alfabético.
+    featuredCategories: { type: [String], default: [] },
     // ── Quiénes somos ──────────────────────────────────────────
     aboutTitle: { type: String, default: "¿Quiénes somos?" },
     aboutText: {

@@ -26,6 +26,7 @@ const DEFAULT = {
     { title: "Precio service", desc: "10% de descuento" },
     { title: "Horario", desc: "Lun-Vie 8 a 18hs" },
   ],
+  featuredCategories: [],
   aboutTitle: "¿Quiénes somos?", aboutText: "",
   address: "", phone: "", whatsapp: "", hours: "", email: "", mapsEmbed: "", mapsUrl: "",
   kitTitle: "Kit de instalación", kitSubtitle: "", kitCTA: "Armar mi kit →",
@@ -65,12 +66,36 @@ export default function AdminLanding() {
   const heroBoxRef                = useRef(null);
   const dragRef                   = useRef({ on: false, x: 0, y: 0, px: 50, py: 50 });
 
+  const [categoriasDisponibles, setCategoriasDisponibles] = useState([]);
+
   useEffect(() => {
     API.get("/site-config").then((r) => {
       setConfig((p) => ({ ...p, ...r.data }));
       setHeroPos(parsePos(r.data.heroImagePosition));
     }).catch(() => {});
+    // Las categorías reales salen de los productos cargados, no de una lista fija.
+    API.get("/products/meta/categories")
+      .then((r) => {
+        const data = Array.isArray(r.data) ? r.data : [];
+        setCategoriasDisponibles(
+          data.map((c) => (typeof c === "string" ? c : c.category)).filter(Boolean)
+        );
+      })
+      .catch(() => {});
   }, []);
+
+  // ── Categorías destacadas del inicio ──────────────────────────
+  const elegidas = config.featuredCategories || [];
+  const setElegidas = (nuevas) => set("featuredCategories", nuevas);
+  const agregarCategoria = (nombre) => setElegidas([...elegidas, nombre]);
+  const quitarCategoria = (nombre) => setElegidas(elegidas.filter((c) => c !== nombre));
+  const moverCategoria = (i, delta) => {
+    const destino = i + delta;
+    if (destino < 0 || destino >= elegidas.length) return;
+    const copia = [...elegidas];
+    [copia[i], copia[destino]] = [copia[destino], copia[i]];
+    setElegidas(copia);
+  };
 
   const set = (field, value) => setConfig((p) => ({ ...p, [field]: value }));
 
@@ -318,6 +343,82 @@ export default function AdminLanding() {
               <Field label="Descripción"><input className={inputCls} style={inputStyle} value={card.desc} onChange={(e) => setCard(i, "desc", e.target.value)} /></Field>
             </div>
           ))}
+        </div>
+      </Section>
+
+      {/* CATEGORÍAS DESTACADAS */}
+      <Section title="Categorías destacadas del inicio">
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--muted)" }}>
+          Elegí qué categorías se muestran en la página de inicio y en qué orden. Si no
+          seleccionás ninguna, se muestran las primeras 7 por orden alfabético.
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Elegidas, en orden */}
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "var(--text)" }}>
+              En el inicio ({elegidas.length})
+            </p>
+            {elegidas.length === 0 ? (
+              <p className="text-xs italic py-3" style={{ color: "var(--muted)" }}>
+                Ninguna elegida — se usan las primeras 7 alfabéticamente.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {elegidas.map((nombre, i) => (
+                  <div
+                    key={nombre}
+                    className="flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5"
+                    style={{ borderColor: "var(--border)", background: "var(--surface2)" }}
+                  >
+                    <span className="text-xs flex-1 truncate" style={{ color: "var(--text)" }}>
+                      {i + 1}. {nombre}
+                    </span>
+                    <button
+                      type="button" onClick={() => moverCategoria(i, -1)} disabled={i === 0}
+                      className="px-1.5 text-xs disabled:opacity-25" title="Subir"
+                      style={{ color: "var(--muted)" }}
+                    >↑</button>
+                    <button
+                      type="button" onClick={() => moverCategoria(i, 1)} disabled={i === elegidas.length - 1}
+                      className="px-1.5 text-xs disabled:opacity-25" title="Bajar"
+                      style={{ color: "var(--muted)" }}
+                    >↓</button>
+                    <button
+                      type="button" onClick={() => quitarCategoria(nombre)}
+                      className="px-1.5 text-xs" title="Quitar"
+                      style={{ color: "#DC2626" }}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Disponibles */}
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "var(--text)" }}>
+              Disponibles
+            </p>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+              {categoriasDisponibles.filter((c) => !elegidas.includes(c)).map((nombre) => (
+                <button
+                  key={nombre}
+                  type="button"
+                  onClick={() => agregarCategoria(nombre)}
+                  className="w-full text-left text-xs rounded-xl border px-2.5 py-1.5 transition-colors hover:bg-[var(--brand-tint)]"
+                  style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                >
+                  + {nombre}
+                </button>
+              ))}
+              {categoriasDisponibles.length === 0 && (
+                <p className="text-xs italic" style={{ color: "var(--muted)" }}>
+                  Cargando categorías…
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </Section>
 

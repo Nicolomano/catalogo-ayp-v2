@@ -16,6 +16,7 @@ import {
   Upload,
   Menu,
   X,
+  BarChart3,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
 
@@ -40,6 +41,7 @@ const NAV_GROUPS = [
   {
     label: "Gestión",
     items: [
+      { to: "/admin/metricas", icon: BarChart3, label: "Métricas" },
       { to: "/admin/orders", icon: ClipboardList, label: "Órdenes" },
       { to: "/admin/users", icon: Users, label: "Services" },
       { to: "/admin/config", icon: Settings, label: "Configuración" },

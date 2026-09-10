@@ -1,5 +1,4 @@
 import DashboardData from "../components/DashboardData.jsx";
-import AdminMetrics from "../components/AdminMetrics.jsx";
 import AdminProducts from "./AdminProducts.jsx";
 
 export default function AdminDashboard() {
@@ -18,8 +17,8 @@ export default function AdminDashboard() {
         <DashboardData />
       </section>
 
-      {/* Métricas del negocio */}
-      <AdminMetrics />
+      {/* Las métricas viven en su propia página (Gestión → Métricas): acá,
+          entre las tarjetas y el listado de productos, pasaban desapercibidas. */}
 
       {/* Gestión de productos */}
       <section>

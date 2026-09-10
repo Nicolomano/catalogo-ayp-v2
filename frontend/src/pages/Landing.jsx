@@ -66,7 +66,7 @@ function SectionHeader({ tag, title, linkTo, linkLabel }) {
 
 function Landing() {
   const [landingData, setLandingData] = useState({ featured: [] });
-  const [categories, setCategories]   = useState([]);
+  const [todasLasCategorias, setTodasLasCategorias] = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
   const [banners, setBanners]         = useState(null);
   const [promo, setPromo]             = useState(null);
@@ -88,7 +88,7 @@ function Landing() {
         const norm = data.length && typeof data[0] === "string"
           ? data.map((c) => ({ category: c, subcategories: [] }))
           : data;
-        setCategories(norm.slice(0, 7));
+        setTodasLasCategorias(norm);
       })
       .catch(() => {});
     API.get("/site-config")
@@ -104,6 +104,18 @@ function Landing() {
   }, []);
 
   const { featured } = landingData;
+
+  // Categorías del inicio: las que el admin haya elegido, en su orden. Antes se
+  // tomaban las 7 primeras por orden alfabético, sin ninguna forma de elegirlas.
+  // Si no hay ninguna configurada, se mantiene ese comportamiento.
+  const elegidas = Array.isArray(siteConfig.featuredCategories)
+    ? siteConfig.featuredCategories
+    : [];
+  const categories = elegidas.length
+    ? elegidas
+        .map((nombre) => todasLasCategorias.find((c) => c.category === nombre))
+        .filter(Boolean)
+    : todasLasCategorias.slice(0, 7);
 
   // Link a Google Maps para el badge del hero. Prioridad:
   //   1) link directo a la ficha del local cargado en el admin (mapsUrl) → más visibilidad

@@ -98,17 +98,34 @@ export default function AdminMetrics() {
   const [dias, setDias] = useState(30);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     API.get("/dashboard/metrics", { params: { dias } })
       .then((r) => setData(r.data))
-      .catch((e) => console.error("Error cargando métricas:", e))
+      .catch((e) => {
+        console.error("Error cargando métricas:", e);
+        setError(e.response?.data?.message || "No se pudieron cargar las métricas.");
+      })
       .finally(() => setLoading(false));
   }, [dias]);
 
   if (loading && !data) {
     return <p className="text-sm" style={{ color: "var(--muted)" }}>Cargando métricas…</p>;
+  }
+  // Antes, ante un error el componente devolvía null: la sección desaparecía
+  // entera sin decir nada y parecía que las métricas no existían.
+  if (error && !data) {
+    return (
+      <div className="bento p-8 text-center">
+        <p className="text-sm font-semibold" style={{ color: "var(--error)" }}>{error}</p>
+        <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+          Probá recargar la página. Si sigue igual, revisá la consola del navegador (F12).
+        </p>
+      </div>
+    );
   }
   if (!data) return null;
 
