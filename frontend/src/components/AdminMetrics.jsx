@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import {
   ShoppingCart, DollarSign, Receipt, Clock, TrendingUp,
-  Search, SearchX, UserCheck, AlertTriangle, Eye,
+  Search, SearchX, UserCheck, AlertTriangle, Eye, Users,
 } from "lucide-react";
 
 const PERIODOS = [
@@ -64,13 +64,13 @@ function TopLista({ items, getLabel, getValor, sufijo = "", vacio }) {
 }
 
 /** Serie diaria como un polyline SVG: para dos formas simples no hace falta más. */
-function Serie({ datos }) {
+function Serie({ datos, campo = "pedidos", etiqueta = "pedidos" }) {
   if (!datos?.length) return null;
   const W = 600, H = 90;
-  const max = Math.max(...datos.map((d) => d.pedidos), 1);
+  const max = Math.max(...datos.map((d) => d[campo]), 1);
   const paso = datos.length > 1 ? W / (datos.length - 1) : W;
   const puntos = datos
-    .map((d, i) => `${(i * paso).toFixed(1)},${(H - (d.pedidos / max) * (H - 8) - 4).toFixed(1)}`)
+    .map((d, i) => `${(i * paso).toFixed(1)},${(H - (d[campo] / max) * (H - 8) - 4).toFixed(1)}`)
     .join(" ");
 
   return (
@@ -87,7 +87,7 @@ function Serie({ datos }) {
       </svg>
       <div className="flex justify-between text-[10px] mt-1" style={{ color: "var(--muted2)" }}>
         <span>{datos[0]?.fecha}</span>
-        <span>pico: {max} pedido{max !== 1 ? "s" : ""}/día</span>
+        <span>pico: {max} {etiqueta}/día</span>
         <span>{datos[datos.length - 1]?.fecha}</span>
       </div>
     </div>
@@ -129,7 +129,7 @@ export default function AdminMetrics() {
   }
   if (!data) return null;
 
-  const { pedidos, productos, busquedas, tecnicos } = data;
+  const { pedidos, productos, busquedas, tecnicos, visitas } = data;
   const diasEspera = pedidos.pendienteMasViejo
     ? Math.floor((Date.now() - new Date(pedidos.pendienteMasViejo)) / 86400000)
     : null;
@@ -161,6 +161,68 @@ export default function AdminMetrics() {
         </div>
       </div>
 
+      {/* ── Visitas ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Tarjeta Icon={Users} label="Visitas" valor={visitas?.total ?? 0}
+          detalle="personas distintas"
+          tint="rgba(124,58,237,0.12)" accent="#7C3AED" />
+        <Tarjeta Icon={Eye} label="Páginas vistas" valor={visitas?.paginasVistas ?? 0}
+          detalle={
+            visitas?.total
+              ? `${(visitas.paginasVistas / visitas.total).toFixed(1)} por visita`
+              : null
+          }
+          tint="rgba(124,58,237,0.12)" accent="#7C3AED" />
+        <Tarjeta Icon={TrendingUp} label="Visitas que compran"
+          valor={visitas?.total ? `${((pedidos.cantidad / visitas.total) * 100).toFixed(1)}%` : "—"}
+          detalle={visitas?.total ? `${pedidos.cantidad} de ${visitas.total}` : "sin datos aún"}
+          tint="rgba(22,163,74,0.12)" accent="#16A34A" />
+        <Tarjeta Icon={Search} label="Búsquedas" valor={busquedas.top.reduce((a, b) => a + b.veces, 0)}
+          detalle={`${busquedas.sinResultados.length} términos sin resultado`}
+          tint="var(--brand-tint)" accent="var(--brand)" />
+      </div>
+
+      {visitas?.serie?.length > 1 && (
+        <div className="bento p-5">
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+            <Users size={15} /> Visitas por día
+          </h3>
+          <Serie datos={visitas.serie} campo="visitas" etiqueta="visitas" />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bento p-5">
+          <h3 className="text-sm font-bold mb-1 flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+            <Eye size={15} /> Páginas más vistas
+          </h3>
+          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+            Dónde pasa el tiempo la gente.
+          </p>
+          <TopLista
+            items={visitas?.paginas || []}
+            getLabel={(p) => p.path}
+            getValor={(p) => p.vistas}
+            vacio="Todavía no hay visitas registradas."
+          />
+        </div>
+        <div className="bento p-5">
+          <h3 className="text-sm font-bold mb-1 flex items-center gap-1.5" style={{ color: "var(--text)" }}>
+            <TrendingUp size={15} /> De dónde llegan
+          </h3>
+          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+            "Directo" es quien escribe la dirección o entra desde un favorito.
+          </p>
+          <TopLista
+            items={(visitas?.canales || []).filter((ca) => ca.canal !== "interno")}
+            getLabel={(ca) => ca.canal}
+            getValor={(ca) => ca.visitas}
+            vacio="Todavía no hay visitas registradas."
+          />
+        </div>
+      </div>
+
+      {/* ── Pedidos ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Tarjeta Icon={ShoppingCart} label="Pedidos" valor={pedidos.cantidad}
           tint="var(--brand-tint)" accent="var(--brand)" />

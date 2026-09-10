@@ -29,6 +29,9 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
+  // Cachea el preflight un día. Sin esto el navegador manda un OPTIONS extra
+  // cada pocos segundos, y el registro de visitas dispara uno por página.
+  maxAge: 86400,
 };
 
 export default corsOptions;

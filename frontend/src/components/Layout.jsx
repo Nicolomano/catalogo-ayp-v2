@@ -8,6 +8,7 @@ import WhatsappIcon from "./WhatsappIcon.jsx";
 import CookieBanner from "./CookieBanner.jsx";
 import Logo from "./Logo.jsx";
 import useWhatsappNumber from "../hooks/useWhatsappNumber.js";
+import useRegistrarVisita from "../hooks/useRegistrarVisita.js";
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
@@ -26,6 +27,7 @@ function Layout() {
   const [dark, setDark] = useDarkMode();
   const [scrolled, setScrolled] = useState(false);
   const whatsapp = useWhatsappNumber();
+  useRegistrarVisita(); // métricas propias de visitas (solo el sitio público)
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);

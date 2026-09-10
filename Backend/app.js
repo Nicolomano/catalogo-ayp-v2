@@ -15,10 +15,12 @@ import categoryRouter from "./src/routes/categoryRoutes.js";
 import kitRouter from "./src/routes/kitRoutes.js";
 import siteConfigRouter from "./src/routes/siteConfigRoutes.js";
 import userRouter from "./src/routes/userRoutes.js";
+import metricsRouter from "./src/routes/metricsRoutes.js";
 import corsOptions from "./src/utils/cors.js";
 import productModel from "./src/services/models/productModel.js";
 import orderModel from "./src/services/models/orderModel.js";
 import searchLogModel from "./src/services/models/searchLogModel.js";
+import pageViewModel from "./src/services/models/pageViewModel.js";
 
 const app = express();
 const SERVER_PORT = process.env.PORT || 8080;
@@ -52,6 +54,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/kits", kitRouter);
 app.use("/api/site-config", siteConfigRouter);
 app.use("/api/users", userRouter);
+app.use("/api/metrics", metricsRouter);
 
 // El sitemap lo sirve el frontend en www.refrigeracionayp.com/sitemap.xml
 // (frontend/api/sitemap.js), que es el que referencia robots.txt. Acá había una
@@ -124,6 +127,7 @@ mongoose.connection.once("open", async () => {
     // métrica por rango de fechas escanea la colección entera.
     await orderModel.syncIndexes();
     await searchLogModel.syncIndexes();
+    await pageViewModel.syncIndexes();
   } catch (e) {
     console.error("Error syncing product indexes:", e.message);
   }

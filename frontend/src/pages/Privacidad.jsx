@@ -17,7 +17,7 @@ export default function Privacidad() {
   const phone = cfg?.phone || "";
   const address = cfg?.address || "";
   const hasAddress = address && !/direcci[oó]n del local/i.test(address);
-  const updated = "septiembre de 2026";
+  const updated = "10 de septiembre de 2026";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
@@ -69,6 +69,13 @@ export default function Privacidad() {
               como tu dirección IP, tipo de dispositivo y navegador, y páginas visitadas, a
               través de cookies y herramientas de analítica.
             </li>
+            <li>
+              <strong>Estadísticas propias de uso:</strong> registramos en nuestros propios
+              servidores qué páginas se visitan, desde qué sitio se llegó y qué se busca en el
+              catálogo, para entender qué necesitan nuestros clientes. Estas estadísticas{" "}
+              <strong>no incluyen tu dirección IP ni ningún dato que te identifique</strong>, y
+              usan un identificador temporal que se borra al cerrar la pestaña.
+            </li>
           </ul>
         </Section>
 
@@ -78,6 +85,7 @@ export default function Privacidad() {
             <li>Validar el registro de técnicos y habilitar el precio service.</li>
             <li>Comunicarnos con vos respecto de tu pedido o tu cuenta.</li>
             <li>Entender el uso del sitio y mejorar su funcionamiento.</li>
+            <li>Saber qué productos se buscan y no encontramos, para ampliar el catálogo.</li>
           </ul>
           <p className="mt-2">
             No vendemos ni alquilamos tus datos personales a terceros con fines comerciales.

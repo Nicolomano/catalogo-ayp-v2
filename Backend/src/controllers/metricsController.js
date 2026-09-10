@@ -2,6 +2,7 @@ import Order from "../services/models/orderModel.js";
 import Product from "../services/models/productModel.js";
 import ServiceUser from "../services/models/serviceUserModel.js";
 import SearchLog from "../services/models/searchLogModel.js";
+import PageView from "../services/models/pageViewModel.js";
 
 /**
  * Métricas del negocio a partir de lo que ya se guarda.
@@ -27,6 +28,10 @@ export const getMetrics = async (req, res) => {
       embudoTecnicos,
       tecnicosNuevos,
       pendientesViejos,
+      visitasResumen,
+      visitasSerie,
+      paginasTop,
+      canales,
     ] = await Promise.all([
       // Cantidad, facturación y ticket promedio del período
       Order.aggregate([
@@ -107,6 +112,50 @@ export const getMetrics = async (req, res) => {
         status: "pending",
         createdAt: { $lt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
       }),
+
+      // Visitas: una "visita" es una sesión distinta, no una página vista.
+      PageView.aggregate([
+        { $match: enRango },
+        { $group: { _id: "$sid", paginas: { $sum: 1 } } },
+        {
+          $group: {
+            _id: null,
+            visitas: { $sum: 1 },
+            paginasVistas: { $sum: "$paginas" },
+          },
+        },
+      ]),
+
+      // Serie diaria: sesiones distintas por día
+      PageView.aggregate([
+        { $match: enRango },
+        {
+          $group: {
+            _id: {
+              dia: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+              sid: "$sid",
+            },
+          },
+        },
+        { $group: { _id: "$_id.dia", visitas: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
+
+      PageView.aggregate([
+        { $match: enRango },
+        { $group: { _id: "$path", vistas: { $sum: 1 } } },
+        { $sort: { vistas: -1 } },
+        { $limit: 10 },
+      ]),
+
+      // De dónde llega la gente. Se cuenta una vez por sesión, no por página.
+      PageView.aggregate([
+        { $match: enRango },
+        { $group: { _id: { sid: "$sid", canal: "$canal" } } },
+        { $group: { _id: "$_id.canal", visitas: { $sum: 1 } } },
+        { $sort: { visitas: -1 } },
+        { $limit: 8 },
+      ]),
     ]);
 
     const r = resumenPedidos[0] || { pedidos: 0, facturacion: 0, ticketPromedio: 0 };
@@ -163,6 +212,13 @@ export const getMetrics = async (req, res) => {
         })),
       },
       tecnicos: { ...embudo, nuevos: tecnicosNuevos, pendientesViejos },
+      visitas: {
+        total: visitasResumen[0]?.visitas || 0,
+        paginasVistas: visitasResumen[0]?.paginasVistas || 0,
+        serie: visitasSerie.map((d) => ({ fecha: d._id, visitas: d.visitas })),
+        paginas: paginasTop.map((p) => ({ path: p._id, vistas: p.vistas })),
+        canales: canales.map((ca) => ({ canal: ca._id || "directo", visitas: ca.visitas })),
+      },
     });
   } catch (error) {
     console.error("Error calculando métricas:", error);

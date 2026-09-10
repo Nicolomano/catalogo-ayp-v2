@@ -39,6 +39,18 @@ export const loginLimiter = rateLimit({
   },
 });
 
+/**
+ * Registro de visitas. Un techo alto no molesta a nadie real —nadie abre 120
+ * páginas en 15 minutos— pero evita que alguien infle los números a mano.
+ * Si se corta, solo se pierde telemetría: no afecta la navegación.
+ */
+export const viewLimiter = rateLimit({
+  ...comun,
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  message: { message: "Demasiadas solicitudes." },
+});
+
 /** Recuperación de contraseña: manda emails y hace una escritura por pedido. */
 export const passwordResetLimiter = rateLimit({
   ...comun,
