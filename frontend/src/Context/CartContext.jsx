@@ -49,6 +49,9 @@ export function CartProvider({ children }) {
     );
   };
 
+  /** Reemplaza el carrito entero. Lo usa la revalidación de precios al abrirlo. */
+  const replaceCart = (items) => setCart(Array.isArray(items) ? items : []);
+
   const clearCart = () => {
     setCart([]);
     try {
@@ -60,7 +63,7 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider
-      value={{ cart, addToCart, removeFromCart, clearCart, updateQuantity }}
+      value={{ cart, addToCart, removeFromCart, clearCart, updateQuantity, replaceCart }}
     >
       {children}
     </CartContext.Provider>

@@ -17,6 +17,7 @@ import {
   commitImportExcel,
   getLandingProducts,
   getProductsSitemap,
+  revalidarProductos,
   getProductBrands,
   listFeaturedAdmin,
   reorderFeatured,
@@ -34,6 +35,8 @@ productRouter.get("/landing",         getLandingProducts);
 productRouter.get("/brands",          getProductBrands);
 productRouter.get("/code/:productCode", getProductByCode);
 productRouter.get("/sitemap",         getProductsSitemap);
+// Público: lo llama el carrito para refrescar precios y stock antes de confirmar.
+productRouter.post("/revalidar",      revalidarProductos);
 // NO es público: exporta la lista de precios completa (ARS y USD).
 productRouter.get("/export/excel",    protect, requireAdmin, exportProductsExcel);
 

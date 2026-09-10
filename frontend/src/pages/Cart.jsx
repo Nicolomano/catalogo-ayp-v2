@@ -1,17 +1,66 @@
 import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, ShoppingCart, Package, MessageCircle, Info } from "lucide-react";
+import { Trash2, ShoppingCart, Package, MessageCircle, Info, RefreshCw } from "lucide-react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 
 function Cart() {
-  const { cart, removeFromCart, clearCart, updateQuantity } = useCart();
+  const { cart, removeFromCart, clearCart, updateQuantity, replaceCart } = useCart();
   const { isServiceApproved, servicePrice } = useAuth();
   const [loading, setLoading]             = useState(false);
   const [customerName, setCustomerName]   = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [cambios, setCambios]             = useState(null);
+  const yaRevalidado                      = useRef(false);
+
+  // El carrito vive en el navegador sin vencimiento, con el precio congelado del
+  // momento en que se agregó. Como el Excel se importa seguido, el cliente podía
+  // ver un total y recibir otro en el WhatsApp. Acá se refresca al abrir.
+  useEffect(() => {
+    if (yaRevalidado.current) return;
+    const ids = cart.map((i) => i._id).filter(Boolean);
+    if (ids.length === 0) return;
+    yaRevalidado.current = true;
+
+    API.post("/products/revalidar", { ids })
+      .then((res) => {
+        const actuales = new Map((res.data?.productos || []).map((p) => [String(p._id), p]));
+        const cambiados = [];
+        const quitados = [];
+
+        const nuevoCarrito = cart.flatMap((item) => {
+          const actual = actuales.get(String(item._id));
+          if (!actual) {
+            quitados.push({ name: item.name, motivo: "ya no está disponible" });
+            return [];
+          }
+          if (actual.inStock === false) {
+            quitados.push({ name: actual.name, motivo: "quedó sin stock" });
+            return [];
+          }
+          if (Number(actual.priceARS) !== Number(item.priceARS)) {
+            cambiados.push({
+              name: actual.name,
+              antes: Number(item.priceARS) || 0,
+              ahora: Number(actual.priceARS) || 0,
+            });
+          }
+          // Se toma el dato fresco pero se conserva la cantidad elegida.
+          return [{ ...item, ...actual, quantity: item.quantity }];
+        });
+
+        if (cambiados.length || quitados.length) {
+          replaceCart(nuevoCarrito);
+          setCambios({ cambiados, quitados });
+        }
+      })
+      .catch(() => {
+        // Si falla, se sigue con lo que hay: el backend igual cotiza con el
+        // precio real al confirmar el pedido.
+      });
+  }, [cart, replaceCart]);
 
   if (cart.length === 0) {
     return (
@@ -89,6 +138,38 @@ function Cart() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6" style={{ color: "var(--text)" }}>Tu pedido</h1>
+
+      {/* Aviso de cambios desde la última vez, antes de que confirme */}
+      {cambios && (
+        <div
+          className="rounded-2xl border p-4 mb-6"
+          style={{ background: "rgba(234,179,8,0.08)", borderColor: "rgba(234,179,8,0.35)" }}
+        >
+          <p className="text-sm font-semibold flex items-center gap-1.5 mb-2" style={{ color: "#B45309" }}>
+            <RefreshCw className="h-4 w-4" /> Actualizamos tu pedido
+          </p>
+          <ul className="text-sm space-y-1" style={{ color: "var(--text2)" }}>
+            {cambios.cambiados.map((c, i) => (
+              <li key={`p${i}`}>
+                <strong>{c.name}</strong>: cambió de ${c.antes.toLocaleString("es-AR")} a{" "}
+                <strong>${c.ahora.toLocaleString("es-AR")}</strong>
+              </li>
+            ))}
+            {cambios.quitados.map((q, i) => (
+              <li key={`q${i}`}>
+                <strong>{q.name}</strong> se quitó porque {q.motivo}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setCambios(null)}
+            className="text-xs font-semibold mt-3 hover:underline"
+            style={{ color: "#B45309" }}
+          >
+            Entendido
+          </button>
+        </div>
+      )}
 
       {/* Items */}
       <div className="space-y-3 mb-6">

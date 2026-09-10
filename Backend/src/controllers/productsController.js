@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import productModel from "../services/models/productModel.js";
 import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
@@ -342,6 +343,41 @@ export const getProductsByCategory = async (req, res) => {
     });
   }
 };
+/* ----------------------- REVALIDAR CARRITO (PÚBLICO) ----------------------- */
+/**
+ * Devuelve el estado actual de una lista de productos.
+ *
+ * El carrito vive en el navegador sin vencimiento, con el precio congelado del
+ * momento en que se agregó. Como el Excel se importa seguido, el cliente podía
+ * ver un total y recibir otro en el WhatsApp. Esto permite refrescarlo al abrir
+ * el carrito y avisarle antes de que confirme.
+ */
+export async function revalidarProductos(req, res) {
+  try {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "Faltan los productos a revalidar." });
+    }
+    if (ids.length > 100) {
+      return res.status(400).json({ message: "Demasiados productos." });
+    }
+
+    const validos = ids.filter((id) => mongoose.isValidObjectId(id));
+    const productos = validos.length
+      ? await productModel
+          .find({ _id: { $in: validos }, active: true })
+          .select("productCode name image priceARS inStock")
+          .lean()
+      : [];
+
+    res.set("Cache-Control", "no-store");
+    res.json({ productos });
+  } catch (error) {
+    console.error("Error revalidando productos:", error);
+    res.status(500).json({ message: "No se pudieron verificar los productos" });
+  }
+}
+
 /* ----------------------- ELIMINAR PRODUCTO ----------------------- */
 export async function deleteProduct(req, res) {
   try {
