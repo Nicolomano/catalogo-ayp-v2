@@ -116,6 +116,15 @@ function Login() {
                 </button>
               </div>
             </div>
+            <div className="text-right -mt-1">
+              <Link
+                to="/recuperar-password"
+                className="text-xs font-medium hover:underline"
+                style={{ color: "var(--brand)" }}
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={loading}

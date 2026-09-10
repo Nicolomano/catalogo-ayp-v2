@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash } from "lucide-react";
+import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil } from "lucide-react";
+import { PROVINCES } from "../utils/provincias.js";
 
 const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" };
 
@@ -25,6 +26,26 @@ function AdminUsers() {
   const [rejectReason, setRejectReason] = useState("");
   const [clientNumbers, setClientNumbers] = useState({});
   const [imageModal, setImageModal] = useState(null);
+  const [editModal, setEditModal] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    setSavingEdit(true);
+    try {
+      const { _id, name, email, cuit, phone, company, province, clientNumber } = editModal;
+      const res = await API.patch(`/users/${_id}`, {
+        name, email, cuit, phone, company, province, clientNumber,
+      });
+      setUsers((prev) => prev.map((u) => (u._id === _id ? res.data : u)));
+      setEditModal(null);
+      toast.success("Datos actualizados");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "No se pudieron guardar los cambios");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   // La matrícula es un documento personal: ya no viaja como URL pública del
   // bucket. Se pide por un endpoint autenticado y se muestra desde un blob local,
@@ -260,8 +281,102 @@ function AdminUsers() {
                   </div>
                 </div>
               )}
+
+              {/* Editar datos — disponible en cualquier estado: los técnicos
+                  cambian de teléfono o cargan mal el CUIT. */}
+              <div className="pt-1 border-t" style={{ borderColor: "var(--border)" }}>
+                <button
+                  onClick={() => setEditModal({ ...u })}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl transition-colors"
+                  style={{ background: "var(--surface2)", color: "var(--text)" }}
+                >
+                  <Pencil size={12} /> Editar datos
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal editar datos */}
+      {editModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+        >
+          <div
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-6 space-y-4"
+            style={{ background: "var(--surface)", boxShadow: "var(--shadow-lg)" }}
+          >
+            <h3 className="text-lg font-bold" style={{ color: "var(--text)" }}>
+              Editar datos del técnico
+            </h3>
+            <form onSubmit={handleEdit} className="space-y-4">
+              {[
+                { label: "Nombre", key: "name", type: "text", required: true },
+                { label: "Email", key: "email", type: "email", required: true },
+                { label: "CUIT (11 dígitos)", key: "cuit", type: "text", required: true },
+                { label: "Teléfono", key: "phone", type: "text" },
+                { label: "Empresa", key: "company", type: "text" },
+                { label: "N.º de cliente", key: "clientNumber", type: "text" },
+              ].map(({ label, key, type, required }) => (
+                <label key={key} className="block">
+                  <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
+                    {label}
+                  </span>
+                  <input
+                    type={type}
+                    value={editModal[key] || ""}
+                    onChange={(e) => setEditModal((p) => ({ ...p, [key]: e.target.value }))}
+                    className={inputCls + " w-full"}
+                    style={inputStyle}
+                    required={required}
+                  />
+                </label>
+              ))}
+
+              <label className="block">
+                <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
+                  Provincia
+                </span>
+                <select
+                  value={editModal.province || ""}
+                  onChange={(e) => setEditModal((p) => ({ ...p, province: e.target.value }))}
+                  className={inputCls + " w-full"}
+                  style={inputStyle}
+                >
+                  <option value="">— Sin especificar —</option>
+                  {PROVINCES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </label>
+
+              <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                La contraseña no se edita desde acá. Si el técnico la perdió, puede pedir un
+                enlace de recuperación desde la pantalla de inicio de sesión.
+              </p>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setEditModal(null)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium"
+                  style={{ background: "var(--surface2)", color: "var(--text)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-40"
+                  style={{ background: "var(--brand)" }}
+                >
+                  {savingEdit ? "Guardando…" : "Guardar cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

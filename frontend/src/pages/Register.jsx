@@ -4,14 +4,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { UploadCloud, X, MessageCircle } from "lucide-react";
 import Logo from "../components/Logo.jsx";
-
-const PROVINCES = [
-  "Buenos Aires", "CABA", "Catamarca", "Chaco", "Chubut", "Córdoba",
-  "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja",
-  "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan",
-  "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero",
-  "Tierra del Fuego", "Tucumán",
-];
+import { PROVINCES } from "../utils/provincias.js";
 
 function Field({ label, required, children }) {
   return (
@@ -75,8 +68,9 @@ function Register() {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    if (form.password.length < 6) {
-      toast.error("La contraseña debe tener al menos 6 caracteres");
+    // 8, igual que el backend: validaba 6 acá y el registro fallaba después.
+    if (form.password.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
       return;
     }
     setLoading(true);
