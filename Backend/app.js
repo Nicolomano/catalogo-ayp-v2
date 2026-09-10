@@ -56,6 +56,23 @@ app.use("/api/site-config", siteConfigRouter);
 app.use("/api/users", userRouter);
 app.use("/api/metrics", metricsRouter);
 
+/**
+ * Chequeo de salud para el monitor de caída.
+ *
+ * Verifica la conexión a la base, no solo que el proceso esté vivo: el caso
+ * peligroso es que el server responda pero Mongo esté caído, porque ahí el
+ * sitio "anda" y todo devuelve error. Devuelve 503 en ese caso para que el
+ * monitor avise.
+ */
+app.get("/health", (req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  res.status(dbOk ? 200 : 503).json({
+    ok: dbOk,
+    db: dbOk ? "conectada" : "sin conexión",
+    uptime: Math.round(process.uptime()),
+  });
+});
+
 // El sitemap lo sirve el frontend en www.refrigeracionayp.com/sitemap.xml
 // (frontend/api/sitemap.js), que es el que referencia robots.txt. Acá había una
 // segunda versión que nadie consumía y que caía al dominio viejo si faltaba
