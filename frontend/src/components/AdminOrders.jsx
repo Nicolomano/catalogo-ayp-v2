@@ -4,18 +4,33 @@ import { ClipboardList, Phone, Calendar, BadgeCheck, Clock, ChevronDown, Chevron
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [expanded, setExpanded] = useState({});
 
   const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  useEffect(() => {
-    API.get("/orders")
-      .then((res) => setOrders(Array.isArray(res.data) ? res.data : []))
+  // El endpoint ahora pagina (antes devolvía todas las órdenes de una).
+  const cargar = (p) => {
+    const primera = p === 1;
+    if (primera) setLoading(true); else setLoadingMore(true);
+    API.get("/orders", { params: { page: p, limit: 50 } })
+      .then((res) => {
+        const lote = Array.isArray(res.data?.orders) ? res.data.orders : [];
+        setOrders((prev) => (primera ? lote : [...prev, ...lote]));
+        setTotal(res.data?.total ?? lote.length);
+        setHasMore(Boolean(res.data?.hasMore));
+        setPage(p);
+      })
       .catch((err) => console.error("Error cargando órdenes:", err))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => { setLoading(false); setLoadingMore(false); });
+  };
+
+  useEffect(() => { cargar(1); }, []);
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === "pendiente" ? "contestada" : "pendiente";
@@ -41,7 +56,8 @@ function AdminOrders() {
           Órdenes
         </h2>
         <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>
-          {orders.length} orden{orders.length !== 1 ? "es" : ""} registrada{orders.length !== 1 ? "s" : ""}
+          {total} orden{total !== 1 ? "es" : ""} registrada{total !== 1 ? "s" : ""}
+          {orders.length < total ? ` · mostrando ${orders.length}` : ""}
         </p>
       </div>
 
@@ -161,6 +177,19 @@ function AdminOrders() {
               )}
             </div>
           ))}
+
+          {hasMore && (
+            <div className="pt-2 text-center">
+              <button
+                onClick={() => cargar(page + 1)}
+                disabled={loadingMore}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+              >
+                {loadingMore ? "Cargando…" : "Ver más órdenes"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

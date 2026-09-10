@@ -1,6 +1,7 @@
 import productModel from "../services/models/productModel.js";
 import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
+import SearchLog from "../services/models/searchLogModel.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
@@ -292,6 +293,17 @@ export const getProductsByCategory = async (req, res) => {
       .lean();
 
     const total = await productModel.countDocuments(filter);
+
+    // Registro de búsquedas. Fire-and-forget: este endpoint ya es el más caro del
+    // sitio (el $regex no usa índice), así que el logging no puede bloquear la
+    // respuesta ni romperla si falla. Solo la primera página, para no contar de
+    // nuevo en cada tirón del scroll infinito.
+    if (search && Number(page) === 1) {
+      const termino = String(search).trim().slice(0, MAX_SEARCH).toLowerCase();
+      if (termino.length >= 2) {
+        SearchLog.create({ term: termino, resultCount: total }).catch(() => {});
+      }
+    }
 
     res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({

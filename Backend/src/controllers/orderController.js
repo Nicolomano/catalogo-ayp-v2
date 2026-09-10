@@ -209,8 +209,29 @@ export const createOrder = async (req, res) => {
 
 export const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
+    // Paginado, como el catálogo: antes traía TODAS las órdenes con sus ítems
+    // embebidos en una sola respuesta.
+    const { page = 1, limit = 50, status } = req.query;
+    const parsedLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+    const parsedPage = Math.max(1, Number(page) || 1);
+    const filter = status && status !== "all" ? { status } : {};
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((parsedPage - 1) * parsedLimit)
+        .limit(parsedLimit)
+        .lean(),
+      Order.countDocuments(filter),
+    ]);
+
+    res.json({
+      orders,
+      total,
+      page: parsedPage,
+      pages: Math.ceil(total / parsedLimit),
+      hasMore: parsedPage * parsedLimit < total,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({

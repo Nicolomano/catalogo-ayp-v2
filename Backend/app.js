@@ -17,6 +17,8 @@ import siteConfigRouter from "./src/routes/siteConfigRoutes.js";
 import userRouter from "./src/routes/userRoutes.js";
 import corsOptions from "./src/utils/cors.js";
 import productModel from "./src/services/models/productModel.js";
+import orderModel from "./src/services/models/orderModel.js";
+import searchLogModel from "./src/services/models/searchLogModel.js";
 
 const app = express();
 const SERVER_PORT = process.env.PORT || 8080;
@@ -118,6 +120,10 @@ mongoose.connection.once("open", async () => {
       console.log(`Dropped legacy parallel-arrays index: ${bad.name}`);
     }
     await productModel.syncIndexes();
+    // Los índices nuevos de pedidos y del log de búsquedas: sin esto, cualquier
+    // métrica por rango de fechas escanea la colección entera.
+    await orderModel.syncIndexes();
+    await searchLogModel.syncIndexes();
   } catch (e) {
     console.error("Error syncing product indexes:", e.message);
   }
