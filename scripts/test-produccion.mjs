@@ -98,7 +98,36 @@ async function main() {
   }
   await check("El token de admin es válido", () => {
     esperar(dash.status, 200);
-    return `${dash.data.productosActivos} productos activos · dólar ${money(dash.data.exchangeRate)}`;
+    return `${dash.data.productosActivos} productos activos`;
+  });
+
+  // ── 1b. Coherencia de los datos ─────────────────────────────
+  // Esto existe porque la primera corrida mostró "dólar $0" con un ✔ al lado:
+  // el script solo miraba que el endpoint respondiera, no que el dato tuviera
+  // sentido. Un número absurdo tiene que salir en rojo solo.
+  titulo("1b. Coherencia de los datos");
+  await check("Ningún producto publicado con precio en dólares", async () => {
+    const lista = await pedir("/products/admin/all?page=1&limit=100", { auth: true });
+    esperar(lista.status, 200);
+    const enUSD = (lista.data.products || []).filter((p) => p.priceUSD && !p.fixedInARS);
+    if (enUSD.length) {
+      throw new Error(
+        `${enUSD.length} producto(s) calculan su precio por cotización, y la cotización no se usa más: ` +
+          enUSD.slice(0, 3).map((p) => p.productCode).join(", ")
+      );
+    }
+    return "todos con precio en pesos";
+  });
+  await check("Sin productos publicados en $0", async () => {
+    const lista = await pedir("/products?page=1&limit=100");
+    const sinPrecio = (lista.data.products || []).filter((p) => !p.priceARS);
+    if (sinPrecio.length) {
+      throw new Error(
+        `${sinPrecio.length} sin precio (se muestran como "Consultar"): ` +
+          sinPrecio.slice(0, 3).map((p) => `${p.productCode} ${p.name?.slice(0, 30)}`).join(" · ")
+      );
+    }
+    return "los primeros 100 tienen precio";
   });
 
   // ── 2. Público ──────────────────────────────────────────────

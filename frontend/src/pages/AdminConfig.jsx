@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { DollarSign, MessageCircle } from "lucide-react";
-import { useConfirm } from "../Context/ConfirmContext.jsx";
+import { MessageCircle } from "lucide-react";
 
 const inputCls = "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
 const inputStyle = {
@@ -12,8 +11,6 @@ const inputStyle = {
 };
 
 export default function AdminConfig() {
-  const confirm = useConfirm();
-  const [exchangeRate, setExchangeRate] = useState(0);
   const [adminWhatsapp, setAdminWhatsapp] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingWa, setSavingWa] = useState(false);
@@ -21,45 +18,11 @@ export default function AdminConfig() {
   useEffect(() => {
     API.get("/site-config")
       .then((res) => {
-        setExchangeRate(res.data.exchangeRate ?? 0);
         setAdminWhatsapp(res.data.adminWhatsapp ?? "");
       })
       .catch((err) => console.error("Error cargando config:", err))
       .finally(() => setLoading(false));
   }, []);
-
-  const handleSaveRate = async (e) => {
-    e.preventDefault();
-    const guardar = async (confirmBigChange = false) => {
-      const res = await API.put("/config/", { exchangeRate, confirmBigChange });
-      setExchangeRate(res.data.exchangeRate);
-      toast.success("Cotización actualizada");
-    };
-    try {
-      await guardar();
-    } catch (err) {
-      // 409: el backend frena saltos de más del 30% porque recalculan el precio
-      // de todo el catálogo y las órdenes que entren en el medio lo congelan.
-      const data = err.response?.data;
-      if (err.response?.status === 409 && data?.requiresConfirm) {
-        const ok = await confirm({
-          title: "Cambio grande de cotización",
-          message: data.message,
-          confirmText: "Aplicar igual",
-          tone: "danger",
-        });
-        if (!ok) return;
-        try {
-          await guardar(true);
-        } catch {
-          toast.error("No se pudo guardar");
-        }
-        return;
-      }
-      console.error("Error guardando config:", err);
-      toast.error("No se pudo guardar");
-    }
-  };
 
   const handleSaveWhatsapp = async (e) => {
     e.preventDefault();
@@ -85,48 +48,9 @@ export default function AdminConfig() {
         <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>Ajustes generales del sistema.</p>
       </div>
 
-      {/* Cotización */}
-      <div className="bento p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: "rgba(234,179,8,0.12)" }}
-          >
-            <DollarSign size={20} style={{ color: "#B45309" }} />
-          </div>
-          <div>
-            <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>Cotización del dólar</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
-              Usada para calcular precios en ARS a partir de USD
-            </p>
-          </div>
-        </div>
-        <form onSubmit={handleSaveRate} className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <span
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium"
-              style={{ color: "var(--muted)" }}
-            >
-              $
-            </span>
-            <input
-              type="number"
-              step="0.01"
-              value={exchangeRate}
-              onChange={(e) => setExchangeRate(Number(e.target.value))}
-              className="w-full border rounded-xl pl-7 pr-3 py-2 text-sm outline-none focus:ring-2 transition-colors"
-              style={inputStyle}
-            />
-          </div>
-          <button
-            type="submit"
-            className="px-5 py-2 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: "var(--brand)", color: "#fff" }}
-          >
-            Guardar
-          </button>
-        </form>
-      </div>
+      {/* La cotización del dólar se ocultó: todos los precios salen del Excel
+          en pesos, así que este campo solo servía para equivocarse. El endpoint
+          y el recálculo siguen existiendo por si alguna vez vuelve a hacer falta. */}
 
       {/* WhatsApp administración */}
       <div className="bento p-6">

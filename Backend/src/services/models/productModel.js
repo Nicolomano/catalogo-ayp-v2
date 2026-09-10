@@ -69,8 +69,17 @@ productSchema.pre("save", async function (next) {
   try {
     if (this.priceUSD == null) return next();   // sin precio USD → no recalcular
     const cfg = await Config.findOne();
-    const rate = cfg ? cfg.exchangeRate : 1;
-    this.priceARS = Number(this.priceUSD) * Number(rate);
+    const rate = Number(cfg?.exchangeRate);
+    // Sin cotización usable NO se toca el precio. Antes quedaba en 0 (si era 0)
+    // o en NaN (si no estaba definida), y este hook corre en cada save() — o sea
+    // que tocar el switch de stock de un producto le rompía el precio.
+    if (!Number.isFinite(rate) || rate <= 0) {
+      console.warn(
+        `Sin cotización cargada: se mantiene el precio en pesos de ${this.productCode}.`
+      );
+      return next();
+    }
+    this.priceARS = Number(this.priceUSD) * rate;
   } catch (err) {
     console.error("Error aplicando tasa de cambio:", err);
   }

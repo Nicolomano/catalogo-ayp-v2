@@ -220,8 +220,8 @@ function AdminProducts() {
             <button
               onClick={() =>
                 setEditingProduct({
-                  name: "", description: "", priceUSD: 0, priceARS: "",
-                  fixedInARS: false, categories: [], subcategories: [], productCode: "",
+                  name: "", description: "", priceARS: "",
+                  fixedInARS: true, categories: [], subcategories: [], productCode: "",
                 })
               }
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
@@ -382,14 +382,8 @@ function AdminProducts() {
                   >
                     {p.name}
                   </p>
-                  {p.fixedInARS && (
-                    <span
-                      className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full"
-                      style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
-                    >
-                      Fijo en ARS
-                    </span>
-                  )}
+                  {/* El badge "Fijo en ARS" se sacó: hoy TODOS los productos lo
+                      son, así que aparecía en los 3286 sin distinguir nada. */}
                 </div>
 
                 {/* Categorías */}
@@ -594,13 +588,10 @@ function AdminProducts() {
                   formData.append("productCode", norm(editingProduct.productCode));
                   if (editingProduct.brand) formData.append("brand", editingProduct.brand.trim());
 
-                  if (editingProduct.fixedInARS) {
-                    if (editingProduct.priceARS) formData.append("priceARS", editingProduct.priceARS);
-                    if (editingProduct.priceUSD) formData.append("priceUSD", editingProduct.priceUSD);
-                  } else {
-                    if (editingProduct.priceUSD) formData.append("priceUSD", editingProduct.priceUSD);
-                  }
-                  formData.append("fixedInARS", editingProduct.fixedInARS ? "true" : "false");
+                  // Siempre en pesos: el precio cargado a mano no se recalcula
+                  // por cotización (que ya no se usa).
+                  if (editingProduct.priceARS) formData.append("priceARS", editingProduct.priceARS);
+                  formData.append("fixedInARS", "true");
 
                   if (editingProduct.categories?.length)
                     editingProduct.categories.forEach((cat) => formData.append("categories[]", cat));
@@ -666,56 +657,21 @@ function AdminProducts() {
                 />
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!editingProduct.fixedInARS}
-                  onChange={(e) => setEditingProduct((p) => ({ ...p, fixedInARS: e.target.checked }))}
-                  className="rounded"
-                />
-                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                  Precio fijo en ARS
+              {/* Precio en pesos, sin más. Los campos de dólar y el switch
+                  "precio fijo en ARS" se ocultaron: todos los precios salen del
+                  Excel en pesos, así que solo servían para equivocarse. La
+                  lógica sigue en el backend por si algún día vuelve a usarse. */}
+              <label className="block">
+                <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
+                  Precio (ARS)
                 </span>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={editingProduct.priceARS || ""}
+                  onChange={(e) => setEditingProduct((p) => ({ ...p, priceARS: e.target.value }))}
+                  className={inputCls} style={inputStyle} required
+                />
               </label>
-
-              {editingProduct.fixedInARS ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
-                      Precio (ARS)
-                    </span>
-                    <input
-                      type="number" step="0.01" min="0"
-                      value={editingProduct.priceARS || ""}
-                      onChange={(e) => setEditingProduct((p) => ({ ...p, priceARS: e.target.value }))}
-                      className={inputCls} style={inputStyle} required
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
-                      Precio USD (opcional)
-                    </span>
-                    <input
-                      type="number" step="0.01" min="0"
-                      value={editingProduct.priceUSD || ""}
-                      onChange={(e) => setEditingProduct((p) => ({ ...p, priceUSD: e.target.value }))}
-                      className={inputCls} style={inputStyle}
-                    />
-                  </label>
-                </div>
-              ) : (
-                <label className="block">
-                  <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
-                    Precio (USD)
-                  </span>
-                  <input
-                    type="number" step="0.01" min="0"
-                    value={editingProduct.priceUSD || ""}
-                    onChange={(e) => setEditingProduct((p) => ({ ...p, priceUSD: e.target.value }))}
-                    className={inputCls} style={inputStyle} required
-                  />
-                </label>
-              )}
 
               {/* Categorías */}
               <div>

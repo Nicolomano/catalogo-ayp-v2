@@ -15,6 +15,24 @@ import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
 // de sobra para cualquier búsqueda real.
 const MAX_SEARCH = 64;
 
+/**
+ * Los precios en dólares quedaron sin uso: hoy todo sale del Excel en pesos, y
+ * el documento de configuración no tiene cotización cargada. El cálculo caía a
+ * 1 por defecto, así que un producto en USD se publicaba con el número de
+ * dólares como precio en pesos, sin error de por medio.
+ *
+ * Devuelve false y ya respondió el error si no hay una cotización usable.
+ */
+function requiereCotizacion(rate, res) {
+  if (Number.isFinite(rate) && rate > 0) return true;
+  res.status(400).json({
+    message:
+      "No hay una cotización del dólar cargada, así que no se puede calcular el precio en pesos. " +
+      "Cargá el precio directamente en pesos, o definí la cotización en Configuración.",
+  });
+  return false;
+}
+
 function toAccentInsensitiveRegex(raw) {
   const map = {
     a: "[aáàâäã]", á: "[aáàâäã]", à: "[aáàâäã]", â: "[aáàâäã]", ä: "[aáàâäã]", ã: "[aáàâäã]",
@@ -67,8 +85,11 @@ export async function createProduct(req, res) {
     // Si no está fijo → recalcular ARS según cotización
     if (!fixedFlag && priceUSDFinal) {
       const cfg = await Config.findOne();
-      const rate = cfg ? cfg.exchangeRate : 1;
-      priceARSFinal = Number(priceUSDFinal) * Number(rate || 1);
+      const rate = Number(cfg?.exchangeRate);
+      // Sin cotización cargada, esto usaba 1 en silencio: un producto de USD 120
+      // quedaba publicado a $120. Mejor no guardar nada y avisar.
+      if (!requiereCotizacion(rate, res)) return;
+      priceARSFinal = Number(priceUSDFinal) * rate;
     }
 
     const newProduct = new productModel({
@@ -161,9 +182,10 @@ export async function updateProduct(req, res) {
 
     if (!fixedFlag && priceUSD != null) {
       const cfg = await Config.findOne();
-      const rate = cfg ? cfg.exchangeRate : 1;
+      const rate = Number(cfg?.exchangeRate);
+      if (!requiereCotizacion(rate, res)) return;
       updateData.priceUSD = priceUSD;
-      updateData.priceARS = Number(priceUSD) * Number(rate || 1);
+      updateData.priceARS = Number(priceUSD) * rate;
     } else if (fixedFlag) {
       if (priceARS != null) updateData.priceARS = priceARS;
       if (priceUSD != null) updateData.priceUSD = priceUSD;
@@ -767,7 +789,10 @@ function buildUpdate(p, existing, format, exchangeRate) {
     } else {
       if (p.priceUSD !== null) {
         update.priceUSD = p.priceUSD;
-        update.priceARS = p.priceUSD * exchangeRate;
+        // Sin cotización se deja el precio en pesos como estaba, en vez de
+        // multiplicar por 1 y publicar el número de dólares como precio.
+        if (exchangeRate) update.priceARS = p.priceUSD * exchangeRate;
+        else if (p.priceARS !== null) update.priceARS = p.priceARS;
       } else if (p.priceARS !== null) {
         update.priceARS = p.priceARS;
       }
@@ -801,7 +826,9 @@ function buildInsert(p, format, exchangeRate) {
   }
   if (p.priceUSD !== null && p.priceUSD !== undefined && !isNaN(p.priceUSD)) {
     newProd.priceUSD = p.priceUSD;
-    if (!p.fixedFlag) newProd.priceARS = p.priceUSD * exchangeRate;
+    // Sin cotización no se calcula: se deja el precio en pesos del Excel (o
+    // ninguno), en vez de publicar el número de dólares como si fueran pesos.
+    if (!p.fixedFlag && exchangeRate) newProd.priceARS = p.priceUSD * exchangeRate;
   }
   return newProd;
 }
@@ -854,7 +881,9 @@ export const previewImportExcel = async (req, res) => {
     }
 
     const cfg = await Config.findOne();
-    const exchangeRate = Number(cfg?.exchangeRate || 1);
+    // null si no hay cotización usable: buildInsert/buildUpdate no calculan desde USD.
+    const rateRaw = Number(cfg?.exchangeRate);
+    const exchangeRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : null;
 
     // Existentes que están en el Excel
     const codes = [...excelCodeSet];
@@ -923,7 +952,9 @@ export const importProductsExcel = async (req, res) => {
     }
 
     const cfg = await Config.findOne();
-    const exchangeRate = Number(cfg?.exchangeRate || 1);
+    // null si no hay cotización usable: buildInsert/buildUpdate no calculan desde USD.
+    const rateRaw = Number(cfg?.exchangeRate);
+    const exchangeRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : null;
 
     let created = 0, updated = 0, skipped = 0;
     const errors = [];
@@ -1048,7 +1079,9 @@ export const commitImportExcel = async (req, res) => {
     }
 
     const cfg = await Config.findOne();
-    const exchangeRate = Number(cfg?.exchangeRate || 1);
+    // null si no hay cotización usable: buildInsert/buildUpdate no calculan desde USD.
+    const rateRaw = Number(cfg?.exchangeRate);
+    const exchangeRate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : null;
 
     const codes = [...excelCodeSet];
     const existingDocs = await productModel

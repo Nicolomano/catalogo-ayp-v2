@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
-import { Package, CheckCircle, XCircle, DollarSign } from "lucide-react";
+import { Package, CheckCircle, XCircle } from "lucide-react";
 
 const STAT_CARD = [
   {
@@ -45,7 +45,7 @@ export default function DashboardData() {
     );
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {STAT_CARD.map(({ key, label, Icon, accent, tint }) => (
         <div
           key={key}
@@ -68,23 +68,8 @@ export default function DashboardData() {
         </div>
       ))}
 
-      {/* Dólar */}
-      <div className="bento p-5 flex items-center gap-4">
-        <div
-          className="rounded-2xl p-3 shrink-0"
-          style={{ background: "rgba(234,179,8,0.12)" }}
-        >
-          <DollarSign size={22} style={{ color: "#B45309" }} strokeWidth={1.8} />
-        </div>
-        <div>
-          <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-            ${data.exchangeRate}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-            Cotización USD
-          </p>
-        </div>
-      </div>
+      {/* La tarjeta de cotización se sacó: no hay cotización cargada porque los
+          precios ya no se calculan por dólar, así que mostraba "$0". */}
     </div>
   );
 }
