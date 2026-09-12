@@ -38,8 +38,9 @@ const exists = await userModel.findOne({ username });
 if (exists) {
   console.log(`ℹ️  El admin "${username}" ya existe. No se hicieron cambios.`);
 } else {
-  await new userModel({ username, password }).save();
-  console.log(`✅ Admin creado: "${username}"`);
+  // El primer admin siempre es total: es el que después crea a los demás.
+  await new userModel({ username, password, nivel: "total" }).save();
+  console.log(`✅ Admin creado: "${username}" (acceso total)`);
 }
 
 await mongoose.disconnect();

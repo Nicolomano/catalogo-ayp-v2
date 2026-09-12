@@ -4,6 +4,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useConfirm } from "../Context/ConfirmContext.jsx";
+import { esAdminTotal } from "../utils/auth.js";
 
 const PAGE_SIZE = 50;
 
@@ -18,6 +19,9 @@ const inputStyle = {
 
 function AdminProducts() {
   const confirm = useConfirm();
+  // Borrar un producto es irreversible: reservado al acceso total (el backend
+  // devuelve 403 igual, esto solo evita ofrecer un botón que va a fallar).
+  const puedeBorrar = esAdminTotal();
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -180,25 +184,9 @@ function AdminProducts() {
     }
   };
 
-  const [migrating, setMigrating] = useState(false);
-
-  const handleMigrateCategories = async () => {
-    if (!(await confirm({
-      title: "Migrar categorías",
-      message: "¿Migrar el campo 'category' (texto) a 'categories' (lista) en todos los productos que lo necesiten?",
-      confirmText: "Migrar",
-    }))) return;
-    setMigrating(true);
-    try {
-      const res = await API.post("/products/admin/migrate-categories", {}, );
-      toast.success(res.data.message);
-      fetchProducts();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Error en migración");
-    } finally {
-      setMigrating(false);
-    }
-  };
+  // El botón "Migrar categorías" se sacó: llamaba a POST
+  // /products/admin/migrate-categories, que ya no existe como ruta HTTP (era una
+  // migración de una sola vez, ver productRoute.js). Siempre daba error.
 
 
   /* -------------------- UI -------------------- */
@@ -236,22 +224,15 @@ function AdminProducts() {
             >
               <Download size={15} /> Exportar Excel
             </button>
-            <Link
-              to="/admin/importar"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
-              style={{ background: "rgba(234,179,8,0.12)", color: "#B45309" }}
-            >
-              <Upload size={15} /> Importar Excel
-            </Link>
-            <button
-              onClick={handleMigrateCategories}
-              disabled={migrating}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-              style={{ background: "rgba(99,102,241,0.12)", color: "#4F46E5" }}
-              title="Normaliza productos con campo 'category' (string) al nuevo formato 'categories' (array)"
-            >
-              {migrating ? "Migrando…" : "Migrar categorías"}
-            </button>
+            {puedeBorrar && (
+              <Link
+                to="/admin/importar"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+                style={{ background: "rgba(234,179,8,0.12)", color: "#B45309" }}
+              >
+                <Upload size={15} /> Importar Excel
+              </Link>
+            )}
           </div>
         </div>
 
@@ -444,13 +425,15 @@ function AdminProducts() {
                   >
                     {p.active ? "Desactivar" : "Activar"}
                   </button>
-                  <button
-                    onClick={() => handleDelete(p._id)}
-                    className="text-xs py-1.5 px-2 rounded-lg font-medium transition-colors"
-                    style={{ background: "rgba(220,38,38,0.10)", color: "#DC2626" }}
-                  >
-                    Eliminar
-                  </button>
+                  {puedeBorrar && (
+                    <button
+                      onClick={() => handleDelete(p._id)}
+                      className="text-xs py-1.5 px-2 rounded-lg font-medium transition-colors"
+                      style={{ background: "rgba(220,38,38,0.10)", color: "#DC2626" }}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
                 {/* Acciones — fila 2 */}
                 <div className="flex gap-1.5">

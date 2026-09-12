@@ -24,6 +24,7 @@
    - [Importar Excel (con vista previa)](#89-importar-excel-con-vista-previa)
    - [Destacados](#810-gestión-de-destacados)
    - [Métricas](#811-métricas)
+   - [Administradores y niveles de acceso](#812-administradores-y-niveles-de-acceso)
 9. [Modo oscuro](#9-modo-oscuro)
 10. [Preguntas frecuentes](#10-preguntas-frecuentes)
 11. [Mantenimiento y copias de seguridad](#11-mantenimiento-y-copias-de-seguridad)
@@ -51,7 +52,9 @@ Solo el personal autorizado con usuario y contraseña de administrador puede acc
 
 > **Al cambiar la contraseña de administrador se cierran todas las sesiones abiertas**, en todos los dispositivos. Si alguna vez sospechás que alguien más entró, cambiarla lo saca al instante.
 
-> ⚠️ **El administrador no tiene "olvidé mi contraseña" desde la pantalla.** Si se pierde, se cambia con un comando: ver [Si se pierde la contraseña de administrador](#si-se-pierde-la-contraseña-de-administrador). Aun así, anotala en un lugar seguro.
+> ⚠️ **El administrador no tiene "olvidé mi contraseña" desde la pantalla de login.** Si hay otro administrador con acceso total, él puede cambiártela desde [Administradores](#812-administradores-y-niveles-de-acceso). Si no queda nadie, se cambia con un comando: ver [Si se pierde la contraseña de administrador](#si-se-pierde-la-contraseña-de-administrador). Aun así, anotala en un lugar seguro.
+
+> **Hay dos niveles de administrador: total y limitado.** Según cuál tengas, vas a ver más o menos secciones en el menú. Está explicado en [8.12 Administradores y niveles de acceso](#812-administradores-y-niveles-de-acceso).
 
 ---
 
@@ -280,6 +283,8 @@ Clic en **"Editar"** en la tarjeta del producto. Se abre el mismo formulario con
 Clic en **"Eliminar"** (rojo). El sistema pide confirmación antes de proceder.
 
 > ⚠️ La eliminación es permanente. Si solo se quiere ocultar del catálogo, usar **"Desactivar"** en su lugar.
+
+> El botón **"Eliminar"** solo aparece para los administradores con **acceso total** (ver [8.12](#812-administradores-y-niveles-de-acceso)). Lo mismo con **"Importar Excel"**.
 
 #### Activar / Desactivar un producto
 - **"Desactivar":** El producto deja de aparecer en el catálogo público (sigue existiendo en el admin)
@@ -636,6 +641,64 @@ Aprobados, pendientes, cuántos llevan **más de 3 días** esperando, y registro
 
 ---
 
+### 8.12 Administradores y niveles de acceso
+
+En **Gestión → Administradores**. Desde acá se dan de alta las personas que entran al panel y se decide hasta dónde llega cada una.
+
+#### Los dos niveles
+
+| | **Acceso limitado** | **Acceso total** |
+|---|---|---|
+| Productos: crear, editar, activar, stock, destacar | ✅ | ✅ |
+| **Borrar** productos | ❌ | ✅ |
+| **Importar Excel** | ❌ | ✅ |
+| Banners / slider | ✅ | ✅ |
+| Categorías: crear | ✅ | ✅ |
+| Categorías: **borrar** | ❌ | ✅ |
+| Órdenes y técnicos (services) | ✅ | ✅ |
+| Métricas | ✅ | ✅ |
+| Página de inicio, Configuración, Kit de instalación | ❌ | ✅ |
+| Crear y eliminar administradores | ❌ | ✅ |
+| Cambiar **su propia** contraseña | ✅ | ✅ |
+
+La idea es simple: **el acceso limitado hace el día a día y no puede romper nada grande**. Lo que borra, reemplaza precios de todo el catálogo o cambia lo que ve el cliente en la página de inicio queda para el acceso total.
+
+Quien tiene acceso limitado **no ve** en el menú las secciones que no puede usar, y tampoco le aparecen los botones de "Eliminar" ni "Importar Excel".
+
+#### Crear un administrador
+1. **Gestión → Administradores**
+2. En **"Nuevo administrador"**: usuario, contraseña (mínimo **12 caracteres**) y nivel
+3. Clic en **"Crear administrador"**
+
+> ⚠️ **Anotá la contraseña antes de crear la cuenta.** Después no se puede ver, solo reemplazar.
+
+> Usuarios sugeridos: algo que identifique a la persona o al puesto (`deposito`, `mostrador`, `juan`). No compartan una misma cuenta entre varias personas: si pasa algo, no hay forma de saber quién hizo qué.
+
+#### Cambiarle el nivel a alguien
+En la lista, elegir el nivel en el desplegable de esa fila. El cambio es inmediato.
+
+#### Cambiarle la contraseña a alguien
+Botón de la **llave** (🔑) en su fila. Pide la contraseña nueva. **Se le cierran todas las sesiones abiertas**, así que va a tener que entrar de nuevo con la nueva.
+
+Es lo que se usa cuando alguien se olvida la suya.
+
+#### Eliminar un administrador
+Botón del **tacho** (🗑) en su fila. La persona deja de entrar al panel de inmediato.
+
+> No se puede eliminar la **propia** cuenta, ni dejar el sistema sin **ningún administrador con acceso total**: el sistema lo impide. Es a propósito, para que no quede nadie que pueda importar el Excel.
+
+#### Cambiar mi propia contraseña
+Arriba de todo, en **"Cambiar mi contraseña"**. Está disponible para los dos niveles (el acceso limitado ve esta pantalla como **"Mi cuenta"**, solo con este recuadro).
+
+Pide la contraseña actual a propósito: si alguien agarra una sesión abierta, sin la actual no puede apropiarse de la cuenta.
+
+Al cambiarla, **el sistema te cierra la sesión** y tenés que entrar de nuevo con la nueva.
+
+#### Si a alguien le aparece "Esta sección no está disponible para tu cuenta"
+Su usuario tiene acceso limitado. Quien tenga acceso total puede subirlo de nivel desde esta misma pantalla.
+
+---
+
 ## 9. Modo oscuro
 
 En el menú superior hay un botón con ícono de sol/luna (🌙/☀️) para alternar entre modo claro y modo oscuro. La preferencia se guarda en el navegador.
@@ -711,7 +774,9 @@ Así solo **muestra** qué haría, sin tocar nada. Se aplica agregando `--confir
 
 ### Si se pierde la contraseña de administrador
 
-El panel no tiene "olvidé mi contraseña" para administradores (sí para los técnicos). Se cambia con un comando:
+**Primero probá lo fácil:** si queda **otro administrador con acceso total**, entra él y se la cambia desde **Gestión → Administradores** con el botón de la llave (ver [8.12](#812-administradores-y-niveles-de-acceso)). No hace falta nada más.
+
+Lo de abajo es para el caso feo: **se perdió la contraseña del único administrador con acceso total** y no hay quién la cambie desde adentro. El panel no tiene "olvidé mi contraseña" para administradores (sí para los técnicos), así que se cambia con un comando:
 
 ```bash
 cd Backend

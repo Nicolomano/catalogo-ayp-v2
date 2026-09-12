@@ -27,6 +27,25 @@ export function isAdminToken() {
   return readTokenPayload()?.role === "admin";
 }
 
+/**
+ * Nivel de acceso del administrador logueado: "total" | "limitado" | null.
+ *
+ * Solo sirve para mostrar u ocultar botones. Quien decide de verdad es el
+ * backend (requireNivelTotal): el token es editable desde el navegador, así que
+ * esconder la UI no protege nada por sí solo.
+ */
+export function nivelAdmin() {
+  const payload = readTokenPayload();
+  if (payload?.role !== "admin") return null;
+  // Los tokens emitidos antes de que existieran los niveles no traen el campo.
+  return payload.nivel === "limitado" ? "limitado" : "total";
+}
+
+/** ¿El admin logueado tiene acceso total? */
+export function esAdminTotal() {
+  return nivelAdmin() === "total";
+}
+
 /** ¿El token guardado es de un técnico service aprobado? */
 export function isApprovedServiceToken() {
   const payload = readTokenPayload();

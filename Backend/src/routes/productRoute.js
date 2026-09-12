@@ -22,7 +22,7 @@ import {
   listFeaturedAdmin,
   reorderFeatured,
 } from "../controllers/productsController.js";
-import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
+import { protect, requireAdmin, requireNivelTotal } from "../middlewares/authMiddleware.js";
 import uploadCloud, { uploadExcel } from "../middlewares/multer.js";
 
 const productRouter = express.Router();
@@ -46,13 +46,15 @@ productRouter.get("/featured/list",         protect, requireAdmin, listFeaturedA
 productRouter.patch("/featured/reorder",    protect, requireAdmin, reorderFeatured);
 // migrate-categories: script de migración de una sola vez, no se expone como ruta HTTP.
 // El controller sigue en productsController.js por si hay que volver a correrlo.
-productRouter.post("/import/excel",         protect, requireAdmin, uploadExcel.single("file"), importProductsExcel);
-productRouter.post("/import/preview",        protect, requireAdmin, uploadExcel.single("file"), previewImportExcel);
-productRouter.post("/import/commit",         protect, requireAdmin, uploadExcel.single("file"), commitImportExcel);
+// La importación de Excel reescribe precios y stock de todo el catálogo y el
+// borrado es irreversible: nivel total. El resto es el día a día.
+productRouter.post("/import/excel",         protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), importProductsExcel);
+productRouter.post("/import/preview",        protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), previewImportExcel);
+productRouter.post("/import/commit",         protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), commitImportExcel);
 productRouter.post("/upload",         protect, requireAdmin, uploadCloud.single("image"), uploadImage);
 productRouter.post("/",               protect, requireAdmin, uploadCloud.single("image"), createProduct);
 productRouter.put("/:id",             protect, requireAdmin, uploadCloud.single("image"), updateProduct);
-productRouter.delete("/:id",          protect, requireAdmin, deleteProduct);
+productRouter.delete("/:id",          protect, requireAdmin, requireNivelTotal, deleteProduct);
 productRouter.patch("/:id/toggle",    protect, requireAdmin, toggleProduct);
 productRouter.patch("/:id/featured",  protect, requireAdmin, toggleFeatured);
 productRouter.patch("/:id/stock",     protect, requireAdmin, toggleStock);

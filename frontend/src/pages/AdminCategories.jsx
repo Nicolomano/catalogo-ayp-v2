@@ -3,6 +3,7 @@ import API from "../api/axios";
 import toast from "react-hot-toast";
 import { PlusCircle, Trash2, FolderTree, ChevronRight } from "lucide-react";
 import { useConfirm } from "../Context/ConfirmContext.jsx";
+import { esAdminTotal } from "../utils/auth.js";
 
 const inputCls =
   "w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors";
@@ -14,6 +15,9 @@ const inputStyle = {
 
 export default function AdminCategories() {
   const confirm = useConfirm();
+  // Crear puede cualquier admin; borrar desarma la navegación del catálogo y es
+  // solo para el acceso total (el backend lo exige igual).
+  const puedeBorrar = esAdminTotal();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newCat, setNewCat] = useState({ name: "", slug: "", parent: "" });
@@ -85,14 +89,16 @@ export default function AdminCategories() {
               /{cat.slug}
             </span>
           </div>
-          <button
-            onClick={() => handleDelete(cat._id)}
-            className="p-1 rounded-lg transition-colors"
-            style={{ color: "#DC2626" }}
-            title="Eliminar"
-          >
-            <Trash2 size={14} />
-          </button>
+          {puedeBorrar && (
+            <button
+              onClick={() => handleDelete(cat._id)}
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: "#DC2626" }}
+              title="Eliminar"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
         {cat.children?.length > 0 && (
           <div

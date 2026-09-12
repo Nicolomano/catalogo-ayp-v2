@@ -21,6 +21,7 @@ import productModel from "./src/services/models/productModel.js";
 import orderModel from "./src/services/models/orderModel.js";
 import searchLogModel from "./src/services/models/searchLogModel.js";
 import pageViewModel from "./src/services/models/pageViewModel.js";
+import userModel from "./src/services/models/userModel.js";
 
 const app = express();
 const SERVER_PORT = process.env.PORT || 8080;
@@ -145,6 +146,18 @@ mongoose.connection.once("open", async () => {
     await orderModel.syncIndexes();
     await searchLogModel.syncIndexes();
     await pageViewModel.syncIndexes();
+
+    // Migración única e idempotente: las cuentas de admin creadas antes de que
+    // existieran los niveles no tienen el campo. El default del schema es
+    // "limitado", así que sin esto el dueño perdería el acceso a importar Excel,
+    // borrar productos y configurar el sitio la primera vez que se lea el campo.
+    const migrados = await userModel.updateMany(
+      { nivel: { $exists: false } },
+      { $set: { nivel: "total" } },
+    );
+    if (migrados.modifiedCount) {
+      console.log(`Admins migrados a nivel total: ${migrados.modifiedCount}`);
+    }
   } catch (e) {
     console.error("Error syncing product indexes:", e.message);
   }

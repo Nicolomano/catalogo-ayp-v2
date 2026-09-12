@@ -31,6 +31,9 @@ const esperar = (real, esp, que) => {
 
 const mongod = await MongoMemoryServer.create();
 process.env.MONGO_URI = mongod.getUri();
+// authController importa config.js, que aborta si falta alguna variable
+// obligatoria. Acá no se firma ningún token de verdad: alcanza con un valor.
+process.env.JWT_SECRET ||= "secreto-solo-para-esta-prueba-descartable";
 await mongoose.connect(process.env.MONGO_URI);
 console.log(`\nBase de prueba levantada\n`);
 
@@ -139,6 +142,136 @@ await check("El backup guarda y la restauración devuelve los datos", async () =
   const a = await db.collection("orders").findOne({ customerName: "Cliente A" });
   esperar(a?.totalARS, 1000, "datos del documento");
   return "2 órdenes borradas y recuperadas intactas";
+});
+
+console.log("\nNiveles de administrador");
+console.log("─".repeat(38));
+
+const { requireNivelTotal, requireAdmin } = await import("../middlewares/authMiddleware.js");
+const { registerAdmin, listAdmins, updateAdmin, deleteAdmin, cambiarMiPassword } = await import(
+  "../controllers/authController.js"
+);
+
+/** res falso: guarda el status y el body para poder afirmarlos. */
+function fakeRes() {
+  const r = { statusCode: 200, body: null };
+  r.status = (c) => ((r.statusCode = c), r);
+  r.json = (b) => ((r.body = b), r);
+  return r;
+}
+/** Corre un middleware y devuelve si llamó a next(). */
+function correr(mw, req) {
+  const res = fakeRes();
+  let paso = false;
+  mw(req, res, () => { paso = true; });
+  return { paso, res };
+}
+
+await check("El middleware deja pasar a total y frena a limitado", () => {
+  const admin = (nivel) => ({ user: { role: "admin", ...(nivel ? { nivel } : {}) } });
+  esperar(correr(requireNivelTotal, admin("total")).paso, true, "total");
+  const lim = correr(requireNivelTotal, admin("limitado"));
+  esperar(lim.paso, false, "limitado pasó");
+  esperar(lim.res.statusCode, 403, "status del rechazo");
+  esperar(correr(requireNivelTotal, {}).paso, false, "sin usuario");
+  // Un token de service (sin `nivel`) NO debe colarse por la tolerancia.
+  esperar(correr(requireNivelTotal, { user: { role: "service" } }).paso, false, "token de service");
+  // Token de admin viejo, firmado antes de que existieran los niveles: pasa,
+  // porque esas cuentas son todas totales y si no el dueño quedaría afuera.
+  esperar(correr(requireNivelTotal, admin()).paso, true, "token de admin sin nivel");
+  // requireAdmin sigue valiendo para los dos niveles: ambos entran al panel.
+  esperar(correr(requireAdmin, admin("limitado")).paso, true, "requireAdmin con limitado");
+  return "403 para limitado, panel abierto para ambos";
+});
+
+await check("La migración pone nivel total en las cuentas viejas", async () => {
+  // Se simula una cuenta anterior a los niveles: sin el campo.
+  await userModel.collection.insertOne({ username: "viejo", password: "hash", tokenVersion: 0 });
+  const r = await userModel.updateMany({ nivel: { $exists: false } }, { $set: { nivel: "total" } });
+  const viejo = await userModel.findOne({ username: "viejo" }).lean();
+  esperar(viejo.nivel, "total", "nivel migrado");
+  // Idempotente: correrla de nuevo no toca nada.
+  const r2 = await userModel.updateMany({ nivel: { $exists: false } }, { $set: { nivel: "total" } });
+  esperar(r2.modifiedCount, 0, "segunda corrida");
+  return `${r.modifiedCount} migrada(s), la segunda corrida no modifica nada`;
+});
+
+await check("Un admin nuevo nace limitado si no se aclara", async () => {
+  const u = await new userModel({ username: "sinNivel", password: "unaClaveLarga123" }).save();
+  esperar(u.nivel, "limitado", "default del schema");
+});
+
+let idLimitado;
+await check("Se crea un admin limitado desde el endpoint", async () => {
+  const res = fakeRes();
+  await registerAdmin({ body: { username: "deposito", password: "claveDeDeposito1" , nivel: "limitado" } }, res);
+  esperar(res.statusCode, 201, "status");
+  esperar(res.body.nivel, "limitado", "nivel");
+  if (res.body.password) throw new Error("¡el endpoint devolvió la contraseña!");
+  idLimitado = String(res.body._id);
+});
+
+await check("Rechaza contraseñas cortas y niveles inventados", async () => {
+  const corta = fakeRes();
+  await registerAdmin({ body: { username: "x", password: "corta", nivel: "limitado" } }, corta);
+  esperar(corta.statusCode, 400, "contraseña corta");
+  const raro = fakeRes();
+  await registerAdmin({ body: { username: "y", password: "unaClaveLarga123", nivel: "dios" } }, raro);
+  esperar(raro.statusCode, 400, "nivel inventado");
+});
+
+await check("El listado nunca devuelve contraseñas", async () => {
+  const res = fakeRes();
+  await listAdmins({}, res);
+  if (!Array.isArray(res.body) || !res.body.length) throw new Error("listado vacío");
+  for (const a of res.body) {
+    if ("password" in a) throw new Error(`${a.username} expone la contraseña`);
+    if (!a.nivel) throw new Error(`${a.username} sin nivel`);
+  }
+  return `${res.body.length} cuentas, sin hashes`;
+});
+
+await check("No se puede dejar el sistema sin ningún admin total", async () => {
+  // Queda un solo total: el "viejo" migrado ("admin" y los nuevos son limitados).
+  await userModel.updateMany({ username: { $ne: "viejo" } }, { $set: { nivel: "limitado" } });
+  const totales = await userModel.find({ nivel: "total" }).lean();
+  esperar(totales.length, 1, "totales antes de la prueba");
+  const unico = totales[0];
+
+  const degradar = fakeRes();
+  await updateAdmin({ params: { id: String(unico._id) }, body: { nivel: "limitado" }, user: { id: String(unico._id) } }, degradar);
+  esperar(degradar.statusCode, 400, "degradar al último total");
+
+  const borrar = fakeRes();
+  await deleteAdmin({ params: { id: String(unico._id) }, body: {}, user: { id: idLimitado } }, borrar);
+  esperar(borrar.statusCode, 400, "borrar al último total");
+
+  const sigue = await userModel.findById(unico._id).lean();
+  esperar(sigue.nivel, "total", "el último total quedó intacto");
+});
+
+await check("Nadie puede eliminarse a sí mismo", async () => {
+  const res = fakeRes();
+  await deleteAdmin({ params: { id: idLimitado }, body: {}, user: { id: idLimitado } }, res);
+  esperar(res.statusCode, 400, "autoborrado");
+  if (!(await userModel.findById(idLimitado))) throw new Error("se borró igual");
+});
+
+await check("Cambiar la contraseña propia exige la actual", async () => {
+  const mal = fakeRes();
+  await cambiarMiPassword({ body: { actual: "loQueSea12345", nueva: "otraClaveLarga1" }, user: { id: idLimitado } }, mal);
+  esperar(mal.statusCode, 400, "con la actual equivocada");
+
+  const antes = await userModel.findById(idLimitado);
+  const bien = fakeRes();
+  await cambiarMiPassword({ body: { actual: "claveDeDeposito1", nueva: "otraClaveLarga1" }, user: { id: idLimitado } }, bien);
+  esperar(bien.statusCode, 200, "con la actual correcta");
+
+  const despues = await userModel.findById(idLimitado);
+  esperar(await despues.comparePassword("otraClaveLarga1"), true, "entra con la nueva");
+  esperar(await despues.comparePassword("claveDeDeposito1"), false, "ya no entra con la vieja");
+  if (despues.tokenVersion <= antes.tokenVersion) throw new Error("no se invalidaron las sesiones");
+  return `tokenVersion ${antes.tokenVersion} → ${despues.tokenVersion}`;
 });
 
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);

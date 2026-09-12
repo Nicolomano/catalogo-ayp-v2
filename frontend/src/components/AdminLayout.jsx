@@ -17,14 +17,19 @@ import {
   Menu,
   X,
   BarChart3,
+  ShieldCheck,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
+import { esAdminTotal } from "../utils/auth.js";
 
+// `soloTotal: true` = la pantalla depende de endpoints con requireNivelTotal, así
+// que a un admin limitado no se le muestra (le daría 403 al guardar). Esconderla
+// es comodidad, no seguridad: quien autoriza es el backend.
 const NAV_GROUPS = [
   {
     label: "Contenido",
     items: [
-      { to: "/admin/landing",   icon: Home,      label: "Página de inicio" },
+      { to: "/admin/landing",   icon: Home,      label: "Página de inicio", soloTotal: true },
       { to: "/admin/banners",   icon: Image,     label: "Banners / Slider" },
     ],
   },
@@ -32,10 +37,10 @@ const NAV_GROUPS = [
     label: "Tienda",
     items: [
       { to: "/admin/products", icon: Package, label: "Productos" },
-      { to: "/admin/importar", icon: Upload, label: "Importar Excel" },
+      { to: "/admin/importar", icon: Upload, label: "Importar Excel", soloTotal: true },
       { to: "/admin/destacados", icon: Star, label: "Destacados" },
       { to: "/admin/categories", icon: FolderTree, label: "Categorías" },
-      { to: "/admin/install-kit", icon: Wrench, label: "Kit de instalación" },
+      { to: "/admin/install-kit", icon: Wrench, label: "Kit de instalación", soloTotal: true },
     ],
   },
   {
@@ -44,7 +49,9 @@ const NAV_GROUPS = [
       { to: "/admin/metricas", icon: BarChart3, label: "Métricas" },
       { to: "/admin/orders", icon: ClipboardList, label: "Órdenes" },
       { to: "/admin/users", icon: Users, label: "Services" },
-      { to: "/admin/config", icon: Settings, label: "Configuración" },
+      { to: "/admin/config", icon: Settings, label: "Configuración", soloTotal: true },
+      // Los dos niveles entran acá: el limitado solo para cambiar su contraseña.
+      { to: "/admin/administradores", icon: ShieldCheck, label: "Administradores" },
     ],
   },
 ];
@@ -86,11 +93,21 @@ function AdminLayout() {
     navigate("/admin/login");
   };
 
-  const allItems = NAV_GROUPS.flatMap((g) => g.items);
-  const current = allItems.find((item) =>
+  // Se lee del token en cada render (ver utils/auth.js: el provider está por
+  // encima del router y no se re-renderiza al navegar).
+  const total = esAdminTotal();
+  const grupos = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => total || !i.soloTotal),
+  })).filter((g) => g.items.length > 0);
+
+  const current = NAV_GROUPS.flatMap((g) => g.items).find((item) =>
     location.pathname.startsWith(item.to),
   );
-  const pageTitle = current?.label ?? "Panel de administración";
+  const pageTitle =
+    current?.to === "/admin/administradores" && !total
+      ? "Mi cuenta"
+      : (current?.label ?? "Panel de administración");
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
@@ -122,7 +139,7 @@ function AdminLayout() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-          {NAV_GROUPS.map((group) => (
+          {grupos.map((group) => (
             <div key={group.label}>
               <p
                 className="text-xs font-bold uppercase tracking-widest px-3 mb-1.5"
@@ -132,7 +149,16 @@ function AdminLayout() {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => (
-                  <NavItem key={item.to} {...item} />
+                  <NavItem
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={
+                      item.to === "/admin/administradores" && !total
+                        ? "Mi cuenta"
+                        : item.label
+                    }
+                  />
                 ))}
               </div>
             </div>

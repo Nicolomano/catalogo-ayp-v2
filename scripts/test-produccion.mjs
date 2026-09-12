@@ -177,6 +177,7 @@ async function main() {
     ["/dashboard/metrics", "GET"],
     ["/products/export/excel", "GET"],
     ["/banners/admin/all", "GET"],
+    ["/auth/admins", "GET"],
   ];
   for (const [path, method] of protegidas) {
     await check(`${method} ${path} sin token → 401`, async () => {
@@ -269,6 +270,20 @@ async function main() {
     const r = await pedir("/banners/admin/all", { auth: true });
     esperar(r.status, 200);
     return `${r.data.length} banners cargados`;
+  });
+  await check("Administradores: listado sin contraseñas", async () => {
+    const r = await pedir("/auth/admins", { auth: true });
+    if (r.status === 403) {
+      // El token es de un admin limitado: el 403 es lo correcto.
+      return "el token usado es de acceso limitado (403, como corresponde)";
+    }
+    esperar(r.status, 200);
+    if (!Array.isArray(r.data)) throw new Error("la respuesta no es una lista");
+    const filtrado = r.data.filter((a) => "password" in a);
+    if (filtrado.length) throw new Error(`${filtrado.length} cuenta(s) exponen la contraseña`);
+    const totales = r.data.filter((a) => (a.nivel || "total") === "total").length;
+    if (!totales) throw new Error("no quedó ningún administrador con acceso total");
+    return `${r.data.length} cuenta(s): ${totales} total, ${r.data.length - totales} limitado`;
   });
 
   // ── 5. Métricas ─────────────────────────────────────────────

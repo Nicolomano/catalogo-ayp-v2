@@ -68,6 +68,32 @@ export const requireAdmin = (req, res, next) => {
   next();
 };
 
+/**
+ * Autorización: exige un administrador de nivel total. Va después de
+ * `requireAdmin`.
+ *
+ * Protege lo que puede romper el catálogo o la configuración: importar Excel,
+ * borrar productos, tocar la config del sitio y administrar usuarios. Un
+ * empleado con nivel limitado hace el día a día sin poder vaciar la tienda.
+ */
+export const requireNivelTotal = (req, res, next) => {
+  // Un token de admin sin `nivel` es uno firmado antes de que existieran los
+  // niveles, y esas cuentas son todas totales (app.js las migra). Sin esta
+  // tolerancia, al desplegar el cambio el dueño perdería las funciones
+  // restringidas hasta que se le venciera la sesión. Nadie puede fabricar un
+  // token así: va firmado. Se exige igual role === "admin" para que la
+  // tolerancia no le abra la puerta a un token de service, que tampoco lo trae.
+  const esAdmin = req.user?.role === "admin";
+  const nivel = req.user?.nivel;
+  if (!esAdmin || (nivel !== undefined && nivel !== "total")) {
+    return res.status(403).json({
+      message:
+        "Esta acción está reservada a los administradores con acceso total. Pedíselo a quien administra el sistema.",
+    });
+  }
+  next();
+};
+
 // No hay un `requireApprovedService`: leería `approved` del token, que dura 7
 // días, así que un técnico al que le revocaron la cuenta seguiría pasando. Lo
 // que dependa del beneficio service usa `esServiceAprobado` de

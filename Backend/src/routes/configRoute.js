@@ -6,13 +6,14 @@ import {
   updateInstallKit,
 } from "../controllers/configController.js";
 import { config } from "dotenv";
-import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
+import { protect, requireAdmin, requireNivelTotal } from "../middlewares/authMiddleware.js";
 const configRouter = express.Router();
 
-configRouter.put("/", protect, requireAdmin, updateExchangeRate);
+// Cotización y kit de instalación afectan precios en todo el sitio: nivel total.
+configRouter.put("/", protect, requireAdmin, requireNivelTotal, updateExchangeRate);
 
 configRouter.get("/", getExchangeRate);
 configRouter.get("/install-kit", getInstallKit);
-configRouter.put("/install-kit", protect, requireAdmin, updateInstallKit);
+configRouter.put("/install-kit", protect, requireAdmin, requireNivelTotal, updateInstallKit);
 
 export default configRouter;
