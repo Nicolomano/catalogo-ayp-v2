@@ -51,7 +51,7 @@ Solo el personal autorizado con usuario y contraseña de administrador puede acc
 
 > **Al cambiar la contraseña de administrador se cierran todas las sesiones abiertas**, en todos los dispositivos. Si alguna vez sospechás que alguien más entró, cambiarla lo saca al instante.
 
-> ⚠️ **No existe recuperación de contraseña para el administrador.** Si se pierde, hay que regenerarla contra la base de datos. Anotala en un lugar seguro.
+> ⚠️ **El administrador no tiene "olvidé mi contraseña" desde la pantalla.** Si se pierde, se cambia con un comando: ver [Si se pierde la contraseña de administrador](#si-se-pierde-la-contraseña-de-administrador). Aun así, anotala en un lugar seguro.
 
 ---
 
@@ -708,6 +708,22 @@ Así solo **muestra** qué haría, sin tocar nada. Se aplica agregando `--confir
 > El archivo tiene **datos personales** (teléfonos de clientes, CUIT de técnicos). Guardalo en un lugar privado y no lo subas a ningún repositorio.
 
 > **Probá que la copia funcione antes de confiar en ella.** Hacé una copia y restaurala en una base **de prueba** (cambiando el nombre al final de la cadena de conexión). Una copia que nunca se restauró no es una copia.
+
+### Si se pierde la contraseña de administrador
+
+El panel no tiene "olvidé mi contraseña" para administradores (sí para los técnicos). Se cambia con un comando:
+
+```bash
+cd Backend
+MONGO_URI="la-cadena-de-conexión" node src/scripts/resetAdminPassword.js admin laNuevaContraseña
+```
+
+Reemplazando `admin` por el nombre de usuario y poniendo la contraseña nueva al final (mínimo 12 caracteres).
+
+- Si el usuario no existe, el comando **lista los administradores que hay** en la base, así que sirve también para recordar cuál es el nombre.
+- Al cambiarla **se cierran todas las sesiones abiertas** en todos los dispositivos.
+
+> **No uses `seedAdmin.js` para esto.** Ese script solo crea el primer administrador: si ya existe, avisa "ya existe, no se hicieron cambios" y **no cambia nada**. Es un error fácil de cometer porque parece que funcionó.
 
 ### Si el sitio se cae
 
