@@ -23,8 +23,10 @@
    - [Configuración general](#88-configuración-general)
    - [Importar Excel (con vista previa)](#89-importar-excel-con-vista-previa)
    - [Destacados](#810-gestión-de-destacados)
+   - [Métricas](#811-métricas)
 9. [Modo oscuro](#9-modo-oscuro)
 10. [Preguntas frecuentes](#10-preguntas-frecuentes)
+11. [Mantenimiento y copias de seguridad](#11-mantenimiento-y-copias-de-seguridad)
 
 ---
 
@@ -42,10 +44,14 @@ Solo el personal autorizado con usuario y contraseña de administrador puede acc
 
 **Para ingresar:**
 1. Ir a la URL del sitio + `/admin`
-2. Escribir el email y contraseña de administrador
+2. Escribir el usuario y contraseña de administrador
 3. Hacer clic en **"Ingresar"**
 
-> ⚠️ El token de sesión se guarda en el navegador. Si cerrás la pestaña, la sesión se mantiene. Para cerrar sesión, borrar el historial/datos del navegador o usar el botón de logout si está disponible.
+> **La sesión de administrador dura 2 días.** Después pide entrar de nuevo. Es a propósito: es la credencial que más cuidamos. Para salir antes, usá **"Cerrar sesión"** abajo del menú lateral.
+
+> **Al cambiar la contraseña de administrador se cierran todas las sesiones abiertas**, en todos los dispositivos. Si alguna vez sospechás que alguien más entró, cambiarla lo saca al instante.
+
+> ⚠️ **No existe recuperación de contraseña para el administrador.** Si se pierde, hay que regenerarla contra la base de datos. Anotala en un lugar seguro.
 
 ---
 
@@ -57,16 +63,19 @@ El menú superior está siempre visible y contiene:
 | Sección | Descripción |
 |---|---|
 | **Inicio** | Página de bienvenida con productos destacados |
-| **Catálogo** | Listado completo de productos con filtros |
-| **Kit** | Calculadora de kit de instalación |
+| **Productos** | Listado completo con filtros |
+| **Kit instalación** | Calculadora de kit de instalación |
 | **Contacto** | Dirección, teléfono, WhatsApp y mapa |
-| **Admin** | Visible solo si se inició sesión como administrador |
+| **Admin** | Visible **solo para administradores reales** |
 
 ### En celular
-El menú se colapsa en un botón de hamburguesa (≡) en la esquina superior derecha. Al tocarlo se despliega el menú completo.
+- Arriba: el menú de hamburguesa (≡) y un **botón de WhatsApp** para escribir directo.
+- Abajo: una barra fija con **Inicio · Productos · Kit · Pedido**. El carrito vive ahí, con el número de artículos.
+
+> El botón verde flotante de WhatsApp **solo aparece en computadora**. En el celular tapaba los botones de cantidad y los textos, así que se movió arriba.
 
 ### Botón de carrito
-El ícono de carrito (🛒) en la esquina superior derecha muestra un número en rojo con la cantidad de artículos agregados. Al tocarlo se va a la pantalla de pedido.
+En computadora, el ícono de carrito (🛒) arriba a la derecha muestra la cantidad de artículos. En celular es el botón **"Pedido"** de la barra de abajo.
 
 ---
 
@@ -103,14 +112,15 @@ El catálogo carga 24 productos por vez. Al llegar al final de la página se car
 
 ### Tarjeta de producto
 Cada producto muestra:
-- Imagen
+- Imagen (si el producto no tiene foto, se muestra un recuadro azul con la marca o la inicial de la categoría)
 - Marca (si tiene)
 - Nombre
 - Precio en ARS
 - Cuotas (precio en 6 cuotas con interés)
 - Indicador de **Sin stock** (si aplica)
-- Selector de cantidad (−/+)
 - Botón **"Agregar"**
+
+> **Cómo funciona el botón:** la tarjeta muestra solo **"Agregar"**. Al tocarlo, el botón se convierte en un contador con **− 1 +** que refleja lo que hay en el pedido. Bajar a 0 lo saca del carrito. Antes había un selector de cantidad separado que no tenía relación con el pedido real.
 
 ---
 
@@ -153,6 +163,14 @@ Tocar el ícono de carrito en el menú superior. Se muestran todos los productos
 ### Modificar cantidades en el carrito
 Usar los botones − y + dentro del carrito para ajustar la cantidad de cada producto.
 
+### El aviso "Actualizamos tu pedido"
+El carrito queda guardado en el navegador del cliente, incluso si cierra la página y vuelve días después. Como los precios se actualizan con cada importación de Excel, **al abrir el carrito el sistema verifica precios y stock**:
+
+- Si algo **cambió de precio**, se actualiza y aparece un aviso amarillo con el detalle.
+- Si algo **quedó sin stock** o se despublicó, se saca del pedido y se explica por qué.
+
+Esto existe para que el cliente se entere **antes** de confirmar. Si algún cliente pregunta por qué le cambió el total, es esto: tenía un precio viejo guardado.
+
 ### Finalizar el pedido
 1. En la sección inferior del carrito, completar:
    - **Nombre completo** (obligatorio)
@@ -185,6 +203,8 @@ La calculadora de kit permite armar un presupuesto estimado para una instalació
 ### Precio service en el kit
 Si un técnico **inició sesión y su cuenta está aprobada**, el resumen del kit muestra los precios y el total **con el 10% de descuento service** ya aplicado, con una etiqueta **"Precio service"**. El mensaje de WhatsApp también sale con esos precios con descuento. Para un visitante no logueado, se ven los precios normales.
 
+> El descuento lo calcula el servidor, no el navegador. Antes lo hacía el navegador, así que el mensaje que llegaba al local podía decir "con descuento service" sin que nadie lo hubiera verificado.
+
 ### Enviar por WhatsApp
 Si hay un número de WhatsApp configurado, aparece el botón verde **"Enviar por WhatsApp"**. Al tocarlo se abre WhatsApp con el detalle completo del kit y el total para cotizar.
 
@@ -199,7 +219,7 @@ Los técnicos matriculados pueden registrarse para obtener un **10% de descuento
 2. Completar el formulario de registro:
    - Nombre y apellido
    - Email
-   - Contraseña (mínimo 6 caracteres)
+   - Contraseña (mínimo **8** caracteres)
    - **CUIT** (obligatorio)
    - Empresa / Taller (opcional)
    - Provincia
@@ -217,6 +237,11 @@ Al iniciar sesión, el técnico ve:
 
 ### Iniciar sesión
 Ir a "Soy service" → ingresar email y contraseña → tocar **"Ingresar"**.
+
+> **Una cuenta pendiente de aprobación no puede entrar.** Si intenta, el sistema le avisa que todavía está esperando confirmación. Antes podía entrar igual aunque no estuviera aprobada; eso se corrigió.
+
+### Si olvidó la contraseña
+En la pantalla de inicio de sesión hay un enlace **"¿Olvidaste tu contraseña?"**. Pone su email y le llega un correo con un enlace para crear una nueva. El enlace vence en 1 hora y sirve una sola vez. Si no le llega, que revise spam.
 
 ---
 
@@ -242,9 +267,7 @@ Es la sección principal del admin. Permite ver, crear, editar y eliminar todos 
    - **Código** (obligatorio, debe ser único)
    - **Marca** (opcional)
    - **Descripción** (obligatorio)
-   - **Precio:** Elegir entre precio fijo en ARS o calcular desde USD
-     - Si se marca **"Precio fijo en ARS"**: ingresar el precio en pesos (y opcionalmente en USD)
-     - Si no: ingresar el precio en USD, el sistema lo convierte usando la cotización configurada
+   - **Precio (ARS):** el precio en pesos, sin más vueltas
    - **Categorías:** Seleccionar una o más (aparecen como botones)
    - **Subcategorías:** Se habilitan según las categorías seleccionadas
    - **Imagen:** Opcional, se puede subir desde el dispositivo
@@ -307,19 +330,31 @@ Los banners son las imágenes del carrusel que aparecen en la página de inicio.
 #### Ver los banners
 La sección muestra todos los banners con su imagen, título, estado (activo/inactivo) y número de orden.
 
+#### Los tres tipos de banner
+
+| Tipo | Dónde se ve | Cómo se arma |
+|---|---|---|
+| **Home (hero)** | Carrusel al lado del título, en la página de inicio (solo en computadora) | Es una imagen: todo el arte va adentro del archivo |
+| **Promo (home)** | Banda ancha debajo del hero, **también en celular** | La arma el sistema: vos ponés el texto y **solo la foto del producto** |
+| **Tienda (sin uso)** | Ya no se muestra en ningún lado | Queda para no perder los banners viejos |
+
 #### Crear un banner
-1. Seleccionar el tipo: **"Home (hero)"** o **"Catálogo"**
+1. Seleccionar el tipo arriba a la derecha
 2. Clic en **"+ Nuevo banner"**
 3. Completar:
+   - **Etiqueta** (solo para tipo Promo): el texto chico de arriba, ej. `NUEVO INGRESO`
    - **Título** (aparece sobre la imagen)
    - **Subtítulo** (texto secundario, opcional)
    - **Link:** URL a donde lleva al hacer clic (ej: `/catalogo?cat=Compresores`). Opcional.
-   - **Tipo:** Home o Catálogo
+   - **Tipo:** Home, Promo o Tienda
    - **Orden:** Número que determina la posición en el carrusel (1 = primero)
    - **Estado:** Activo o Inactivo
    - **Imagen:** Subir desde el dispositivo
-     > Tamaño recomendado: cuadrada, mínimo 900×900px. El sistema la recorta automáticamente.
+     > **Home:** cuadrada, mínimo 900×900px.
+     > **Promo:** la **foto del producto recortada**, con fondo transparente o blanco liso, mínimo 800×800px. **No subas un flyer con texto**: el fondo, los colores y el botón los pone el sistema, así que un flyer se vería flotando arriba del diseño.
 4. Clic en **"Guardar"**
+
+> **El banner Promo es el que se ve en celular.** El carrusel Home está oculto en pantallas chicas, y la mayoría de los clientes entran desde el teléfono. Si tenés una sola cosa para destacar, poné un Promo.
 
 #### Editar un banner
 Clic en **"Editar"** sobre el banner a modificar.
@@ -346,10 +381,14 @@ Cada órdenes muestra:
 - Total estimado en ARS
 - Estado: **Pendiente** (amarillo) o **Contestada** (verde)
 
+Las órdenes se cargan de a 50. Si hay más, aparece **"Ver más órdenes"** al final de la lista.
+
 #### Cambiar el estado de una orden
 Clic en **"Marcar como contestada"** / **"Marcar como pendiente"** para alternar el estado. Esto sirve para llevar control interno de cuáles pedidos ya fueron atendidos.
 
 > Las órdenes llegan principalmente por WhatsApp. Este registro es un complemento para tener historial.
+
+> **Marcá las órdenes como contestadas.** No es solo prolijidad: la sección **Métricas** usa ese estado para avisarte cuántos pedidos quedaron sin responder y desde hace cuánto está el más viejo. Si nunca se marcan, esa alerta no sirve para nada.
 
 ---
 
@@ -374,6 +413,7 @@ Cada tarjeta muestra:
 - Teléfono
 - Fecha de registro
 - **"Ver foto de matrícula"** (si el técnico subió una imagen; se abre en grande)
+  > La imagen es un documento personal: se descarga con tu sesión de administrador y **ya no tiene una dirección pública**. Antes cualquiera con el enlace podía verla, para siempre.
 - **Número de cliente** (si ya está aprobado)
 
 #### Aprobar un usuario
@@ -387,6 +427,24 @@ Cada tarjeta muestra:
 3. Clic en **"Confirmar rechazo"**
 
 El motivo queda visible en la tarjeta del usuario (en rojo) y el técnico recibe un **email** avisándole del rechazo con el motivo.
+
+#### Corregir los datos de un técnico
+Los técnicos cambian de teléfono, o cargan mal el CUIT al registrarse. Cada tarjeta tiene un botón **"Editar datos"** (disponible en cualquier estado, no solo en los pendientes).
+
+Se pueden corregir: nombre, email, CUIT, teléfono, empresa, provincia y número de cliente.
+
+- El **CUIT** tiene que tener 11 dígitos. Podés escribirlo con guiones: el sistema los saca solo.
+- Si ponés un **email que ya usa otra cuenta**, avisa y no guarda.
+- Si le **cambiás el email**, se le cierra la sesión y tiene que volver a entrar con el nuevo.
+
+#### Si un técnico perdió su contraseña
+No hace falta que hagas nada: en la pantalla de inicio de sesión hay un enlace **"¿Olvidaste tu contraseña?"**. El técnico pone su email y le llega un correo con un enlace para crear una nueva.
+
+- El enlace **vence en 1 hora** y sirve **una sola vez**.
+- Al cambiar la contraseña se le cierran las sesiones abiertas. Es a propósito: si alguien le hubiera robado el acceso, esto lo saca.
+- Si dice que no le llega, que revise **spam**. Si igual no aparece, avisá: puede ser un problema del servicio de correo.
+
+> Vos **no podés ver ni cambiar** la contraseña de un técnico, y está bien que sea así. El único camino es que él pida el enlace.
 
 ---
 
@@ -454,6 +512,18 @@ Dos tarjetas de números que aparecen al lado del hero (si no hay banners).
 #### Sección: Tarjetas de información
 Las 4 tarjetas con íconos que muestran servicios clave (envíos, WhatsApp, precio service, horario). Se puede editar el título y descripción de cada una.
 
+> En la página de inicio se muestran solo dos de las cuatro (Envíos y Horario), para que entren completas en el celular. Las otras dos quedan guardadas.
+
+#### Sección: Categorías destacadas del inicio
+Define **qué categorías aparecen en la página de inicio y en qué orden**.
+
+- A la **derecha** están las disponibles: son las categorías reales de tus productos, no una lista fija. Clic en una para agregarla.
+- A la **izquierda** las elegidas, numeradas en el orden en que se van a ver. Con **↑ ↓** se mueven y con **✕** se sacan.
+
+> Si no elegís ninguna, se muestran **las primeras 7 por orden alfabético**, que es como funcionaba antes. Por eso aparecían siempre las mismas.
+
+> Si más adelante **renombrás una categoría** (desde el Excel o desde Categorías), la que estaba elegida deja de coincidir y simplemente no se muestra. No se rompe nada, pero hay que volver a elegirla acá.
+
 #### Sección: ¿Quiénes somos?
 Texto libre para la sección "Acerca de" de la empresa.
 
@@ -478,13 +548,13 @@ Clic en **"Guardar cambios"** (arriba a la derecha o abajo del formulario). Apar
 
 ### 8.8 Configuración general
 
-#### Cotización del dólar
-Ingresar el valor del dólar oficial o el tipo de cambio que se usa internamente para calcular los precios en ARS de los productos cargados en USD.
+#### WhatsApp de administración
+El número al que se avisa cuando un técnico se registra sin imagen de matrícula, para poder validarlo a mano.
 
-1. Escribir el nuevo valor en el campo
+1. Escribir el número (solo dígitos, con código de país: `5491112345678`)
 2. Clic en **"Guardar"**
 
-> Los precios en ARS de los productos con precio en USD se recalculan automáticamente con este valor.
+> **Sobre el dólar:** antes había acá un campo de cotización, porque algunos productos tenían el precio en dólares y se recalculaban solos. Hoy **todos los precios salen del Excel en pesos**, así que ese campo se sacó junto con los campos de USD del formulario de producto. Si alguna vez hiciera falta volver a trabajar con dólares, la función sigue existiendo por debajo y se puede reactivar.
 
 ---
 
@@ -534,6 +604,38 @@ Tocar la **✕** del producto en la lista. Deja de ser destacado (el producto si
 
 ---
 
+### 8.11 Métricas
+
+En **Gestión → Métricas**. Son datos propios del sitio: no hace falta entrar a Google Analytics ni a ningún otro lado.
+
+Arriba se elige el período: **7, 30 o 90 días**.
+
+#### Visitas
+- **Visitas:** personas distintas que entraron.
+- **Páginas vistas** y cuántas mira cada una en promedio.
+- **Visitas que compran:** qué porcentaje termina en pedido. Es el número que dice si el sitio está funcionando.
+- **Visitas por día**, **páginas más vistas** y **de dónde llegan** (Google, WhatsApp, Instagram, o "directo" = escribieron la dirección o entraron desde un favorito).
+
+#### Pedidos
+Cantidad, facturación, ticket promedio, cuántos quedaron **sin responder** y hace cuánto está el más viejo.
+
+#### Productos
+- **Más pedidos** en el período.
+- **Se miran y no se piden:** productos con muchas visitas y pocos pedidos. Suele ser el precio, la foto o que está sin stock. Es el lugar donde más rápido se gana plata mirando.
+
+#### Búsquedas
+- **Sin resultados:** lo que la gente busca y **no encuentra**. Puede ser stock que falta o un producto cargado con otro nombre. Es el dato más valioso de toda la pantalla.
+- **Más frecuentes:** qué escriben en el buscador.
+
+#### Técnicos
+Aprobados, pendientes, cuántos llevan **más de 3 días** esperando, y registros nuevos del período.
+
+> **Los números arrancan de cero el día que se activó esto.** Las visitas y búsquedas anteriores no están: se van llenando con el uso.
+
+> Las visitas **no incluyen** tu propio panel de administración ni los robots de Google.
+
+---
+
 ## 9. Modo oscuro
 
 En el menú superior hay un botón con ícono de sol/luna (🌙/☀️) para alternar entre modo claro y modo oscuro. La preferencia se guarda en el navegador.
@@ -560,14 +662,63 @@ Actualmente el descuento service está fijado en 10%. Para cambiarlo se requiere
 **¿Los pedidos del carrito llegan solos o hay que hacer algo?**
 El cliente completa su pedido en el carrito y al confirmar se le abre WhatsApp con el detalle. El pedido queda registrado en **Admin → Órdenes** como "Pendiente". El equipo debe atender la conversación de WhatsApp y luego marcar la orden como "Contestada" en el admin para llevar el control.
 
-**¿Cómo sé qué precio se muestra en el catálogo si cambio la cotización del dólar?**
-Los productos con precio en USD muestran el precio en ARS calculado como `precioUSD × cotización`. Al guardar una nueva cotización, los precios se actualizan de inmediato en el catálogo.
+**¿Y la cotización del dólar?**
+Ya no se usa: todos los precios salen del Excel en pesos. El campo se sacó del panel, junto con los campos de USD del formulario de producto. Ver [8.8](#88-configuración-general).
+
+**Un cliente dice que le cambió el total del pedido, ¿por qué?**
+Tenía el carrito guardado con precios viejos. Al abrirlo de nuevo, el sistema actualiza precios y stock y le muestra un aviso con lo que cambió. Ver [El aviso "Actualizamos tu pedido"](#el-aviso-actualizamos-tu-pedido).
+
+**¿Cuánta gente visita la página?**
+En **Gestión → Métricas**. Ahí también se ve de dónde llegan y qué buscan. Ver [8.11](#811-métricas).
 
 **¿Puedo tener un banner inactivo preparado para activar después?**
 Sí. Crear el banner con estado **"Inactivo"** y activarlo cuando sea necesario sin necesidad de crearlo de nuevo.
 
 **Si importo un Excel, ¿me borra los productos que no están en el archivo?**
 No, salvo que vos lo pidas. La importación muestra primero una **vista previa**; los productos que no están en el Excel aparecen en "No están en el Excel" con la opción **Mantener** (por defecto). Solo se eliminan o desactivan los que marques a propósito. Ver [8.9](#89-importar-excel-con-vista-previa).
+
+---
+
+## 11. Mantenimiento y copias de seguridad
+
+Esta sección es para quien administra el sistema, no para el uso diario.
+
+### Copia de seguridad de la base de datos
+
+**Es lo más importante de esta sección.** El plan gratuito de la base de datos **no hace copias automáticas**, y la importación de Excel es una operación que **no se puede deshacer**.
+
+**No alcanza con guardar el Excel del contable.** Las fotos de los productos no están ahí: se suben aparte y el enlace queda guardado en la base. Si se perdiera la base, reimportar el Excel devolvería los productos **sin ninguna imagen**. Tampoco están en el Excel los pedidos, los técnicos registrados, los banners ni la configuración del sitio.
+
+**Cuándo hacerla:** **siempre antes de importar un Excel**, y una vez por semana.
+
+**Cómo:**
+```bash
+cd Backend
+MONGO_URI="la-cadena-de-conexión" node src/scripts/backup.js
+```
+
+Genera un archivo en `backups/` con la fecha. **Copialo a Drive o a un disco externo**, no lo dejes solo en la computadora.
+
+Para restaurar:
+```bash
+MONGO_URI="..." node src/scripts/backup.js --restaurar backups/el-archivo.json
+```
+Así solo **muestra** qué haría, sin tocar nada. Se aplica agregando `--confirmar` al final.
+
+> El archivo tiene **datos personales** (teléfonos de clientes, CUIT de técnicos). Guardalo en un lugar privado y no lo subas a ningún repositorio.
+
+> **Probá que la copia funcione antes de confiar en ella.** Hacé una copia y restaurala en una base **de prueba** (cambiando el nombre al final de la cadena de conexión). Una copia que nunca se restauró no es una copia.
+
+### Si el sitio se cae
+
+Hay un chequeo automático en `/health` que verifica también la conexión a la base. Se puede conectar a un monitor gratuito (UptimeRobot) para recibir un aviso por mail. Dos direcciones a vigilar:
+
+- El sitio: `https://www.refrigeracionayp.com`
+- La API: `…/health` — esta es la importante, porque detecta el caso en que el sitio abre pero nada funciona.
+
+### Importar Excel de origen desconocido
+
+Ver la advertencia en [8.9](#89-importar-excel-con-vista-previa): importar **solo** el archivo del sistema contable.
 
 ---
 
