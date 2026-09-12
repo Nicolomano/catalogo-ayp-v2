@@ -29,3 +29,7 @@ dist-ssr
 .env.*.local
 !.env.example
 !.env.production
+
+# Copias de seguridad de la base: tienen datos personales
+backups/
+backup-*.json
