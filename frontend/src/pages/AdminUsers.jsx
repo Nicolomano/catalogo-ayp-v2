@@ -53,14 +53,18 @@ function AdminUsers() {
   const verMatricula = async (userId) => {
     try {
       const res = await API.get(`/users/${userId}/matricula`, { responseType: "blob" });
-      setImageModal(URL.createObjectURL(res.data));
+      // Puede ser una foto o un PDF: el técnico sube lo que tiene.
+      setImageModal({
+        url: URL.createObjectURL(res.data),
+        esPdf: res.data.type === "application/pdf",
+      });
     } catch {
-      toast.error("No se pudo cargar la imagen de la matrícula");
+      toast.error("No se pudo cargar la matrícula");
     }
   };
 
   const cerrarModal = () => {
-    if (imageModal?.startsWith("blob:")) URL.revokeObjectURL(imageModal);
+    if (imageModal?.url?.startsWith("blob:")) URL.revokeObjectURL(imageModal.url);
     setImageModal(null);
   };
 
@@ -395,12 +399,21 @@ function AdminUsers() {
             >
               <X size={16} />
             </button>
-            <img
-              src={imageModal}
-              alt="Matrícula"
-              className="rounded-2xl w-full object-contain"
-              style={{ maxHeight: "80vh" }}
-            />
+            {imageModal.esPdf ? (
+              <iframe
+                src={imageModal.url}
+                title="Matrícula"
+                className="rounded-2xl w-full bg-white"
+                style={{ height: "80vh", border: "none" }}
+              />
+            ) : (
+              <img
+                src={imageModal.url}
+                alt="Matrícula"
+                className="rounded-2xl w-full object-contain"
+                style={{ maxHeight: "80vh" }}
+              />
+            )}
           </div>
         </div>
       )}

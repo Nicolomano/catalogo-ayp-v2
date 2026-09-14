@@ -7,18 +7,22 @@ import {
   getMatricula,
 } from "../controllers/serviceUserController.js";
 import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
-import uploadCloud from "../middlewares/multer.js";
+import { uploadMatricula } from "../middlewares/multer.js";
+import { manejarErrorDeArchivo } from "../middlewares/uploadErrors.js";
 import { registerLimiter } from "../middlewares/rateLimiters.js";
 import { blockOnMaintenance } from "../middlewares/maintenance.js";
 
 const userRouter = Router();
 
-// Público — el técnico se registra (acepta imagen de matrícula opcional)
+// Público — el técnico se registra (matrícula opcional: foto o PDF)
 userRouter.post(
   "/register",
   registerLimiter,
   blockOnMaintenance,
-  uploadCloud.single("matriculaImage"),
+  uploadMatricula.single("matriculaImage"),
+  // Va acá, pegado al multer: convierte "formato no permitido" y "archivo muy
+  // grande" en un 400 con mensaje, en vez del 500 genérico.
+  manejarErrorDeArchivo,
   registerServiceUser
 );
 

@@ -55,7 +55,14 @@ export function AuthProvider({ children }) {
       const msg = err.response?.data?.message || "Error al iniciar sesión";
       // El backend ahora rechaza con 403 las cuentas sin aprobar (antes devolvía
       // un token igual y el bloqueo era solo de pantalla).
-      return { ok: false, message: msg, pending: err.response?.data?.pending === true };
+      // `estado` distingue "pendiente" de "rechazado": al rechazado la pantalla
+      // le decía igual que esperara la aprobación, y esperaba para siempre.
+      return {
+        ok: false,
+        message: msg,
+        pending: err.response?.data?.pending === true,
+        estado: err.response?.data?.status || null,
+      };
     } finally {
       setLoading(false);
     }

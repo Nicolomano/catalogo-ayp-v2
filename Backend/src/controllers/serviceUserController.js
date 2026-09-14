@@ -1,5 +1,8 @@
 import serviceUserModel from "../services/models/serviceUserModel.js";
-import { sendMail, approvalEmail, rejectionEmail } from "../services/emailService.js";
+import {
+  sendMail, approvalEmail, rejectionEmail,
+  registrationReceivedEmail, newRegistrationEmail,
+} from "../services/emailService.js";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadPrivateToR2, getFromR2, keyFromUrl } from "../utils/r2.js";
@@ -45,6 +48,18 @@ export const registerServiceUser = async (req, res) => {
       }
     }
 
+    // El teléfono es opcional, pero si viene tiene que servir para llamar: antes
+    // entraba cualquier cosa y después no había forma de contactar al técnico.
+    const telefono = (phone || "").trim();
+    if (telefono) {
+      const digitos = (telefono.match(/\d/g) || []).length;
+      if (!/^[\d\s()+.-]+$/.test(telefono) || digitos < 8) {
+        return res.status(400).json({
+          message: "El teléfono no parece válido. Escribilo con característica, por ejemplo 11 5555 4444.",
+        });
+      }
+    }
+
     const emailNorm = email.toLowerCase().trim();
 
     // Respuesta genérica a propósito: decir "ya existe una cuenta con ese email"
@@ -58,27 +73,61 @@ export const registerServiceUser = async (req, res) => {
 
     let matriculaKey = "";
     if (req.file?.buffer) {
-      // Se valida que sea una imagen DE VERDAD antes de tocar libvips: el filtro
-      // de multer solo mira el Content-Type que declara el cliente.
-      await assertImagenValida(req.file.buffer);
-      const buffer = await sharp(req.file.buffer, SHARP_OPTS)
-        .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 82 })
-        .toBuffer();
-      // Privada: es un documento personal. Se guarda la key, no una URL pública,
-      // y se sirve por el endpoint de admin de más abajo.
-      matriculaKey = await uploadPrivateToR2(
-        buffer,
-        `serviceuser-matriculas/${uuidv4()}.webp`,
-        "image/webp"
-      );
+      if (req.file.mimetype === "application/pdf") {
+        // sharp no procesa PDF ni hace falta: se guarda tal cual, privado. Se
+        // mira la firma del archivo para no confiar solo en el Content-Type,
+        // que lo declara el cliente.
+        if (req.file.buffer.subarray(0, 5).toString("latin1") !== "%PDF-") {
+          return res.status(400).json({ message: "El archivo no parece un PDF válido." });
+        }
+        matriculaKey = await uploadPrivateToR2(
+          req.file.buffer,
+          `serviceuser-matriculas/${uuidv4()}.pdf`,
+          "application/pdf"
+        );
+      } else {
+        // Se valida que sea una imagen DE VERDAD antes de tocar libvips: el filtro
+        // de multer solo mira el Content-Type que declara el cliente.
+        await assertImagenValida(req.file.buffer);
+        const buffer = await sharp(req.file.buffer, SHARP_OPTS)
+          .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+          .webp({ quality: 82 })
+          .toBuffer();
+        // Privada: es un documento personal. Se guarda la key, no una URL pública,
+        // y se sirve por el endpoint de admin de más abajo.
+        matriculaKey = await uploadPrivateToR2(
+          buffer,
+          `serviceuser-matriculas/${uuidv4()}.webp`,
+          "image/webp"
+        );
+      }
     }
 
+    const limpio = (v) => (typeof v === "string" ? v.trim() : "");
+
     const user = new serviceUserModel({
-      name, email: emailNorm, password, company,
-      cuit: cuitLimpio, matriculaKey, province, phone,
+      name: limpio(name), email: emailNorm, password, company: limpio(company),
+      cuit: cuitLimpio, matriculaKey, province: limpio(province), phone: telefono,
     });
     await user.save();
+
+    // Los avisos van fuera del camino de la respuesta: si Resend tarda o falla,
+    // el registro ya quedó guardado y el técnico no tiene por qué esperarlo.
+    sendMail({ to: user.email, ...registrationReceivedEmail(user.name) }).catch(() => {});
+
+    const avisoA = process.env.ADMIN_EMAIL;
+    if (avisoA) {
+      const resumen = {
+        name: user.name, email: user.email, phone: user.phone,
+        cuit: user.cuit, company: user.company, province: user.province,
+        tieneMatricula: Boolean(matriculaKey),
+      };
+      sendMail({ to: avisoA, ...newRegistrationEmail(resumen) }).catch(() => {});
+    } else {
+      console.warn(
+        "[registro] ADMIN_EMAIL sin configurar: nadie recibe el aviso de que hay un técnico esperando aprobación."
+      );
+    }
 
     res.status(201).json({
       message: "Registro recibido. Si corresponde, vas a recibir la confirmación por email.",

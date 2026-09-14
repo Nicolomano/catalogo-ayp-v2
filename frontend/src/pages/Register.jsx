@@ -40,12 +40,15 @@ function Register() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede superar los 5 MB");
+    // 10 MB: el mismo tope que acepta el servidor. Antes acá eran 5 y el
+    // servidor 10, así que se rechazaban archivos que en realidad entraban.
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("El archivo no puede superar los 10 MB");
       return;
     }
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    // Un PDF no se puede previsualizar con <img>: se muestra el nombre.
+    setImagePreview(file.type === "application/pdf" ? null : URL.createObjectURL(file));
   };
 
   const removeImage = () => {
@@ -187,15 +190,15 @@ function Register() {
               <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--muted)" }}>
                 Foto de matrícula o certificado
               </label>
-              {!imagePreview ? (
+              {!imageFile ? (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <label
                     className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-xl px-4 py-5 cursor-pointer transition-colors hover:border-[var(--brand)]"
                     style={{ borderColor: "var(--border)", color: "var(--muted)" }}
                   >
                     <UploadCloud size={18} />
-                    <span className="text-sm">Subir imagen (JPG, PNG, WEBP — máx. 5 MB)</span>
-                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
+                    <span className="text-sm">Subir foto o PDF (máx. 10 MB)</span>
+                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleFileChange} />
                   </label>
                   <button
                     type="button"
@@ -209,8 +212,16 @@ function Register() {
                 </div>
               ) : (
                 <div className="relative w-fit">
-                  <img src={imagePreview} alt="Vista previa" className="rounded-xl object-cover border"
-                    style={{ maxHeight: "140px", maxWidth: "100%", borderColor: "var(--border)" }} />
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Vista previa" className="rounded-xl object-cover border"
+                      style={{ maxHeight: "140px", maxWidth: "100%", borderColor: "var(--border)" }} />
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm"
+                      style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--surface2)" }}>
+                      <UploadCloud size={16} style={{ color: "var(--brand)" }} />
+                      <span className="truncate" style={{ maxWidth: "220px" }}>{imageFile?.name}</span>
+                    </div>
+                  )}
                   <button type="button" onClick={removeImage}
                     className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-white"
                     style={{ background: "#DC2626" }}>

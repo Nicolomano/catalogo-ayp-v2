@@ -227,10 +227,15 @@ Los técnicos matriculados pueden registrarse para obtener un **10% de descuento
    - Empresa / Taller (opcional)
    - Provincia
    - Teléfono
-   - **Foto de la matrícula o certificado** (opcional). Si el técnico no tiene matrícula, puede tocar **"No tengo matrícula"**, que abre un WhatsApp a la administración para resolverlo.
+   - **Matrícula o certificado** (opcional): puede subir una **foto** (JPG, PNG o WEBP) **o el PDF**, hasta 10 MB. Si el técnico no tiene matrícula, puede tocar **"No tengo matrícula"**, que abre un WhatsApp a la administración para resolverlo.
 3. Enviar la solicitud
-4. La cuenta queda **pendiente de aprobación** hasta que un administrador la apruebe
-5. Cuando se aprueba, el administrador le asigna un **número de cliente** y el técnico recibe un **email** avisándole (lo mismo si se rechaza, con el motivo)
+4. **Le llega un email de "Recibimos tu registro"** en el momento, y la cuenta queda **pendiente de aprobación**
+5. **A vos te llega un aviso por email** con los datos del técnico y un link al panel, así no hace falta entrar a mirar por las dudas
+6. Cuando se aprueba, el administrador le asigna un **número de cliente** y el técnico recibe un **email** avisándole (lo mismo si se rechaza, con el motivo)
+
+> El aviso al administrador se manda a la dirección configurada en la variable **ADMIN_EMAIL** del panel de Railway. Si esa variable está vacía, el registro funciona igual pero **nadie recibe el aviso**.
+
+> Si un técnico rechazado intenta entrar, la pantalla le dice que su solicitud **fue rechazada** y que revise el email con el motivo. Antes le decía que esperara la aprobación, y esperaba para siempre.
 
 ### Una vez aprobado
 Al iniciar sesión, el técnico ve:

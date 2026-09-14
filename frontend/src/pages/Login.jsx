@@ -18,6 +18,11 @@ function Login() {
     if (result.ok) {
       toast.success("¡Bienvenido! Accedés a precios especiales.");
       navigate("/catalogo");
+    } else if (result.estado === "rejected") {
+      toast(
+        "Tu solicitud fue rechazada. Te enviamos el motivo por email; si creés que hubo un error, escribinos.",
+        { icon: "⚠️", duration: 7000 }
+      );
     } else if (result.pending) {
       toast("Tu cuenta está pendiente de aprobación. Te avisamos por email.", { icon: "⏳" });
     } else {

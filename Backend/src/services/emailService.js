@@ -56,6 +56,63 @@ export function approvalEmail(rawUserName, rawClientNumber) {
   };
 }
 
+/**
+ * Acuse al técnico apenas se registra. Antes no recibía nada hasta la
+ * aprobación: si tardaba dos días, no sabía si el registro había entrado y se
+ * registraba de nuevo o llamaba.
+ */
+export function registrationReceivedEmail(rawUserName) {
+  const userName = esc(rawUserName);
+  return {
+    subject: "Recibimos tu registro — A&P Refrigeración",
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px">
+        <h2 style="color:#0033CC;margin-bottom:8px">Gracias, ${userName}</h2>
+        <p style="color:#374151">Recibimos tu solicitud de <strong>Precio Service</strong>. La vamos a revisar y te avisamos por este mismo medio cuando esté aprobada.</p>
+        <p style="color:#374151">Mientras tanto ya podés mirar el catálogo con los precios de lista.</p>
+        <a href="https://www.refrigeracionayp.com/catalogo"
+           style="display:inline-block;margin-top:16px;padding:10px 24px;background:#0033CC;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+          Ver el catálogo
+        </a>
+        <p style="margin-top:24px;font-size:12px;color:#9CA3AF">Si no fuiste vos quien se registró, ignorá este mensaje.</p>
+        <p style="font-size:12px;color:#9CA3AF">A&P Refrigeración — Buenos Aires, Argentina</p>
+      </div>`,
+  };
+}
+
+/**
+ * Aviso interno: alguien se registró y hay que aprobarlo o rechazarlo. Sin esto
+ * el registro quedaba esperando hasta que a alguien se le ocurriera entrar al
+ * panel a mirar.
+ */
+export function newRegistrationEmail(user) {
+  const fila = (etiqueta, valor) =>
+    valor
+      ? `<tr><td style="padding:4px 12px 4px 0;color:#6B7280">${etiqueta}</td><td style="padding:4px 0;color:#111827"><strong>${esc(valor)}</strong></td></tr>`
+      : "";
+  return {
+    subject: `Nuevo técnico para aprobar: ${esc(user.name)}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px">
+        <h2 style="color:#0033CC;margin-bottom:8px">Nueva solicitud de Precio Service</h2>
+        <table style="border-collapse:collapse;font-size:14px;margin:12px 0">
+          ${fila("Nombre", user.name)}
+          ${fila("Email", user.email)}
+          ${fila("Teléfono", user.phone)}
+          ${fila("CUIT", user.cuit)}
+          ${fila("Empresa", user.company)}
+          ${fila("Provincia", user.province)}
+          ${fila("Matrícula", user.tieneMatricula ? "Sí, adjuntó archivo" : "No adjuntó")}
+        </table>
+        <a href="https://www.refrigeracionayp.com/admin/users"
+           style="display:inline-block;margin-top:8px;padding:10px 24px;background:#0033CC;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+          Abrir el panel
+        </a>
+        <p style="margin-top:24px;font-size:12px;color:#9CA3AF">Aviso automático del catálogo. No hace falta responder.</p>
+      </div>`,
+  };
+}
+
 export function passwordResetEmail(rawUserName, resetUrl) {
   const userName = esc(rawUserName);
   // resetUrl la arma el servidor con un token aleatorio, no viene del usuario.
