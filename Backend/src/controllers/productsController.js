@@ -555,14 +555,42 @@ export const getCategoriesMeta = async (req, res) => {
       { $sort: { category: 1 } },
     ]);
 
-    // El Excel trae subcategorías de relleno ("-", "", "s/d") que en el filtro
-    // aparecían como una opción más que no acotaba nada.
-    const sorted = docs.map((d) => ({
-      ...d,
-      subcategories: d.subcategories
-        .filter(isRealSubcategory)
-        .sort((a, b) => a.localeCompare(b)),
-    }));
+    // Las categorías y subcategorías que se muestran son SOLO las creadas en el
+    // panel. El Excel del sistema contable trae sus propios Rubro/SubRubro y los
+    // escribe en el producto, así que sin este cruce aparecían en el filtro
+    // subcategorías que nadie armó (ej. "Rulemanes" colgando de "Aceites y
+    // lubricantes"). El producto conserva su dato; simplemente no se ofrece como
+    // filtro. El cruce es por nombre, que es como el producto guarda la categoría.
+    const delPanel = await Category.find().select("name parent").lean();
+    const nombrePorId = new Map(delPanel.map((c) => [String(c._id), c.name]));
+    const raices = new Set(delPanel.filter((c) => !c.parent).map((c) => c.name));
+    // Cada subcategoría se valida contra SU categoría padre: que exista "Tuercas"
+    // bajo "Accesorios de bronce" no la habilita en cualquier otra.
+    const subsPorCategoria = new Map();
+    for (const c of delPanel) {
+      if (!c.parent) continue;
+      const padre = nombrePorId.get(String(c.parent));
+      if (!padre) continue;
+      if (!subsPorCategoria.has(padre)) subsPorCategoria.set(padre, new Set());
+      subsPorCategoria.get(padre).add(c.name);
+    }
+
+    // Red de seguridad: si todavía no se creó ninguna categoría en el panel, se
+    // deja el comportamiento anterior en vez de devolver un menú vacío.
+    const hayPanel = raices.size > 0;
+
+    const sorted = docs
+      .filter((d) => !hayPanel || raices.has(d.category))
+      .map((d) => {
+        const permitidas = subsPorCategoria.get(d.category);
+        return {
+          ...d,
+          subcategories: d.subcategories
+            .filter(isRealSubcategory)
+            .filter((s) => !hayPanel || (permitidas ? permitidas.has(s) : false))
+            .sort((a, b) => a.localeCompare(b)),
+        };
+      });
     res.set("Cache-Control", "public, max-age=300");
     res.json(sorted);
   } catch (error) {

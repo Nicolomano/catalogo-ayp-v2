@@ -321,6 +321,19 @@ La pantalla muestra un árbol jerárquico con todas las categorías. Las categor
 #### Crear una subcategoría
 Igual que una categoría principal, pero en **Categoría padre** seleccionar la categoría a la que pertenece.
 
+#### De dónde salen las categorías que ve el cliente
+
+**Solo de acá.** El menú de filtros del catálogo muestra únicamente las categorías y subcategorías creadas en esta pantalla.
+
+Esto importa porque el Excel del sistema contable trae sus propias columnas **Rubro** y **SubRubro**, y al importar quedan guardadas en cada producto. Antes esas se colaban en el filtro: aparecían subcategorías que nadie había armado (por ejemplo "Rulemanes" colgando de "Aceites y lubricantes"). Ahora se ignoran.
+
+Dos consecuencias prácticas:
+
+- **Si el contable agrega un rubro nuevo**, los productos de ese rubro **no van a aparecer en el menú** hasta que crees la categoría acá con **el mismo nombre exacto** que usa el Excel.
+- Para que una subcategoría funcione como filtro, tiene que estar creada acá **colgando de su categoría**. Que exista "Tuercas" bajo "Accesorios de bronce" no la habilita dentro de otra categoría.
+
+> Un producto sin categoría **no desaparece**: se sigue encontrando con el buscador y en "Todas las categorías". Lo que no hace es aparecer al navegar por categorías.
+
 #### Eliminar una categoría
 Clic en el ícono de basura (🗑) junto a la categoría. 
 
