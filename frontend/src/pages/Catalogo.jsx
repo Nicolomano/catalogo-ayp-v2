@@ -169,7 +169,15 @@ function Catalogo() {
 
         {/* Sidebar desktop */}
         <aside className="hidden lg:block w-60 shrink-0">
-          <div className="bento sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto" style={{ borderRadius: "16px" }}>
+          {/* overflowY va inline a propósito. `.bento` fija `overflow: hidden`
+              para recortar las esquinas redondeadas, y en Tailwind 4 el CSS propio
+              queda FUERA de @layer, así que le gana a la utilidad `overflow-y-auto`
+              aunque tengan la misma especificidad: la lista de categorías se
+              cortaba y no se llegaba a las de abajo. */}
+          <div
+            className="bento bento-quieto sticky top-24 max-h-[calc(100vh-7rem)]"
+            style={{ borderRadius: "16px", overflowY: "auto" }}
+          >
             <Sidebar
               categories={categories} selectedCategory={category} selectedSubcategory={subcategory}
               onSelect={handleSelect}

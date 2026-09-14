@@ -132,6 +132,14 @@ body {
 }
 .bento-link { cursor: pointer; }
 
+/* Paneles que son contenedores fijos —la barra de filtros del catálogo— y no
+   tarjetas que se tocan: no deben levantarse al pasar el mouse. El lift se
+   notaba justo mientras se scrolleaba la lista de categorías. */
+.bento-quieto:hover {
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
 /* ── Botón primario ────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
