@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import API from "../api/axios";
+import API, { getFresco } from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useConfirm } from "../Context/ConfirmContext.jsx";
@@ -42,8 +42,8 @@ function AdminProducts() {
   useEffect(() => {
     // Combina categorías de la colección + categorías ya asignadas a productos
     Promise.all([
-      API.get("/products/meta/categories").then((r) => Array.isArray(r.data) ? r.data : []),
-      API.get("/categories").then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
+      getFresco("/products/meta/categories").then((r) => Array.isArray(r.data) ? r.data : []),
+      getFresco("/categories").then((r) => Array.isArray(r.data) ? r.data : []).catch(() => []),
     ]).then(([metaCats, collCats]) => {
       // Normaliza meta-categories (vienen como {category, subcategories})
       const fromMeta = metaCats.map((item) =>

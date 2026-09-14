@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API from "../api/axios";
+import API, { getFresco } from "../api/axios";
 import toast from "react-hot-toast";
 import { PlusCircle, Trash2, FolderTree, ChevronRight } from "lucide-react";
 import { useConfirm } from "../Context/ConfirmContext.jsx";
@@ -25,7 +25,7 @@ export default function AdminCategories() {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const res = await API.get("/categories/tree");
+      const res = await getFresco("/categories/tree");
       setCategories(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error("No se pudieron cargar las categorías");

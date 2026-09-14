@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Upload, X, Move, Crosshair } from "lucide-react";
-import API from "../api/axios";
+import API, { getFresco } from "../api/axios";
 
 // Velo azul del hero (Opción A) — debe coincidir con el de Landing.jsx
 const HERO_VEIL =
@@ -74,7 +74,7 @@ export default function AdminLanding() {
       setHeroPos(parsePos(r.data.heroImagePosition));
     }).catch(() => {});
     // Las categorías reales salen de los productos cargados, no de una lista fija.
-    API.get("/products/meta/categories")
+    getFresco("/products/meta/categories")
       .then((r) => {
         const data = Array.isArray(r.data) ? r.data : [];
         setCategoriasDisponibles(

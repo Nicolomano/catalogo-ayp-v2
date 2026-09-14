@@ -49,4 +49,19 @@ API.interceptors.response.use(
   }
 );
 
+/**
+ * GET que se saltea el caché del navegador.
+ *
+ * Las listas de categorías se sirven con `Cache-Control: public, max-age=300`
+ * para aliviar el catálogo público. En el panel eso jugaba en contra: al crear
+ * una categoría, el navegador seguía devolviendo la lista vieja hasta 5 minutos,
+ * así que la categoría recién creada no aparecía ni en la estructura ni en el
+ * desplegable de categoría padre, y parecía que no se había guardado.
+ *
+ * Usar SOLO en pantallas de administración: en el sitio público el caché es el
+ * que hace que el catálogo abra rápido.
+ */
+export const getFresco = (path, config) =>
+  API.get(path + (path.includes("?") ? "&" : "?") + "_=" + Date.now(), config);
+
 export default API;
