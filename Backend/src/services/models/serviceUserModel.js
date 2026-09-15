@@ -23,6 +23,10 @@ const serviceUserSchema = new mongoose.Schema(
     phone:           { type: String, default: "" },
     clientNumber:    { type: String, default: "" }, // assigned by admin before approval
     role:            { type: String, default: "service" },
+    // Consentimiento explícito para las circulares. Registrarse para tener
+    // precio service NO implica haber pedido publicidad, así que va aparte y
+    // arranca en false: quien no lo tildó no entra en ninguna lista de envío.
+    acceptsMarketing:{ type: Boolean, default: false },
     approved:        { type: Boolean, default: false },
     // "awaiting" = falta que el técnico mande algo (matrícula, CUIT, etc).
     // Se separa de "pending" para que la bandeja de pendientes muestre solo lo

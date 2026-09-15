@@ -28,6 +28,7 @@ function Register() {
   const [form, setForm] = useState({
     name: "", email: "", password: "", confirmPassword: "",
     company: "", cuit: "", province: "", phone: "",
+    acceptsMarketing: false,
   });
 
   useEffect(() => {
@@ -96,6 +97,7 @@ function Register() {
       fd.append("cuit", form.cuit);
       fd.append("province", form.province);
       fd.append("phone", form.phone);
+      fd.append("acceptsMarketing", String(form.acceptsMarketing));
       if (imageFile) fd.append("matriculaImage", imageFile);
 
       await API.post("/users/register", fd, {
@@ -198,6 +200,23 @@ function Register() {
               </Field>
             </div>
 
+              {/* Consentimiento aparte: registrarse para tener precio service no
+                  es lo mismo que pedir que le manden novedades. Arranca sin tildar. */}
+              <label className="flex items-start gap-2.5 cursor-pointer sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={form.acceptsMarketing}
+                  onChange={(e) => setForm((prev) => ({ ...prev, acceptsMarketing: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 shrink-0"
+                  style={{ accentColor: "var(--brand)" }}
+                />
+                <span className="text-sm" style={{ color: "var(--text2)" }}>
+                  Quiero recibir novedades y ofertas por email
+                  <span className="block text-xs" style={{ color: "var(--muted)" }}>
+                    Opcional. Podés darte de baja cuando quieras desde cualquiera de esos correos.
+                  </span>
+                </span>
+              </label>
             {/* Matrícula / certificado */}
             <div>
               <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--muted)" }}>

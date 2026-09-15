@@ -19,7 +19,7 @@ const esTexto = (v) => v === undefined || v === null || typeof v === "string";
 
 export const registerServiceUser = async (req, res) => {
   try {
-    const { name, email, password, company, cuit, province, phone } = req.body;
+    const { name, email, password, company, cuit, province, phone, acceptsMarketing } = req.body;
 
     // Sin esto, un objeto tipo {"$ne": null} llega a findOne y a los campos del
     // documento. Express 5 protege el query string, pero NO el body.
@@ -112,6 +112,8 @@ export const registerServiceUser = async (req, res) => {
       name: limpio(name), email: emailNorm, password, company: limpio(company),
       cuit: ident.cuit, dni: ident.dni, matriculaKey,
       province: limpio(province), phone: telefono,
+      // Llega como texto desde el formulario: solo un "true" explícito cuenta.
+      acceptsMarketing: acceptsMarketing === "true" || acceptsMarketing === true,
     });
     await user.save();
 
@@ -260,6 +262,11 @@ export const updateServiceUser = async (req, res) => {
       return res.status(400).json({ message: "El campo name es demasiado largo" });
     }
     if (clientNumber !== undefined) update.clientNumber = clientNumber.trim();
+    // Para poder sacarlo de las circulares si lo pide por teléfono o WhatsApp.
+    if (req.body.acceptsMarketing !== undefined) {
+      update.acceptsMarketing =
+        req.body.acceptsMarketing === true || req.body.acceptsMarketing === "true";
+    }
 
     if (Object.keys(update).length === 0) {
       return res.status(400).json({ message: "No hay cambios para guardar" });
@@ -293,6 +300,49 @@ export const updateServiceUser = async (req, res) => {
     }
     console.error("Error editando usuario service:", error);
     res.status(500).json({ message: "No se pudo guardar" });
+  }
+};
+
+/**
+ * CSV con los técnicos a los que se les puede mandar una circular.
+ *
+ * Solo entran los APROBADOS que además marcaron que querían recibir novedades.
+ * Registrarse para tener precio service no es lo mismo que pedir publicidad, y
+ * mandarle a quien no la pidió termina en "marcar como spam", que ensucia el
+ * dominio también para los avisos que sí importan (aprobaciones, contraseñas).
+ */
+export const exportContactos = async (req, res) => {
+  try {
+    const users = await serviceUserModel
+      .find({ status: "approved", acceptsMarketing: true })
+      .select("name email company clientNumber")
+      .sort({ name: 1 })
+      .lean();
+
+    // Comillas dobles duplicadas: es como se escapa una comilla dentro de un
+    // campo CSV. Sin esto, una empresa con comillas en el nombre corre las
+    // columnas del archivo.
+    const campo = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const filas = users.map((u) => {
+      // La mayoría de las herramientas de envío piden nombre y apellido por
+      // separado; acá se guarda junto, así que se parte por el primer espacio.
+      const partes = (u.name || "").trim().split(/\s+/);
+      const nombre = partes.shift() || "";
+      const apellido = partes.join(" ");
+      return [u.email, nombre, apellido, u.company, u.clientNumber].map(campo).join(",");
+    });
+
+    const csv = ["email,first_name,last_name,empresa,numero_cliente", ...filas].join("\r\n");
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    res.set("Content-Type", "text/csv; charset=utf-8");
+    res.set("Content-Disposition", `attachment; filename="contactos-${fecha}.csv"`);
+    // BOM para que Excel abra bien las tildes y las eñes.
+    res.send("\uFEFF" + csv);
+  } catch (error) {
+    console.error("Error exportando contactos:", error);
+    res.status(500).json({ message: "No se pudo generar el archivo" });
   }
 };
 

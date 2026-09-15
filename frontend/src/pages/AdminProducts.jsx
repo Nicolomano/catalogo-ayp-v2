@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import API, { getFresco } from "../api/axios";
+import API, { getFresco, descargarConToken } from "../api/axios";
 import toast from "react-hot-toast";
 import { Package, PlusCircle, Download, Search, Upload, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { useConfirm } from "../Context/ConfirmContext.jsx";
@@ -218,7 +218,11 @@ function AdminProducts() {
               <PlusCircle size={15} /> Nuevo producto
             </button>
             <button
-              onClick={() => window.open(`${API.defaults.baseURL}/products/export/excel`, "_blank")}
+              onClick={() =>
+                descargarConToken("/products/export/excel", "productos.xlsx").catch(() =>
+                  toast.error("No se pudo descargar el Excel")
+                )
+              }
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
               style={{ background: "rgba(22,163,74,0.12)", color: "#16A34A" }}
             >

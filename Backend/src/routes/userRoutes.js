@@ -5,6 +5,7 @@ import {
   updateServiceUserStatus,
   updateServiceUser,
   getMatricula,
+  exportContactos,
 } from "../controllers/serviceUserController.js";
 import { protect, requireAdmin } from "../middlewares/authMiddleware.js";
 import { uploadMatricula } from "../middlewares/multer.js";
@@ -27,6 +28,8 @@ userRouter.post(
 );
 
 // Protegidas — solo admin
+// Va ANTES de "/:id/..." para que "export" no se tome como un id.
+userRouter.get("/export/contactos", protect, requireAdmin, exportContactos);
 userRouter.get("/", protect, requireAdmin, listServiceUsers);
 userRouter.patch("/:id/status", protect, requireAdmin, updateServiceUserStatus);
 userRouter.patch("/:id", protect, requireAdmin, updateServiceUser);

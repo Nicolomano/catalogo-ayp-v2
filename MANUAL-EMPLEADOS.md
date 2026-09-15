@@ -434,6 +434,18 @@ Al lado del buscador aparece cuántos resultados hay sobre el total (por ejemplo
 
 > Si estás buscando a alguien y no aparece, fijate en qué pestaña estás: el buscador solo mira el estado seleccionado. Para buscar en todos, elegí **Todos**.
 
+#### Circulares: cómo armar la lista
+
+En el registro, el técnico puede tildar **"Quiero recibir novedades y ofertas por email"**. Es opcional y arranca **sin tildar**: registrarse para tener precio service no es lo mismo que pedir publicidad.
+
+Para armar la lista de envío, tocá **Contactos** (el botón verde, al lado de las pestañas). Descarga un CSV con **los técnicos aprobados que aceptaron** — nadie más — listo para subir al sistema de envíos.
+
+El archivo trae: email, nombre, apellido, empresa y número de cliente.
+
+> **Si alguien pide que lo saquen** por teléfono o WhatsApp, entrá a su ficha con **Editar datos** y destildá "Acepta recibir novedades". En la próxima descarga ya no aparece.
+
+> ⚠️ **No mandes circulares a quien no la pidió.** Además de corresponder, es lo que protege el resto: si te marcan como spam, se ensucia el dominio y los correos que sí importan —aprobaciones, recuperación de contraseña— empiezan a caer en la carpeta de correo no deseado de todos.
+
 #### Los cuatro estados
 
 | Estado | Qué significa | De quién depende |

@@ -366,6 +366,72 @@ console.log("─".repeat(42));
   await mongod.stop();
 }
 
+console.log("\nExportación de contactos para circulares");
+console.log("─".repeat(42));
+{
+  const { MongoMemoryServer } = await import("mongodb-memory-server");
+  const mongoose = (await import("mongoose")).default;
+  const mongod = await MongoMemoryServer.create();
+  await mongoose.connect(mongod.getUri());
+  const M = (await import("../services/models/serviceUserModel.js")).default;
+  const { exportContactos } = await import("../controllers/serviceUserController.js");
+
+  await M.create([
+    { name:"Juan Pérez", email:"juan@x.com", password:"12345678", cuit:"20123456786",
+      company:'Frío "Sur"', clientNumber:"C-10", status:"approved", approved:true, acceptsMarketing:true },
+    { name:"Ana", email:"ana@x.com", password:"12345678", cuit:"20123456786",
+      status:"approved", approved:true, acceptsMarketing:true },
+    { name:"No quiere", email:"no@x.com", password:"12345678", cuit:"20123456786",
+      status:"approved", approved:true, acceptsMarketing:false },
+    { name:"Pendiente", email:"pend@x.com", password:"12345678", cuit:"20123456786",
+      status:"pending", acceptsMarketing:true },
+    { name:"Rechazado", email:"rech@x.com", password:"12345678", cuit:"20123456786",
+      status:"rejected", acceptsMarketing:true },
+  ]);
+
+  const res = () => { const r={headers:{},body:null}; r.set=(k,v)=>((r.headers[k]=v),r);
+    r.status=()=>r; r.json=b=>((r.body=b),r); r.send=b=>((r.body=b),r); return r; };
+
+  const r = res();
+  await exportContactos({}, r);
+  const csv = String(r.body).replace(/^\uFEFF/, "");
+  const filas = csv.split("\r\n");
+
+  await check("Solo entran los aprobados que aceptaron", () => {
+    esperar(filas.length, 3, "cantidad de líneas (cabecera + 2)");
+    if (csv.includes("no@x.com")) throw new Error("se coló alguien que NO aceptó");
+    if (csv.includes("pend@x.com")) throw new Error("se coló un pendiente");
+    if (csv.includes("rech@x.com")) throw new Error("se coló un rechazado");
+    return "2 de 5 técnicos";
+  });
+
+  // El archivo sale ordenado por nombre, así que se busca por email y no por
+  // posición: si no, la prueba se rompe al cambiar los datos de ejemplo.
+  const fila = (email) => filas.find((l) => l.startsWith(`"${email}"`));
+
+  await check("Separa nombre y apellido", () => {
+    if (!fila("juan@x.com").includes('"Juan","Pérez"')) throw new Error("no separó: " + fila("juan@x.com"));
+    if (!fila("ana@x.com").includes('"Ana",""')) throw new Error("con un solo nombre el apellido va vacío: " + fila("ana@x.com"));
+  });
+
+  await check("Las comillas del nombre de la empresa no rompen las columnas", () => {
+    // Frío "Sur" tiene que salir escapado como Frío ""Sur"".
+    const l = fila("juan@x.com");
+    if (!l.includes('"Frío ""Sur"""')) throw new Error("mal escapado: " + l);
+    esperar(l.split('","').length, 5, "columnas de la fila");
+  });
+
+  await check("Sale con cabecera y BOM para que Excel lo abra bien", () => {
+    esperar(filas[0], "email,first_name,last_name,empresa,numero_cliente", "cabecera");
+    if (!String(r.body).startsWith("\uFEFF")) throw new Error("sin BOM: Excel rompe las tildes");
+    if (!/text\/csv/.test(r.headers["Content-Type"])) throw new Error("content-type incorrecto");
+    if (!/attachment/.test(r.headers["Content-Disposition"])) throw new Error("no se descarga como archivo");
+  });
+
+  await mongoose.disconnect();
+  await mongod.stop();
+}
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 process.exitCode = fallos.length ? 1 : 0;

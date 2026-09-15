@@ -64,4 +64,25 @@ API.interceptors.response.use(
 export const getFresco = (path, config) =>
   API.get(path + (path.includes("?") ? "&" : "?") + "_=" + Date.now(), config);
 
+/**
+ * Descarga un archivo de una ruta protegida.
+ *
+ * No se puede usar `window.open` ni un `<a href>` común: el token va en el
+ * header Authorization y el navegador no lo manda en una navegación. Por eso el
+ * "Exportar Excel" de Productos devolvía 401 y abría una pestaña con un error
+ * en vez del archivo.
+ */
+export async function descargarConToken(path, nombreArchivo) {
+  const res = await API.get(path, { responseType: "blob" });
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Se libera después del click: revocarlo en el mismo tick cancela la descarga.
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 export default API;

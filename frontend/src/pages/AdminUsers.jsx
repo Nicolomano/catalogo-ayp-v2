@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import API from "../api/axios";
+import API, { descargarConToken } from "../api/axios";
 import toast from "react-hot-toast";
-import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle, Clock, Search } from "lucide-react";
+import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle, Clock, Search, Download } from "lucide-react";
 import { PROVINCES } from "../utils/provincias.js";
 
 const STATUS_LABEL = {
@@ -69,13 +69,23 @@ function AdminUsers() {
           .some((campo) => String(campo).replace(/\D/g, "").includes(soloNumeros));
       });
 
+  const descargarContactos = async () => {
+    try {
+      await descargarConToken("/users/export/contactos", "contactos.csv");
+      toast.success("Descargado. Subilo a la lista de envíos.");
+    } catch {
+      toast.error("No se pudo descargar el archivo");
+    }
+  };
+
   const handleEdit = async (e) => {
     e.preventDefault();
     setSavingEdit(true);
     try {
-      const { _id, name, email, cuit, phone, company, province, clientNumber } = editModal;
+      const { _id, name, email, cuit, phone, company, province, clientNumber, acceptsMarketing } = editModal;
       const res = await API.patch(`/users/${_id}`, {
         name, email, cuit, phone, company, province, clientNumber,
+        acceptsMarketing: Boolean(acceptsMarketing),
       });
       setUsers((prev) => prev.map((u) => (u._id === _id ? res.data : u)));
       setEditModal(null);
@@ -192,7 +202,7 @@ function AdminUsers() {
             Aprobá o rechazá solicitudes de técnicos matriculados.
           </p>
         </div>
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap items-center">
           {FILTERS.map((s) => (
             <button
               key={s}
@@ -207,6 +217,14 @@ function AdminUsers() {
               {FILTER_LABEL[s]}
             </button>
           ))}
+          <button
+            onClick={descargarContactos}
+            title="CSV con los aprobados que aceptaron recibir novedades, para subir al sistema de envíos"
+            className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5"
+            style={{ background: "rgba(22,163,74,0.12)", color: "#16A34A" }}
+          >
+            <Download size={13} /> Contactos
+          </button>
         </div>
       </div>
 
@@ -489,6 +507,23 @@ function AdminUsers() {
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
+              </label>
+
+              {/* Para poder darlo de baja si lo pide por teléfono o WhatsApp. */}
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(editModal.acceptsMarketing)}
+                  onChange={(e) => setEditModal((p) => ({ ...p, acceptsMarketing: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 shrink-0"
+                  style={{ accentColor: "var(--brand)" }}
+                />
+                <span className="text-sm" style={{ color: "var(--text)" }}>
+                  Acepta recibir novedades por email
+                  <span className="block text-xs" style={{ color: "var(--muted)" }}>
+                    Solo entran en las circulares los aprobados que tengan esto tildado.
+                  </span>
+                </span>
               </label>
 
               <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
