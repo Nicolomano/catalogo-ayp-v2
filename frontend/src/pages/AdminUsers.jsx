@@ -354,13 +354,13 @@ function AdminUsers() {
                         style={{ color: "var(--brand)" }}
                       >
                         <ImageIcon size={12} />
-                        Ver foto de matrícula
+                        Ver matrícula
                       </button>
                     </div>
                   )}
                   {!u.hasMatricula && (
                     <p className="text-xs italic" style={{ color: "var(--muted)" }}>
-                      Sin imagen de matrícula
+                      Sin matrícula cargada
                     </p>
                   )}
 
@@ -535,12 +535,25 @@ function AdminUsers() {
               <X size={16} />
             </button>
             {imageModal.esPdf ? (
-              <iframe
-                src={imageModal.url}
-                title="Matrícula"
-                className="rounded-2xl w-full bg-white"
-                style={{ height: "80vh", border: "none" }}
-              />
+              <>
+                <iframe
+                  src={imageModal.url}
+                  title="Matrícula"
+                  className="rounded-2xl w-full bg-white"
+                  style={{ height: "80vh", border: "none" }}
+                />
+                {/* Salida de emergencia: algunos navegadores —sobre todo en
+                    celular— no muestran PDF dentro de un iframe. */}
+                <a
+                  href={imageModal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute -bottom-10 left-0 text-sm underline"
+                  style={{ color: "#fff" }}
+                >
+                  Abrir en una pestaña nueva
+                </a>
+              </>
             ) : (
               <img
                 src={imageModal.url}
