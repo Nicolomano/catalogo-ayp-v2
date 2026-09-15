@@ -8,13 +8,26 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const FROM = process.env.EMAIL_FROM || "A&P Refrigeración <noreply@refrigeracionayp.com>";
 
-export async function sendMail({ to, subject, html }) {
+/**
+ * `replyTo` por defecto: ADMIN_EMAIL.
+ *
+ * El remitente es noreply@, así que sin esto la respuesta del técnico no iba a
+ * ninguna parte — y varios de estos correos le piden justamente que responda.
+ */
+export async function sendMail({ to, subject, html, replyTo }) {
   console.log(`[emailService] Enviando a ${to} | subject="${subject}"`);
   if (!resend) {
     console.warn("[emailService] RESEND_API_KEY no configurada — email omitido.");
     return { ok: false, reason: "no-credentials" };
   }
-  const { data, error } = await resend.emails.send({ from: FROM, to, subject, html });
+  const responderA = replyTo || process.env.ADMIN_EMAIL || null;
+  const { data, error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    html,
+    ...(responderA ? { reply_to: responderA } : {}),
+  });
   if (error) {
     console.error("[emailService] Error Resend:", JSON.stringify(error));
     return { ok: false, reason: error.message, code: error.name };
@@ -138,10 +151,18 @@ export function passwordResetEmail(rawUserName, resetUrl) {
  * "Nos falta algo tuyo": el técnico se registró pero quedó pendiente de que
  * mande la matrícula u otro dato. Sin esto había que perseguirlo por WhatsApp
  * uno por uno.
+ *
+ * Lleva botón de WhatsApp además de la respuesta por mail: el técnico contesta
+ * donde le queda cómodo, y por WhatsApp el aviso llega al instante en vez de
+ * quedar esperando a que alguien abra la casilla.
  */
-export function awaitingInfoEmail(rawUserName, rawMotivo) {
+export function awaitingInfoEmail(rawUserName, rawMotivo, { whatsapp } = {}) {
   const userName = esc(rawUserName);
   const motivo = esc(rawMotivo);
+  const numero = String(whatsapp || "").replace(/\D/g, "");
+  const texto = encodeURIComponent(
+    `Hola, soy ${rawUserName}. Me pidieron esto para activar mi cuenta de Precio Service: ${rawMotivo}`
+  );
   return {
     subject: "Nos falta un dato para activar tu cuenta — A&P Refrigeración",
     html: `
@@ -149,7 +170,17 @@ export function awaitingInfoEmail(rawUserName, rawMotivo) {
         <h2 style="color:#0033CC;margin-bottom:8px">Hola ${userName}</h2>
         <p style="color:#374151">Estamos por activar tu cuenta de <strong>Precio Service</strong>, pero nos falta lo siguiente:</p>
         <p style="color:#111827;background:#F1F5F9;border-left:3px solid #0033CC;padding:12px 16px;border-radius:6px;margin:16px 0">${motivo}</p>
-        <p style="color:#374151">Respondé este mail con lo que te pedimos, o mandánoslo por WhatsApp. Apenas lo recibamos activamos la cuenta y te llega tu número de cliente.</p>
+        ${
+          numero
+            ? `<p style="color:#374151">Mandánoslo por WhatsApp y lo activamos en el momento:</p>
+        <a href="https://wa.me/${numero}?text=${texto}"
+           style="display:inline-block;margin:8px 0 16px;padding:10px 24px;background:#25D366;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+          Enviar por WhatsApp
+        </a>
+        <p style="color:#374151;font-size:14px">También podés responder este mismo mail.</p>`
+            : `<p style="color:#374151">Respondé este mail con lo que te pedimos y activamos la cuenta.</p>`
+        }
+        <p style="color:#374151">Apenas lo recibamos te llega tu número de cliente.</p>
         <p style="margin-top:24px;font-size:12px;color:#9CA3AF">A&P Refrigeración — Buenos Aires, Argentina</p>
       </div>`,
   };

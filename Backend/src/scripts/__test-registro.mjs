@@ -280,6 +280,29 @@ await check("El pedido también se escapa antes de ir al HTML", () => {
   if (!m.html.includes("&lt;img")) throw new Error("no se ve escapado");
 });
 
+await check("El mail de \"faltan datos\" ofrece WhatsApp cuando hay número", () => {
+  const m = awaitingInfoEmail("Juan Pérez", "La matrícula", { whatsapp: "54 9 11 5555-4444" });
+  if (!m.html.includes("https://wa.me/5491155554444")) throw new Error("no armó el link de WhatsApp");
+  if (!m.html.includes("Enviar por WhatsApp")) throw new Error("falta el botón");
+  return "wa.me con el mensaje ya escrito";
+});
+
+await check("Sin número configurado, le pide que responda el mail", () => {
+  const m = awaitingInfoEmail("Juan Pérez", "La matrícula", {});
+  if (m.html.includes("wa.me")) throw new Error("armó un link de WhatsApp vacío");
+  if (!/Respondé este mail/.test(m.html)) throw new Error("no ofrece ninguna alternativa");
+});
+
+// El Reply-To se arma dentro de sendMail, contra el cliente de Resend. Probarlo
+// de verdad pediría interceptar esa librería; acá solo se verifica que sin
+// credenciales no se mande nada, que es lo que mantiene a esta prueba inofensiva.
+await check("Sin RESEND_API_KEY no se manda ningún correo", async () => {
+  const { sendMail } = await import("../services/emailService.js");
+  const r = await sendMail({ to: "x@example.com", subject: "s", html: "<p>h</p>" });
+  esperar(r.ok, false, "¿mandó un mail de verdad?");
+  esperar(r.reason, "no-credentials", "motivo");
+});
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 process.exitCode = fallos.length ? 1 : 0;
