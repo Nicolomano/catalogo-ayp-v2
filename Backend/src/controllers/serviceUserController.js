@@ -1,6 +1,6 @@
 import serviceUserModel from "../services/models/serviceUserModel.js";
 import {
-  sendMail, approvalEmail, rejectionEmail,
+  sendMail, approvalEmail, rejectionEmail, awaitingInfoEmail,
   registrationReceivedEmail, newRegistrationEmail,
 } from "../services/emailService.js";
 import sharp from "sharp";
@@ -300,9 +300,9 @@ export const updateServiceUser = async (req, res) => {
 export const updateServiceUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason, clientNumber } = req.body;
+    const { status, rejectionReason, clientNumber, awaitingReason } = req.body;
 
-    if (!["approved", "rejected"].includes(status)) {
+    if (!["approved", "rejected", "awaiting"].includes(status)) {
       return res.status(400).json({ message: "Estado inválido" });
     }
 
@@ -312,10 +312,14 @@ export const updateServiceUserStatus = async (req, res) => {
     if (status === "rejected" && !rejectionReason?.trim()) {
       return res.status(400).json({ message: "El motivo del rechazo es requerido" });
     }
+    if (status === "awaiting" && !awaitingReason?.trim()) {
+      return res.status(400).json({ message: "Indicá qué dato le estás pidiendo" });
+    }
 
     const update = { status, approved: status === "approved" };
     if (status === "approved") update.clientNumber = clientNumber.trim();
     if (status === "rejected") update.rejectionReason = rejectionReason.trim();
+    if (status === "awaiting") update.awaitingReason = awaitingReason.trim();
 
     const user = await serviceUserModel
       .findByIdAndUpdate(id, update, { new: true })
@@ -329,6 +333,11 @@ export const updateServiceUserStatus = async (req, res) => {
       emailResult = await sendMail({ to: user.email, ...mail });
     } else if (status === "rejected") {
       const mail = rejectionEmail(user.name, rejectionReason);
+      emailResult = await sendMail({ to: user.email, ...mail });
+    } else if (status === "awaiting") {
+      // Se le pide por mail en el momento: es lo que antes había que hacer a
+      // mano, uno por uno, por WhatsApp.
+      const mail = awaitingInfoEmail(user.name, awaitingReason.trim());
       emailResult = await sendMail({ to: user.email, ...mail });
     }
 

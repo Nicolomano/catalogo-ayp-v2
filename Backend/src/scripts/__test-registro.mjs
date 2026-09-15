@@ -252,6 +252,34 @@ await check("dniDeCuit no se confunde con los ceros a la izquierda", () => {
   esperar(dniDeCuit(base + v), "123456", "DNI corto");
 });
 
+console.log("\nEstado \"Faltan datos\"");
+console.log("─".repeat(42));
+
+const { awaitingInfoEmail } = await import("../services/emailService.js");
+const serviceUserModel = (await import("../services/models/serviceUserModel.js")).default;
+
+await check("El modelo acepta el estado nuevo y rechaza uno inventado", () => {
+  const valores = serviceUserModel.schema.path("status").enumValues;
+  for (const e of ["pending", "awaiting", "approved", "rejected"]) {
+    if (!valores.includes(e)) throw new Error(`falta el estado ${e}`);
+  }
+  if (valores.includes("cualquiera")) throw new Error("el enum acepta cualquier cosa");
+  return valores.join(", ");
+});
+
+await check("El mail dice qué se le está pidiendo", () => {
+  const m = awaitingInfoEmail("Juan Pérez", "La foto o el PDF de la matrícula");
+  if (!m.html.includes("Juan Pérez")) throw new Error("no aparece el nombre");
+  if (!m.html.includes("La foto o el PDF de la matrícula")) throw new Error("no aparece el pedido");
+  return `asunto: "${m.subject}"`;
+});
+
+await check("El pedido también se escapa antes de ir al HTML", () => {
+  const m = awaitingInfoEmail("Juan", '<img src=x onerror="alert(1)">');
+  if (m.html.includes("<img src=x")) throw new Error("¡el HTML quedó vivo!");
+  if (!m.html.includes("&lt;img")) throw new Error("no se ve escapado");
+});
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 process.exitCode = fallos.length ? 1 : 0;

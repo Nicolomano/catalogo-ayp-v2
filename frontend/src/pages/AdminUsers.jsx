@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle } from "lucide-react";
+import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle, Clock } from "lucide-react";
 import { PROVINCES } from "../utils/provincias.js";
 
-const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" };
+const STATUS_LABEL = {
+  pending: "Pendiente",
+  awaiting: "Faltan datos",
+  approved: "Aprobado",
+  rejected: "Rechazado",
+};
 
 const STATUS_STYLE = {
   pending:  { background: "rgba(234,179,8,0.15)",  color: "#B45309" },
+  // Distinto del pendiente a propósito: acá la pelota la tiene el técnico.
+  awaiting: { background: "rgba(79,70,229,0.12)",  color: "#4F46E5" },
   approved: { background: "rgba(22,163,74,0.15)",  color: "#16A34A" },
   rejected: { background: "rgba(220,38,38,0.12)",  color: "#DC2626" },
 };
 
-const FILTERS = ["pending", "approved", "rejected", "all"];
+const FILTERS = ["pending", "awaiting", "approved", "rejected", "all"];
 const FILTER_LABEL = { ...STATUS_LABEL, all: "Todos" };
 
 const inputCls = "border rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 transition-colors";
@@ -24,6 +31,8 @@ function AdminUsers() {
   const [loading, setLoading] = useState(false);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [awaitingModal, setAwaitingModal] = useState(null);
+  const [awaitingText, setAwaitingText] = useState("");
   const [clientNumbers, setClientNumbers] = useState({});
   const [imageModal, setImageModal] = useState(null);
   const [editModal, setEditModal] = useState(null);
@@ -103,6 +112,26 @@ function AdminUsers() {
     }
   };
 
+  const handleAwaiting = async () => {
+    if (!awaitingModal) return;
+    if (!awaitingText.trim()) { toast.error("Escribí qué dato le estás pidiendo"); return; }
+    try {
+      const res = await API.patch(
+        `/users/${awaitingModal.userId}/status`,
+        { status: "awaiting", awaitingReason: awaitingText.trim() },
+      );
+      toast.success(
+        res.data?.emailSent === false
+          ? "Marcado, pero el email no se pudo enviar"
+          : "Marcado · le pedimos el dato por email",
+      );
+      setAwaitingModal(null);
+      setAwaitingText("");
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "No se pudo marcar");
+    }
+  };
   const handleReject = async () => {
     if (!rejectModal) return;
     if (!rejectReason.trim()) { toast.error("Ingresá el motivo del rechazo"); return; }
@@ -225,6 +254,16 @@ function AdminUsers() {
                     </span>
                   </div>
 
+                  {/* Qué se le pidió, para no tener que acordarse. */}
+                  {u.status === "awaiting" && u.awaitingReason && (
+                    <p
+                      className="flex items-start gap-1.5 text-xs rounded-lg px-2 py-1.5 mt-1"
+                      style={{ background: "rgba(79,70,229,0.10)", color: "#4F46E5" }}
+                    >
+                      <Clock size={12} className="shrink-0 mt-0.5" />
+                      <span>Le pedimos: {u.awaitingReason}</span>
+                    </p>
+                  )}
                   {/* No bloquea la aprobación: el número puede estar mal tipeado
                       o el técnico puede no estar inscripto. Decide quien aprueba. */}
                   {u.avisoIdentificacion && (
@@ -265,8 +304,9 @@ function AdminUsers() {
                 </div>
               </div>
 
-              {/* Acciones — solo si está pendiente */}
-              {u.status === "pending" && (
+              {/* Acciones — mientras no esté resuelto. "Faltan datos" también las
+                  muestra: cuando el técnico manda lo que faltaba, se aprueba desde acá. */}
+              {(u.status === "pending" || u.status === "awaiting") && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-1 border-t" style={{ borderColor: "var(--border)" }}>
                   <div className="flex items-center gap-2 flex-1">
                     <label className="text-xs font-medium shrink-0" style={{ color: "var(--text)" }}>
@@ -291,6 +331,16 @@ function AdminUsers() {
                       style={{ background: "rgba(22,163,74,0.15)", color: "#16A34A" }}
                     >
                       Aprobar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAwaitingModal({ userId: u._id, name: u.name });
+                        setAwaitingText(u.awaitingReason || "");
+                      }}
+                      className="px-4 py-2 rounded-xl text-xs font-medium transition-colors"
+                      style={{ background: "rgba(79,70,229,0.12)", color: "#4F46E5" }}
+                    >
+                      Faltan datos
                     </button>
                     <button
                       onClick={() => setRejectModal({ userId: u._id, name: u.name })}
@@ -431,6 +481,70 @@ function AdminUsers() {
                 style={{ maxHeight: "80vh" }}
               />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal faltan datos */}
+      {awaitingModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-6 space-y-4"
+            style={{ background: "var(--surface)", boxShadow: "var(--shadow-lg)" }}
+          >
+            <div>
+              <h3 className="font-bold text-base" style={{ color: "var(--text)" }}>
+                ¿Qué le falta a {awaitingModal.name}?
+              </h3>
+              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+                Se lo pedimos por email y la solicitud sale de la bandeja de pendientes hasta que conteste.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "La foto o el PDF de la matrícula",
+                "El CUIT o CUIL",
+                "Un teléfono de contacto",
+              ].map((sug) => (
+                <button
+                  key={sug}
+                  type="button"
+                  onClick={() => setAwaitingText(sug)}
+                  className="px-2.5 py-1 rounded-lg text-xs transition-colors"
+                  style={{ background: "var(--surface2)", color: "var(--muted)", border: "1px solid var(--border)" }}
+                >
+                  {sug}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={awaitingText}
+              onChange={(e) => setAwaitingText(e.target.value)}
+              placeholder="Ej: la foto o el PDF de la matrícula"
+              rows={3}
+              className="w-full border rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 transition-colors"
+              style={{ background: "var(--surface2)", borderColor: "var(--border)", color: "var(--text)" }}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setAwaitingModal(null); setAwaitingText(""); }}
+                className="px-4 py-2 rounded-xl text-sm transition-colors"
+                style={{ background: "var(--surface2)", color: "var(--text)" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAwaiting}
+                disabled={!awaitingText.trim()}
+                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+                style={{ background: "#4F46E5", color: "#fff" }}
+              >
+                Pedir por email
+              </button>
+            </div>
           </div>
         </div>
       )}

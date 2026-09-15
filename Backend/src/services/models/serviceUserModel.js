@@ -24,7 +24,12 @@ const serviceUserSchema = new mongoose.Schema(
     clientNumber:    { type: String, default: "" }, // assigned by admin before approval
     role:            { type: String, default: "service" },
     approved:        { type: Boolean, default: false },
-    status:          { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    // "awaiting" = falta que el técnico mande algo (matrícula, CUIT, etc).
+    // Se separa de "pending" para que la bandeja de pendientes muestre solo lo
+    // que depende de nosotros, no lo que depende de ellos.
+    status:          { type: String, enum: ["pending", "awaiting", "approved", "rejected"], default: "pending" },
+    // Qué se le pidió. Va en el mail que se le manda y se ve en el panel.
+    awaitingReason:  { type: String, default: "" },
     rejectionReason: { type: String, default: "" },
     // Recuperación de contraseña: se guarda el HASH del token, no el token. Así
     // una filtración de la base no permite resetear cuentas ajenas.

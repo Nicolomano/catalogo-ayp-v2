@@ -419,6 +419,29 @@ Clic en **"Marcar como contestada"** / **"Marcar como pendiente"** para alternar
 
 Aquí se aprueban o rechazan las solicitudes de registro de técnicos que quieren acceder al precio service.
 
+#### Los cuatro estados
+
+| Estado | Qué significa | De quién depende |
+|---|---|---|
+| **Pendiente** | Recién se registró, hay que revisarlo | De vos |
+| **Faltan datos** | Le pedimos algo y estamos esperando que lo mande | Del técnico |
+| **Aprobado** | Tiene precio service y número de cliente | — |
+| **Rechazado** | No corresponde; se le avisó el motivo | — |
+
+#### "Faltan datos": cuando esperás algo del técnico
+
+Sirve para los que se registraron sin la matrícula, sin CUIT o con un teléfono que no sirve. Los saca de **Pendiente**, así esa bandeja te queda solo con lo que depende de vos.
+
+1. En la tarjeta del técnico, tocá **"Faltan datos"**
+2. Escribí qué le estás pidiendo (hay tres atajos: matrícula, CUIT/CUIL, teléfono)
+3. **Pedir por email**
+
+Le llega un mail explicando exactamente qué falta y pidiéndole que responda o lo mande por WhatsApp. Vos no tenés que perseguirlo.
+
+Cuando conteste, entrás a la pestaña **Faltan datos**, cargás el dato que mandó con **"Editar"** (o mirás la matrícula nueva) y lo aprobás desde ahí mismo.
+
+> En la tarjeta queda escrito **"Le pedimos: …"**, así no tenés que acordarte de qué le faltaba a cada uno.
+
 #### Filtrar por estado
 Los botones en la parte superior permiten filtrar por:
 - **Pendiente:** Solicitudes que esperan revisión

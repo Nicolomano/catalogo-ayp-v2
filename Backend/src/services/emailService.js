@@ -134,6 +134,27 @@ export function passwordResetEmail(rawUserName, resetUrl) {
   };
 }
 
+/**
+ * "Nos falta algo tuyo": el técnico se registró pero quedó pendiente de que
+ * mande la matrícula u otro dato. Sin esto había que perseguirlo por WhatsApp
+ * uno por uno.
+ */
+export function awaitingInfoEmail(rawUserName, rawMotivo) {
+  const userName = esc(rawUserName);
+  const motivo = esc(rawMotivo);
+  return {
+    subject: "Nos falta un dato para activar tu cuenta — A&P Refrigeración",
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;border:1px solid #e2e8f0;border-radius:12px">
+        <h2 style="color:#0033CC;margin-bottom:8px">Hola ${userName}</h2>
+        <p style="color:#374151">Estamos por activar tu cuenta de <strong>Precio Service</strong>, pero nos falta lo siguiente:</p>
+        <p style="color:#111827;background:#F1F5F9;border-left:3px solid #0033CC;padding:12px 16px;border-radius:6px;margin:16px 0">${motivo}</p>
+        <p style="color:#374151">Respondé este mail con lo que te pedimos, o mandánoslo por WhatsApp. Apenas lo recibamos activamos la cuenta y te llega tu número de cliente.</p>
+        <p style="margin-top:24px;font-size:12px;color:#9CA3AF">A&P Refrigeración — Buenos Aires, Argentina</p>
+      </div>`,
+  };
+}
+
 export function rejectionEmail(rawUserName, rawReason) {
   const userName = esc(rawUserName);
   const reason = esc(rawReason);
