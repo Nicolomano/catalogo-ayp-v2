@@ -623,6 +623,47 @@ El número al que se avisa cuando un técnico se registra sin imagen de matrícu
 
 Es la forma recomendada de cargar/actualizar muchos productos de una vez. **Ya no aplica los cambios de un solo click**: primero muestra una **vista previa** para que revises y confirmes.
 
+#### Paso 0 — Generar el Excel desde el sistema
+
+En **G A-Sistemas**, la ventana **Configuración del catálogo**. La configuración tiene que quedar exactamente así:
+
+**Tildado:**
+
+| | Para qué sirve |
+|---|---|
+| ☑ **Utilizar el código del sistema como código de catálogo** | Es lo que hace que cada producto llegue con su código. Sin esto la web no puede emparejarlos y los toma a todos como nuevos. |
+| ☑ **Solo artículos de catálogo** | Trae únicamente lo que va a la web. |
+| ☑ **Mostrar Precios** | Sin esto el archivo viene sin precios. |
+| ☑ **Incluir el Stock actual al generar el catálogo** | Es de donde sale el "sin stock" de la web. |
+| ☑ **Omitir Artículos sin ganancia o Lista de precios sin configurar** | Evita que entren productos en $0. |
+
+**Sin tildar:**
+
+| | Por qué |
+|---|---|
+| ☐ **Mostrar Precios NETOS (sin IVA)** | Los precios de la web van **con IVA**. Si se tilda, todo el catálogo queda ~21% más barato. |
+| ☐ Mostrar Precios en su Moneda Original | La web trabaja en pesos. |
+| ☐ Incluir imágenes en el excel | La importación no las usa y el archivo se vuelve enorme. |
+| ☐ Generar Lista en excel sólo datos | |
+| ☐ Fotos Grandes | |
+
+**Lo demás:**
+
+- **Lista de precios: `L0`**
+- **Rubro, Sub Rubro y Descripción: vacíos.** Son filtros: si se completa alguno, el Excel sale **incompleto**.
+- **Ordenar por Rubro, SubRubro y Descripción ascendente**
+
+Después:
+
+1. **Listar Artículos** — hasta que no se toca, "Filas: 0"
+2. **Exportar a Excel** (el común, **no** el "Agrupado")
+
+Ese archivo es el que se sube en el paso 1.
+
+> ⚠️ **Los tres filtros de arriba tienen que quedar vacíos.** Si exportás filtrado por un rubro, la web va a ver que "faltan" todos los demás productos y te los va a ofrecer para desactivar o eliminar. El freno del 20% te avisa, pero mejor no llegar a eso.
+
+> ⚠️ **Si te olvidás de tildar "Incluir el Stock actual"**, el archivo viene sin la columna de stock y la web da por sentado que **todo tiene stock**. No falla ni avisa: simplemente quedan como disponibles productos que no lo están.
+
 #### Paso 1 — Subir el archivo
 1. Entrar a **Importar Excel** (en el menú del admin, o desde el botón "Importar Excel" en Productos)
 2. Elegir el archivo `.xlsx`, `.xls` o `.csv`
