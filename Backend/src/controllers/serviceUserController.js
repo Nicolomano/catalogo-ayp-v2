@@ -187,8 +187,7 @@ export const listServiceUsers = async (req, res) => {
     const filter = status && status !== "all" ? { status } : {};
     const users = await serviceUserModel
       .find(filter)
-      .select("-password")
-      .select("+matriculaKey")
+      .select("-password +matriculaKey")
       .sort({ createdAt: -1 })
       .lean();
     // No se manda la key ni la URL: solo si hay imagen. El panel la pide por
@@ -276,8 +275,7 @@ export const updateServiceUser = async (req, res) => {
 
     const actualizado = await serviceUserModel
       .findByIdAndUpdate(id, update, { new: true, runValidators: true })
-      .select("-password")
-      .select("+matriculaKey")
+      .select("-password +matriculaKey")
       .lean();
 
     // Misma forma que devuelve el listado: sin la key ni la URL, solo el flag.

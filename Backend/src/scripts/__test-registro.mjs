@@ -303,6 +303,69 @@ await check("Sin RESEND_API_KEY no se manda ningún correo", async () => {
   esperar(r.reason, "no-credentials", "motivo");
 });
 
+console.log("\nLa matrícula se ve en el panel");
+console.log("─".repeat(42));
+
+// Esta sección sí necesita una base: reproduce la consulta del listado, que es
+// donde se rompía. Un `.select()` encadenado sobre otro NO se combina: la
+// exclusión gana y el campo con `select: false` queda afuera igual, así que
+// hasMatricula daba false para todos los que la habían subido.
+{
+  const { MongoMemoryServer } = await import("mongodb-memory-server");
+  const mongoose = (await import("mongoose")).default;
+  const mongod = await MongoMemoryServer.create();
+  await mongoose.connect(mongod.getUri());
+  const M = (await import("../services/models/serviceUserModel.js")).default;
+
+  await M.create([
+    { name: "Subió foto", email: "a@a.com", password: "12345678", cuit: "20123456786",
+      matriculaKey: "serviceuser-matriculas/abc.webp" },
+    { name: "Subió PDF", email: "b@b.com", password: "12345678", cuit: "20123456786",
+      matriculaKey: "serviceuser-matriculas/abc.pdf" },
+    { name: "Registro viejo", email: "c@c.com", password: "12345678", cuit: "20123456786",
+      matriculaImage: "https://pub-x.r2.dev/serviceuser-matriculas/vieja.webp" },
+    { name: "No subió nada", email: "d@d.com", password: "12345678", cuit: "20123456786" },
+  ]);
+
+  // Misma consulta que hace listServiceUsers.
+  const leer = async () =>
+    (await M.find({}).select("-password +matriculaKey").sort({ name: 1 }).lean()).map(
+      ({ matriculaKey, matriculaImage, ...u }) => ({
+        name: u.name,
+        hasMatricula: Boolean(matriculaKey || matriculaImage),
+        password: u.password,
+      })
+    );
+
+  await check("Quien subió la matrícula aparece con matrícula", async () => {
+    const r = await leer();
+    for (const nombre of ["Subió foto", "Subió PDF", "Registro viejo"]) {
+      const u = r.find((x) => x.name === nombre);
+      if (!u.hasMatricula) throw new Error(`"${nombre}" figura SIN matrícula`);
+    }
+    return "foto, PDF y registros viejos";
+  });
+
+  await check("Quien no la subió sigue figurando sin matrícula", async () => {
+    const r = await leer();
+    esperar(r.find((x) => x.name === "No subió nada").hasMatricula, false, "falso positivo");
+  });
+
+  await check("El listado nunca devuelve la contraseña", async () => {
+    const r = await leer();
+    for (const u of r) if (u.password) throw new Error(`${u.name} expone el hash`);
+  });
+
+  await check("Encadenar dos .select() NO funciona (el bug que se arregló)", async () => {
+    const d = await M.findOne().select("-password").select("+matriculaKey").lean();
+    if (d.matriculaKey) throw new Error("ahora funciona: se puede simplificar el fix");
+    return "queda documentado por qué va en una sola llamada";
+  });
+
+  await mongoose.disconnect();
+  await mongod.stop();
+}
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 process.exitCode = fallos.length ? 1 : 0;
