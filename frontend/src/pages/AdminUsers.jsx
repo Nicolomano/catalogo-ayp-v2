@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle, Clock } from "lucide-react";
+import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle, Clock, Search } from "lucide-react";
 import { PROVINCES } from "../utils/provincias.js";
 
 const STATUS_LABEL = {
@@ -28,6 +28,7 @@ const inputStyle = { background: "var(--surface2)", borderColor: "var(--border)"
 function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [filter, setFilter] = useState("pending");
+  const [busqueda, setBusqueda] = useState("");
   const [loading, setLoading] = useState(false);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -37,6 +38,36 @@ function AdminUsers() {
   const [imageModal, setImageModal] = useState(null);
   const [editModal, setEditModal] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  /**
+   * Búsqueda sobre lo que ya está cargado: el listado trae todos los técnicos
+   * del estado elegido, así que filtrar acá es instantáneo y no suma consultas.
+   *
+   * Sin tildes y sin puntos, para que "Perez" encuentre a "Pérez" y
+   * "20123456786" encuentre a quien lo cargó como "20-12345678-6".
+   */
+  const normalizar = (v) =>
+    String(v ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const termino = normalizar(busqueda).trim();
+  const soloNumeros = termino.replace(/\D/g, "");
+
+  const visibles = !termino
+    ? users
+    : users.filter((u) => {
+        const texto = normalizar(
+          [u.name, u.email, u.company, u.province, u.clientNumber].filter(Boolean).join(" ")
+        );
+        if (texto.includes(termino)) return true;
+        // CUIT, DNI y teléfono se comparan sin guiones ni espacios.
+        if (!soloNumeros) return false;
+        return [u.cuit, u.dni, u.phone, u.clientNumber]
+          .filter(Boolean)
+          .some((campo) => String(campo).replace(/\D/g, "").includes(soloNumeros));
+      });
 
   const handleEdit = async (e) => {
     e.preventDefault();
@@ -179,17 +210,54 @@ function AdminUsers() {
         </div>
       </div>
 
+      {/* Buscador */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1" style={{ minWidth: "220px" }}>
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: "var(--muted)" }}
+          />
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre, email, CUIT, DNI, teléfono, empresa o N.º de cliente"
+            className="w-full border rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 transition-colors"
+            style={{ background: "var(--surface2)", borderColor: "var(--border)", color: "var(--text)" }}
+          />
+        </div>
+        {termino && (
+          <span className="text-xs shrink-0" style={{ color: "var(--muted)" }}>
+            {visibles.length} de {users.length}
+          </span>
+        )}
+      </div>
+
       {/* Lista */}
       {loading ? (
         <p className="text-sm py-8 text-center" style={{ color: "var(--muted)" }}>Cargando…</p>
-      ) : users.length === 0 ? (
+      ) : visibles.length === 0 ? (
         <div className="bento p-12 text-center">
           <Users size={40} style={{ color: "var(--muted)", margin: "0 auto 12px" }} />
-          <p style={{ color: "var(--muted)" }}>No hay registros con este estado.</p>
+          <p style={{ color: "var(--muted)" }}>
+            {termino
+              ? `No hay resultados para “${busqueda}”.`
+              : "No hay registros con este estado."}
+          </p>
+          {termino && (
+            <button
+              onClick={() => setBusqueda("")}
+              className="mt-3 px-4 py-2 rounded-xl text-sm font-medium"
+              style={{ background: "var(--surface2)", color: "var(--text)" }}
+            >
+              Limpiar la búsqueda
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {users.map((u) => (
+          {visibles.map((u) => (
             <div key={u._id} className="bento p-5 flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 {/* Avatar */}

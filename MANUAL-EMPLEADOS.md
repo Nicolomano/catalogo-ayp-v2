@@ -419,6 +419,21 @@ Clic en **"Marcar como contestada"** / **"Marcar como pendiente"** para alternar
 
 Aquí se aprueban o rechazan las solicitudes de registro de técnicos que quieren acceder al precio service.
 
+#### Buscador
+
+Arriba de la lista hay un buscador que filtra **dentro de la pestaña en la que estés**. Busca por:
+
+**nombre · email · empresa · provincia · CUIT · DNI · teléfono · número de cliente**
+
+Dos detalles que ayudan:
+
+- **No hace falta poner las tildes**: escribiendo `perez` encontrás a "Pérez".
+- **Los números se comparan sin guiones ni espacios**: buscando `20123456786` encontrás a quien lo cargó como `20-12345678-6`, y con `5555` encontrás un teléfono que está guardado como `11 5555-4444`.
+
+Al lado del buscador aparece cuántos resultados hay sobre el total (por ejemplo, *3 de 47*).
+
+> Si estás buscando a alguien y no aparece, fijate en qué pestaña estás: el buscador solo mira el estado seleccionado. Para buscar en todos, elegí **Todos**.
+
 #### Los cuatro estados
 
 | Estado | Qué significa | De quién depende |
