@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadPrivateToR2, getFromR2, keyFromUrl } from "../utils/r2.js";
 import { assertImagenValida, ImagenInvalidaError, SHARP_OPTS } from "../utils/imageGuard.js";
+import { interpretarIdentificacion, avisoIdentificacion } from "../utils/identidad.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MIN_PASSWORD = 8;
@@ -35,13 +36,14 @@ export const registerServiceUser = async (req, res) => {
         message: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres`,
       });
     }
-    if (!cuit) {
-      return res.status(400).json({ message: "El CUIT es requerido" });
+    // Un solo campo para CUIT, CUIL o DNI: el técnico no inscripto igual tiene
+    // CUIL, y el que ni eso sabe puede poner el DNI. Antes se pedían "11 dígitos"
+    // y entraba cualquier cosa, 11111111111 incluido.
+    const ident = interpretarIdentificacion(cuit);
+    if (!ident.ok) {
+      return res.status(400).json({ message: ident.motivo });
     }
-    const cuitLimpio = cuit.replace(/\D/g, "");
-    if (cuitLimpio.length !== 11) {
-      return res.status(400).json({ message: "El CUIT debe tener 11 dígitos" });
-    }
+
     for (const [campo, tope] of Object.entries(MAX)) {
       if (req.body[campo] && req.body[campo].length > tope) {
         return res.status(400).json({ message: `El campo ${campo} es demasiado largo` });
@@ -107,7 +109,8 @@ export const registerServiceUser = async (req, res) => {
 
     const user = new serviceUserModel({
       name: limpio(name), email: emailNorm, password, company: limpio(company),
-      cuit: cuitLimpio, matriculaKey, province: limpio(province), phone: telefono,
+      cuit: ident.cuit, dni: ident.dni, matriculaKey,
+      province: limpio(province), phone: telefono,
     });
     await user.save();
 
@@ -193,6 +196,8 @@ export const listServiceUsers = async (req, res) => {
       users.map(({ matriculaKey, matriculaImage, ...u }) => ({
         ...u,
         hasMatricula: Boolean(matriculaKey || matriculaImage),
+        // El panel lo muestra como advertencia; no bloquea la aprobación.
+        avisoIdentificacion: avisoIdentificacion(u),
       }))
     );
   } catch (error) {
@@ -237,11 +242,10 @@ export const updateServiceUser = async (req, res) => {
     }
 
     if (cuit !== undefined) {
-      const limpio = cuit.replace(/\D/g, "");
-      if (limpio.length !== 11) {
-        return res.status(400).json({ message: "El CUIT debe tener 11 dígitos" });
-      }
-      update.cuit = limpio;
+      const ident = interpretarIdentificacion(cuit);
+      if (!ident.ok) return res.status(400).json({ message: ident.motivo });
+      update.cuit = ident.cuit;
+      update.dni = ident.dni;
     }
 
     for (const campo of ["phone", "company", "province"]) {
@@ -277,7 +281,11 @@ export const updateServiceUser = async (req, res) => {
 
     // Misma forma que devuelve el listado: sin la key ni la URL, solo el flag.
     const { matriculaKey, matriculaImage, ...user } = actualizado;
-    res.json({ ...user, hasMatricula: Boolean(matriculaKey || matriculaImage) });
+    res.json({
+      ...user,
+      hasMatricula: Boolean(matriculaKey || matriculaImage),
+      avisoIdentificacion: avisoIdentificacion(user),
+    });
   } catch (error) {
     // El email es único: sin este caso, cambiarlo a uno existente daba un 500 sin
     // explicación.

@@ -163,6 +163,95 @@ await check("Un nombre con HTML no puede inyectar un link en el correo", () => {
   return "se escapa en el cuerpo y en el asunto";
 });
 
+console.log("\nCUIT, CUIL y DNI");
+console.log("─".repeat(42));
+
+const { interpretarIdentificacion, verificadorOk, dniDeCuit, avisoIdentificacion } = await import(
+  "../utils/identidad.js"
+);
+
+await check("Acepta un CUIT bien formado y le saca el DNI", () => {
+  const r = interpretarIdentificacion("20-12345678-6");
+  esperar(r.ok, true, "rechazado");
+  esperar(r.cuit, "20123456786", "cuit normalizado");
+  esperar(r.dni, "12345678", "DNI extraído del propio número");
+  return "20-12345678-6 → DNI 12345678";
+});
+
+await check("Rechaza lo que antes entraba igual", () => {
+  const basura = ["11111111111", "12345678901", "00000000000", "20-12345678-1", "99999999999"];
+  for (const c of basura) {
+    const r = interpretarIdentificacion(c);
+    if (r.ok) throw new Error(`${c} pasó la validación`);
+  }
+  return `${basura.length} casos, todos rechazados`;
+});
+
+await check("Acepta el DNI suelto para el que no está inscripto", () => {
+  const r = interpretarIdentificacion("12.345.678");
+  esperar(r.ok, true, "rechazado");
+  esperar(r.tipo, "dni", "tipo");
+  esperar(r.dni, "12345678", "dni");
+  esperar(r.cuit, "", "no debería inventar un CUIT");
+});
+
+await check("Un número de largo raro se rechaza con una explicación", () => {
+  const r = interpretarIdentificacion("123456");
+  esperar(r.ok, false, "aceptado");
+  if (!/11 dígitos/.test(r.motivo)) throw new Error(`el mensaje no orienta: ${r.motivo}`);
+  return `"${r.motivo}"`;
+});
+
+await check("Acepta CUIT de empresa y no le inventa DNI", () => {
+  // 30-71234567-? — se calcula el verificador correcto para la prueba.
+  const base = "3071234567";
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  let v = 11 - (pesos.reduce((a, p, i) => a + p * Number(base[i]), 0) % 11);
+  if (v === 11) v = 0;
+  if (v === 10) v = 9;
+  const cuit = base + v;
+  esperar(verificadorOk(cuit), true, "el de prueba no es válido");
+  const r = interpretarIdentificacion(cuit);
+  esperar(r.ok, true, "rechazado");
+  esperar(r.dni, "", "una empresa no tiene DNI");
+  return cuit;
+});
+
+console.log("\nAvisos del panel (no bloquean)");
+console.log("─".repeat(42));
+
+await check("No avisa nada cuando está todo bien", () => {
+  esperar(avisoIdentificacion({ cuit: "20123456786", dni: "12345678" }), null, "avisó de más");
+});
+
+await check("Avisa cuando el DNI no coincide con el CUIT", () => {
+  const a = avisoIdentificacion({ cuit: "20123456786", dni: "87654321" });
+  if (!a) throw new Error("no detectó la inconsistencia");
+  return `"${a}"`;
+});
+
+await check("Avisa cuando solo cargó el DNI", () => {
+  const a = avisoIdentificacion({ cuit: "", dni: "12345678" });
+  if (!a || !/facturar/i.test(a)) throw new Error(`aviso poco claro: ${a}`);
+  return `"${a}"`;
+});
+
+await check("Avisa sobre los registros viejos con CUIT inválido", () => {
+  // Los que ya estaban en la base entraron sin validación.
+  const a = avisoIdentificacion({ cuit: "11111111111", dni: "" });
+  if (!a) throw new Error("dejó pasar un CUIT inválido ya guardado");
+  return `"${a}"`;
+});
+
+await check("dniDeCuit no se confunde con los ceros a la izquierda", () => {
+  const base = "2000123456";
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  let v = 11 - (pesos.reduce((a, p, i) => a + p * Number(base[i]), 0) % 11);
+  if (v === 11) v = 0;
+  if (v === 10) v = 9;
+  esperar(dniDeCuit(base + v), "123456", "DNI corto");
+});
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 process.exitCode = fallos.length ? 1 : 0;

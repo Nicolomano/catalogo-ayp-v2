@@ -7,7 +7,12 @@ const serviceUserSchema = new mongoose.Schema(
     email:           { type: String, required: true, unique: true, lowercase: true, trim: true },
     password:        { type: String, required: true },
     company:         { type: String, default: "" },
-    cuit:            { type: String, required: true },
+    // Ya no es obligatorio: un técnico sin inscripción puede dar solo el DNI.
+    // Lo que sí se valida ahora es el dígito verificador (ver utils/identidad.js).
+    cuit:            { type: String, default: "" },
+    // Sale del propio CUIT/CUIL cuando lo hay; se guarda aparte para poder
+    // cotejarlo y para los que solo tienen DNI.
+    dni:             { type: String, default: "" },
     // Registros viejos: URL pública del bucket. Se conserva para no perder las
     // imágenes ya cargadas, pero no se escribe más.
     matriculaImage:  { type: String, default: "" },

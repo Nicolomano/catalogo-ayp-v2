@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
-import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil } from "lucide-react";
+import { Users, Building2, MapPin, Phone, Calendar, CreditCard, ImageIcon, X, Hash, Pencil, AlertTriangle } from "lucide-react";
 import { PROVINCES } from "../utils/provincias.js";
 
 const STATUS_LABEL = { pending: "Pendiente", approved: "Aprobado", rejected: "Rechazado" };
@@ -199,6 +199,11 @@ function AdminUsers() {
                         <CreditCard size={11} /> CUIT: {u.cuit}
                       </span>
                     )}
+                    {u.dni && !u.cuit && (
+                      <span className="flex items-center gap-1">
+                        <CreditCard size={11} /> DNI: {u.dni}
+                      </span>
+                    )}
                     {u.company && (
                       <span className="flex items-center gap-1">
                         <Building2 size={11} /> {u.company}
@@ -219,6 +224,18 @@ function AdminUsers() {
                       {new Date(u.createdAt).toLocaleDateString("es-AR")}
                     </span>
                   </div>
+
+                  {/* No bloquea la aprobación: el número puede estar mal tipeado
+                      o el técnico puede no estar inscripto. Decide quien aprueba. */}
+                  {u.avisoIdentificacion && (
+                    <p
+                      className="flex items-start gap-1.5 text-xs rounded-lg px-2 py-1.5 mt-1"
+                      style={{ background: "rgba(234,179,8,0.12)", color: "#B45309" }}
+                    >
+                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                      <span>{u.avisoIdentificacion}</span>
+                    </p>
+                  )}
 
                   {/* Imagen de matrícula */}
                   {u.hasMatricula && (
@@ -319,7 +336,7 @@ function AdminUsers() {
               {[
                 { label: "Nombre", key: "name", type: "text", required: true },
                 { label: "Email", key: "email", type: "email", required: true },
-                { label: "CUIT (11 dígitos)", key: "cuit", type: "text", required: true },
+                { label: "CUIT, CUIL o DNI", key: "cuit", type: "text", required: true },
                 { label: "Teléfono", key: "phone", type: "text" },
                 { label: "Empresa", key: "company", type: "text" },
                 { label: "N.º de cliente", key: "clientNumber", type: "text" },

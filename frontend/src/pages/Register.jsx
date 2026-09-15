@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { UploadCloud, X, MessageCircle } from "lucide-react";
 import Logo from "../components/Logo.jsx";
 import { PROVINCES } from "../utils/provincias.js";
+import { errorIdentificacion } from "../utils/identidad.js";
 
 function Field({ label, required, children }) {
   return (
@@ -36,6 +37,10 @@ function Register() {
   }, []);
 
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  // Se avisa recién cuando escribió algo: no tiene sentido marcarle en rojo un
+  // campo que todavía no tocó.
+  const errorIdent = form.cuit ? errorIdentificacion(form.cuit) : null;
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -74,6 +79,11 @@ function Register() {
     // 8, igual que el backend: validaba 6 acá y el registro fallaba después.
     if (form.password.length < 8) {
       toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    const problema = errorIdentificacion(form.cuit);
+    if (problema) {
+      toast.error(problema);
       return;
     }
     setLoading(true);
@@ -168,8 +178,11 @@ function Register() {
               <Field label="Confirmar contraseña" required>
                 <input type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required className="input-field" />
               </Field>
-              <Field label="CUIT" required>
-                <input type="text" value={form.cuit} onChange={set("cuit")} required placeholder="20-12345678-9" className="input-field" />
+              <Field label="CUIT, CUIL o DNI" required>
+                <input type="text" value={form.cuit} onChange={set("cuit")} required placeholder="20-12345678-6 o 12345678" className="input-field" />
+                <p className="text-xs mt-1" style={{ color: errorIdent ? "#DC2626" : "var(--muted)" }}>
+                  {errorIdent || "Si no tenés CUIT, poné tu CUIL o tu DNI."}
+                </p>
               </Field>
               <Field label="Empresa / Taller">
                 <input type="text" value={form.company} onChange={set("company")} className="input-field" />
