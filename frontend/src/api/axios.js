@@ -29,26 +29,51 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Llamadas donde un 401 significa "los datos están mal", NO "se venció la
+ * sesión". La pantalla que las hizo muestra su propio mensaje y nadie tiene que
+ * ser expulsado a ningún lado.
+ */
+const INTENTOS_DE_ACCESO = [
+  "/auth/login",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/users/register",
+];
+
+/**
+ * A dónde mandar a alguien cuando la API contesta 401. Exportada para poder
+ * probarla: la regla es fácil de romper y el error se ve recién en producción.
+ *
+ * Devuelve null si no hay que moverlo de donde está.
+ *
+ * El caso que estuvo roto: un técnico que erraba la contraseña recibía 401, y
+ * como TODAVÍA no tenía token, no había rol para leer y caía en el `else` — el
+ * login de administración. Se registraba, se equivocaba al tipear y terminaba
+ * en el portal de admin sin entender nada.
+ */
+export function destinoTras401(url = "", rol = null) {
+  if (INTENTOS_DE_ACCESO.some((ruta) => url.includes(ruta))) return null;
+  // Solo a un administrador se lo manda al login de administración. Cualquier
+  // otro —técnico o visitante sin sesión— va al login público.
+  return rol === "admin" ? "/admin/login" : "/login";
+}
+
 // ✅ Interceptor para manejar expiración
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Un service con la sesión vencida terminaba en el login de administración,
-      // sin explicación. Cada rol vuelve a su propia pantalla.
-      const rol = rolDelToken();
-      localStorage.removeItem("token");
-      if (rol === "service") {
+      const destino = destinoTras401(error.config?.url || "", rolDelToken());
+      if (destino) {
+        localStorage.removeItem("token");
         localStorage.removeItem("ayp_service_user");
-        window.location.href = "/login";
-      } else {
-        window.location.href = "/admin/login";
+        window.location.href = destino;
       }
     }
     return Promise.reject(error);
   }
 );
-
 /**
  * GET que se saltea el caché del navegador.
  *
