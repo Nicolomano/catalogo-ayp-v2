@@ -339,6 +339,46 @@ Dos consecuencias prácticas:
 
 > Un producto sin categoría **no desaparece**: se sigue encontrando con el buscador y en "Todas las categorías". Lo que no hace es aparecer al navegar por categorías.
 
+#### Asignar categorías en masa (2200 productos de una)
+
+El Excel del contable no trae rubro para la mayoría de los productos, así que entran sin categoría y solo se encuentran con el buscador. A mano son años; hay un script que los asigna por las palabras de su propio nombre.
+
+**Siempre simula primero.** Sin `--confirmar` no escribe nada: muestra el resumen y deja un CSV con el detalle completo para revisar en Excel.
+
+```bash
+cd Backend
+MONGO_URI="la-cadena-de-conexión" node src/scripts/asignarCategorias.mjs
+```
+
+Recomendado: arrancar por una sola categoría, ver cómo queda en el catálogo, y recién después soltarlo sobre el resto.
+
+```bash
+# 1. ver qué haría con los termostatos
+MONGO_URI="..." node src/scripts/asignarCategorias.mjs --categoria "Termostatos"
+
+# 2. si el CSV está bien, aplicarlo
+MONGO_URI="..." node src/scripts/asignarCategorias.mjs --categoria "Termostatos" --confirmar
+
+# 3. cuando estés conforme, el resto
+MONGO_URI="..." node src/scripts/asignarCategorias.mjs --confirmar
+```
+
+Cada corrida deja un archivo `asignacion-FECHA-HORA.json`. Si algo no te gustó:
+
+```bash
+MONGO_URI="..." node src/scripts/asignarCategorias.mjs --deshacer asignacion-2026-09-21-19-04.json --confirmar
+```
+
+Deshace **solo esa corrida**, y solo los productos cuya categoría siga siendo exactamente la que puso el script — si después la cambiaste a mano, ese no se toca.
+
+> **Nunca pisa lo que asignaste vos.** Solo mira productos que no tienen ninguna categoría.
+
+> **No inventa categorías.** Si una del listado no existe en el panel, avisa cuál falta y la saltea. Creala y volvé a correrlo.
+
+> El catálogo tarda hasta **5 minutos** en mostrar los cambios, por el caché.
+
+> Quedan unos 550 productos que ninguna regla reconoce (pilas, patas, tiradores, adaptadores). Esos van a mano, o se les agrega una regla al script.
+
 #### Eliminar una categoría
 Clic en el ícono de basura (🗑) junto a la categoría. 
 
