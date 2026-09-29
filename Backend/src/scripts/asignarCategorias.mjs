@@ -38,7 +38,18 @@ const REGLAS = [
   ["Microondas",                  /MAGNETRON|MICROONDA/],
   ["Dispensers de agua",          /DISPENSER|PELTIER/],
   ["Termotanques y calefones",    /TERMOTANQUE|CALEFON|\bANODO/],
-  ["Secarropas",                  /(?<!LAVA)SECARROPA/],
+  /**
+   * Secarropas. Las piezas casi nunca dicen "secarropas": se reconocen por el
+   * MODELO. Kohinoor 2042/2052/2062, L600/L700, 842/852, 342/352/742/752 y la
+   * línea HTS son secarropas; el cable y el fleje de freno son exclusivos del
+   * centrífugo (un lavarropas no lleva freno de canasto).
+   *
+   * El tercer elemento excluye: Kohinoor también fabrica lavarropas (línea
+   * Columbia), y un blocapuerta o un lavasecarropas nunca es un secarropas.
+   */
+  ["Secarropas",
+    /(?<!LAVA)SECARROPA|CABLE DE FRENO|FLEJE DE FRENO|KOH-?I-?NOOR.*\b(2042|2052|2062|L600|L700|842|852|342|352|742|752|652|HTS)|\b(2042|2052|2062)\b|CODINI.*ADVANCE|ADVANCE.*CODINI/,
+    /COLUMBIA|BLOCAPUERTA|LAVASECARROPA|ECOWASH|AQUA/],
   ["Hornos electricos",           /HORNO|ANAFE|\bPERILLA|QUEMADOR|TERMOCUPLA/],
   ["Rulemanes",                   /RULEMAN|RODAMIENTO/],
   ["Aire acondicionado",          /AIRE ACOND|\bA\/A\b|SPLIT|INVERTER|EVAPORADORA/],
@@ -74,7 +85,10 @@ const normalizar = (s) =>
 
 const categoriaPara = (nombre) => {
   const n = normalizar(nombre);
-  const r = REGLAS.find(([, re]) => re.test(n));
+  // Tercer elemento opcional: lo que NO cuenta aunque la regla coincida. Hace
+  // falta cuando una marca fabrica dos cosas distintas (Kohinoor hace
+  // secarropas y también lavarropas de la línea Columbia).
+  const r = REGLAS.find(([, incluye, excluye]) => incluye.test(n) && !(excluye && excluye.test(n)));
   return r ? r[0] : null;
 };
 
