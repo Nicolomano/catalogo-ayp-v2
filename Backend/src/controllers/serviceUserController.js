@@ -337,26 +337,38 @@ export const exportContactos = async (req, res) => {
     // columnas del archivo.
     const campo = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
-    let cabecera, filas;
+    const fecha = new Date().toISOString().slice(0, 10);
+
+    // El sorteo sale como texto plano, un participante por línea: es el formato
+    // que piden las ruletas de sorteo, que leen cada renglón como una entrada.
+    // Va SIN encabezado y SIN BOM a propósito — las dos cosas terminarían
+    // convertidas en un participante más o en un carácter raro pegado al
+    // primer nombre.
     if (sorteo) {
-      cabecera = "nombre,numero_cliente";
-      filas = users.map((u) => [u.name, u.clientNumber].map(campo).join(","));
-    } else {
-      cabecera = "email,first_name,last_name,empresa,numero_cliente";
-      filas = users.map((u) => {
-        // La mayoría de las herramientas de envío piden nombre y apellido por
-        // separado; acá se guarda junto, así que se parte por el primer espacio.
-        const partes = (u.name || "").trim().split(/\s+/);
-        const nombre = partes.shift() || "";
-        const apellido = partes.join(" ");
-        return [u.email, nombre, apellido, u.company, u.clientNumber].map(campo).join(",");
+      const limpiar = (v) => String(v ?? "").replace(/[\r\n]+/g, " ").trim();
+      const lineas = users.map((u) => {
+        const nombre = limpiar(u.name);
+        const numero = limpiar(u.clientNumber);
+        return numero ? `${nombre} - ${numero}` : nombre;
       });
+      res.set("Content-Type", "text/plain; charset=utf-8");
+      res.set("Content-Disposition", `attachment; filename="sorteo-${fecha}.txt"`);
+      return res.send(lineas.join("\r\n"));
     }
 
+    const cabecera = "email,first_name,last_name,empresa,numero_cliente";
+    const filas = users.map((u) => {
+      // La mayoría de las herramientas de envío piden nombre y apellido por
+      // separado; acá se guarda junto, así que se parte por el primer espacio.
+      const partes = (u.name || "").trim().split(/\s+/);
+      const nombre = partes.shift() || "";
+      const apellido = partes.join(" ");
+      return [u.email, nombre, apellido, u.company, u.clientNumber].map(campo).join(",");
+    });
+
     const csv = [cabecera, ...filas].join("\r\n");
-    const fecha = new Date().toISOString().slice(0, 10);
     res.set("Content-Type", "text/csv; charset=utf-8");
-    res.set("Content-Disposition", `attachment; filename="${sorteo ? "sorteo" : "contactos"}-${fecha}.csv"`);
+    res.set("Content-Disposition", `attachment; filename="contactos-${fecha}.csv"`);
     // BOM para que Excel abra bien las tildes y las eñes.
     res.send("\uFEFF" + csv);
   } catch (error) {

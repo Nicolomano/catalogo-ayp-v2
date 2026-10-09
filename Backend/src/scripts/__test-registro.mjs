@@ -421,23 +421,36 @@ console.log("─".repeat(42));
     esperar(l.split('","').length, 5, "columnas de la fila");
   });
 
-  await check("El archivo de sorteo trae solo nombre y número de cliente", async () => {
+  await check("El sorteo sale en texto, un participante por línea", async () => {
     const r = res();
     await exportContactos({ query: { tipo: "sorteo" } }, r);
-    const csv = String(r.body).replace(/^\uFEFF/, "");
-    const lineas = csv.split("\r\n");
-    esperar(lineas[0], "nombre,numero_cliente", "cabecera");
-    if (/@/.test(csv)) throw new Error("se coló un email en la lista del sorteo");
-    return `${lineas.length - 1} participantes`;
+    const txt = String(r.body);
+    const lineas = txt.split(/\r?\n/);
+    if (/@/.test(txt)) throw new Error("se coló un email en la lista del sorteo");
+    // Un BOM quedaría pegado al primer nombre al copiar la lista a otro lado.
+    if (txt.charCodeAt(0) === 0xfeff) throw new Error("lleva BOM");
+    // Un encabezado se convertiría en un participante más del sorteo.
+    if (/^nombre/i.test(lineas[0])) throw new Error("tiene encabezado");
+    if (!r.headers["Content-Type"].includes("text/plain")) throw new Error("no sale como texto plano");
+    if (!r.headers["Content-Disposition"].includes(".txt")) throw new Error("no se descarga como .txt");
+    // Quien tiene número va "Nombre - Número". A un aprobado sin número se lo
+    // deja igual con el nombre solo: para sortear sirve, y dejarlo afuera sería
+    // sacar del bombo a un cliente por un dato que falta en su ficha.
+    const conNumero = lineas.filter((l) => l.includes(" - "));
+    if (!conNumero.length) throw new Error("ninguna línea trae el número de cliente");
+    for (const l of lineas) {
+      if (!l.trim()) throw new Error("hay una línea vacía: sería un participante fantasma");
+    }
+    return `${lineas.length} participantes · ej: ${conNumero[0]}`;
   });
 
   await check("Al sorteo entran TODOS los aprobados, acepten novedades o no", async () => {
     const r = res();
     await exportContactos({ query: { tipo: "sorteo" } }, r);
-    const csv = String(r.body);
-    if (!csv.includes("No quiere")) throw new Error("dejó afuera a quien no acepta publicidad");
-    if (csv.includes("Pendiente")) throw new Error("se coló un pendiente");
-    if (csv.includes("Rechazado")) throw new Error("se coló un rechazado");
+    const txt = String(r.body);
+    if (!txt.includes("No quiere")) throw new Error("dejó afuera a quien no acepta publicidad");
+    if (txt.includes("Pendiente")) throw new Error("se coló un pendiente");
+    if (txt.includes("Rechazado")) throw new Error("se coló un rechazado");
     return "3 aprobados de 5 técnicos";
   });
 

@@ -83,7 +83,7 @@ function AdminUsers() {
   // datos personales posibles.
   const descargarSorteo = async () => {
     try {
-      await descargarConToken("/users/export/contactos?tipo=sorteo", "sorteo.csv");
+      await descargarConToken("/users/export/contactos?tipo=sorteo", "sorteo.txt");
       toast.success("Descargado");
     } catch {
       toast.error("No se pudo descargar el archivo");
@@ -239,7 +239,7 @@ function AdminUsers() {
           </button>
           <button
             onClick={descargarSorteo}
-            title="CSV con el nombre y el número de cliente de todos los técnicos aprobados"
+            title="Archivo de texto con un participante por línea: Nombre - N.º de cliente"
             className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5"
             style={{ background: "rgba(79,70,229,0.12)", color: "#4F46E5" }}
           >

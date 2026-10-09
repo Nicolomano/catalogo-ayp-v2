@@ -488,16 +488,18 @@ El archivo trae: email, nombre, apellido, empresa y número de cliente.
 
 #### Exportar para un sorteo
 
-El botón **Sorteo** (violeta, al lado de Contactos) descarga un CSV con el **nombre y el número de cliente** de **todos los técnicos aprobados**.
+El botón **Sorteo** (violeta, al lado de Contactos) descarga un **archivo de texto** con un participante por línea:
 
-A diferencia de Contactos, acá **no importa si aceptaron recibir novedades**: no se les manda nada, es una lista para sortear. Y el archivo **no lleva email ni CUIT**, porque para sortear no hacen falta.
+```
+Juan Pérez - C-1021
+Ana Gómez - C-98
+```
 
-El archivo se abre en Excel. Para elegir un ganador al azar:
+Ese formato es el que piden las ruletas de sorteo online: se copia y se pega entero, sin tener que elegir columnas ni separadores.
 
-1. Abrí el CSV en Excel
-2. En una celda vacía de la primera fila de datos escribí `=ALEATORIO()` y arrastrá hacia abajo hasta el último
-3. Ordená por esa columna de menor a mayor
-4. El primero de la lista es el ganador
+Entran **todos los técnicos aprobados**. A diferencia de Contactos, acá **no importa si aceptaron recibir novedades**: no se les manda nada, es una lista para sortear. Y el archivo **no lleva email ni CUIT**, porque para sortear no hacen falta.
+
+> Los pendientes y los rechazados no entran: todavía no son clientes. Si algún aprobado no tiene número de cliente cargado, aparece igual con el nombre solo.
 
 > Guardá el archivo con la fecha: si alguien pregunta, tenés el listado exacto de participantes de ese sorteo.
 
