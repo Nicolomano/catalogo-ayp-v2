@@ -393,7 +393,7 @@ console.log("─".repeat(42));
     r.status=()=>r; r.json=b=>((r.body=b),r); r.send=b=>((r.body=b),r); return r; };
 
   const r = res();
-  await exportContactos({}, r);
+  await exportContactos({ query: {} }, r);
   const csv = String(r.body).replace(/^\uFEFF/, "");
   const filas = csv.split("\r\n");
 
@@ -419,6 +419,34 @@ console.log("─".repeat(42));
     const l = fila("juan@x.com");
     if (!l.includes('"Frío ""Sur"""')) throw new Error("mal escapado: " + l);
     esperar(l.split('","').length, 5, "columnas de la fila");
+  });
+
+  await check("El archivo de sorteo trae solo nombre y número de cliente", async () => {
+    const r = res();
+    await exportContactos({ query: { tipo: "sorteo" } }, r);
+    const csv = String(r.body).replace(/^\uFEFF/, "");
+    const lineas = csv.split("\r\n");
+    esperar(lineas[0], "nombre,numero_cliente", "cabecera");
+    if (/@/.test(csv)) throw new Error("se coló un email en la lista del sorteo");
+    return `${lineas.length - 1} participantes`;
+  });
+
+  await check("Al sorteo entran TODOS los aprobados, acepten novedades o no", async () => {
+    const r = res();
+    await exportContactos({ query: { tipo: "sorteo" } }, r);
+    const csv = String(r.body);
+    if (!csv.includes("No quiere")) throw new Error("dejó afuera a quien no acepta publicidad");
+    if (csv.includes("Pendiente")) throw new Error("se coló un pendiente");
+    if (csv.includes("Rechazado")) throw new Error("se coló un rechazado");
+    return "3 aprobados de 5 técnicos";
+  });
+
+  await check("El de contactos sigue filtrando por consentimiento", async () => {
+    const r = res();
+    await exportContactos({ query: {} }, r);
+    const csv = String(r.body);
+    if (csv.includes("no@x.com")) throw new Error("se coló quien NO acepta novedades");
+    esperar(csv.split("\r\n").length, 3, "líneas (cabecera + 2)");
   });
 
   await check("Sale con cabecera y BOM para que Excel lo abra bien", () => {

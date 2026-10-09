@@ -486,6 +486,21 @@ El archivo trae: email, nombre, apellido, empresa y número de cliente.
 
 > ⚠️ **No mandes circulares a quien no la pidió.** Además de corresponder, es lo que protege el resto: si te marcan como spam, se ensucia el dominio y los correos que sí importan —aprobaciones, recuperación de contraseña— empiezan a caer en la carpeta de correo no deseado de todos.
 
+#### Exportar para un sorteo
+
+El botón **Sorteo** (violeta, al lado de Contactos) descarga un CSV con el **nombre y el número de cliente** de **todos los técnicos aprobados**.
+
+A diferencia de Contactos, acá **no importa si aceptaron recibir novedades**: no se les manda nada, es una lista para sortear. Y el archivo **no lleva email ni CUIT**, porque para sortear no hacen falta.
+
+El archivo se abre en Excel. Para elegir un ganador al azar:
+
+1. Abrí el CSV en Excel
+2. En una celda vacía de la primera fila de datos escribí `=ALEATORIO()` y arrastrá hacia abajo hasta el último
+3. Ordená por esa columna de menor a mayor
+4. El primero de la lista es el ganador
+
+> Guardá el archivo con la fecha: si alguien pregunta, tenés el listado exacto de participantes de ese sorteo.
+
 #### Los cuatro estados
 
 | Estado | Qué significa | De quién depende |

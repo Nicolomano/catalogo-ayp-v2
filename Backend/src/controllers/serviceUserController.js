@@ -304,18 +304,31 @@ export const updateServiceUser = async (req, res) => {
 };
 
 /**
- * CSV con los técnicos a los que se les puede mandar una circular.
+ * CSV de técnicos. Dos usos distintos, por el parámetro `tipo`:
  *
- * Solo entran los APROBADOS que además marcaron que querían recibir novedades.
- * Registrarse para tener precio service no es lo mismo que pedir publicidad, y
- * mandarle a quien no la pidió termina en "marcar como spam", que ensucia el
- * dominio también para los avisos que sí importan (aprobaciones, contraseñas).
+ *  - "contactos" (por defecto): para mandar circulares. Solo los APROBADOS que
+ *    además marcaron que querían recibir novedades. Registrarse para tener
+ *    precio service no es lo mismo que pedir publicidad, y mandarle a quien no
+ *    la pidió termina en "marcar como spam", que ensucia el dominio también
+ *    para los avisos que sí importan (aprobaciones, contraseñas).
+ *
+ *  - "sorteo": nombre y número de cliente de TODOS los aprobados. Acá no se
+ *    filtra por el consentimiento de publicidad porque no se le manda nada a
+ *    nadie: es una lista para sortear. Y no lleva email ni CUIT — para un
+ *    sorteo no hacen falta, y cuantos menos datos personales salgan de la base
+ *    en un archivo, mejor.
  */
 export const exportContactos = async (req, res) => {
   try {
+    const sorteo = req.query.tipo === "sorteo";
+
+    const filtro = sorteo
+      ? { status: "approved" }
+      : { status: "approved", acceptsMarketing: true };
+
     const users = await serviceUserModel
-      .find({ status: "approved", acceptsMarketing: true })
-      .select("name email company clientNumber")
+      .find(filtro)
+      .select(sorteo ? "name clientNumber" : "name email company clientNumber")
       .sort({ name: 1 })
       .lean();
 
@@ -324,20 +337,26 @@ export const exportContactos = async (req, res) => {
     // columnas del archivo.
     const campo = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
-    const filas = users.map((u) => {
-      // La mayoría de las herramientas de envío piden nombre y apellido por
-      // separado; acá se guarda junto, así que se parte por el primer espacio.
-      const partes = (u.name || "").trim().split(/\s+/);
-      const nombre = partes.shift() || "";
-      const apellido = partes.join(" ");
-      return [u.email, nombre, apellido, u.company, u.clientNumber].map(campo).join(",");
-    });
+    let cabecera, filas;
+    if (sorteo) {
+      cabecera = "nombre,numero_cliente";
+      filas = users.map((u) => [u.name, u.clientNumber].map(campo).join(","));
+    } else {
+      cabecera = "email,first_name,last_name,empresa,numero_cliente";
+      filas = users.map((u) => {
+        // La mayoría de las herramientas de envío piden nombre y apellido por
+        // separado; acá se guarda junto, así que se parte por el primer espacio.
+        const partes = (u.name || "").trim().split(/\s+/);
+        const nombre = partes.shift() || "";
+        const apellido = partes.join(" ");
+        return [u.email, nombre, apellido, u.company, u.clientNumber].map(campo).join(",");
+      });
+    }
 
-    const csv = ["email,first_name,last_name,empresa,numero_cliente", ...filas].join("\r\n");
-
+    const csv = [cabecera, ...filas].join("\r\n");
     const fecha = new Date().toISOString().slice(0, 10);
     res.set("Content-Type", "text/csv; charset=utf-8");
-    res.set("Content-Disposition", `attachment; filename="contactos-${fecha}.csv"`);
+    res.set("Content-Disposition", `attachment; filename="${sorteo ? "sorteo" : "contactos"}-${fecha}.csv"`);
     // BOM para que Excel abra bien las tildes y las eñes.
     res.send("\uFEFF" + csv);
   } catch (error) {

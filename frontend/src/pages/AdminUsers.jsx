@@ -78,6 +78,18 @@ function AdminUsers() {
     }
   };
 
+  // Para el sorteo: solo nombre y número de cliente de los aprobados. No lleva
+  // email ni CUIT — no hacen falta, y conviene que salgan de la base los menos
+  // datos personales posibles.
+  const descargarSorteo = async () => {
+    try {
+      await descargarConToken("/users/export/contactos?tipo=sorteo", "sorteo.csv");
+      toast.success("Descargado");
+    } catch {
+      toast.error("No se pudo descargar el archivo");
+    }
+  };
+
   const handleEdit = async (e) => {
     e.preventDefault();
     setSavingEdit(true);
@@ -224,6 +236,14 @@ function AdminUsers() {
             style={{ background: "rgba(22,163,74,0.12)", color: "#16A34A" }}
           >
             <Download size={13} /> Contactos
+          </button>
+          <button
+            onClick={descargarSorteo}
+            title="CSV con el nombre y el número de cliente de todos los técnicos aprobados"
+            className="px-3 py-1.5 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5"
+            style={{ background: "rgba(79,70,229,0.12)", color: "#4F46E5" }}
+          >
+            <Download size={13} /> Sorteo
           </button>
         </div>
       </div>
