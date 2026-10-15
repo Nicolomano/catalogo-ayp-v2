@@ -54,6 +54,18 @@ const REGLAS = [
   ["Rulemanes",                   /RULEMAN|RODAMIENTO/],
   ["Aire acondicionado",          /AIRE ACOND|\bA\/A\b|SPLIT|INVERTER|EVAPORADORA/],
   ["Burletes",                    /BURLETE/],
+  /**
+   * Condensadores y evaporadores: el intercambiador en sí, no las piezas que lo
+   * rodean. La exclusión saca el forzador DEL condensador, el peine para peinar
+   * sus aletas, el soporte del evaporador, la unidad condensadora completa (que
+   * tiene su propia categoría) y el limpia-serpentinas.
+   *
+   * Va DESPUÉS de Aire acondicionado a propósito: una "Turbina Evaporadora AA"
+   * o un "SOPORTE EVAPORADOR SPLIT" son de aire, no intercambiadores.
+   */
+  ["Condensadores y evaporadores",
+    /\bCONDENSADOR\b|\bEVAP\b|\bEVAP\.|\bEVAPORADOR\b/,
+    /UNIDAD CONDENSADORA|FORZADOR|PEINE|SENSOR|ELEVADOR|TURBINA|SOPORTE|MANGUERA|MOTOR|LIMPIA/],
 
   // Antes que gases: estos solo nombran el refrigerante con el que sirven
   ["Herramientas",                /\bPINZA|DESTOR|MANOMETRO|MANOVACUOMETRO|MANIFOLD|TESTER|MULTIMETRO|BOMBA DE VACIO|SOPLETE|\bMECHA|TALADRO|ALICATE|CINTA METRICA|EXPANSOR|PESTA[NÑ]ADORA|DOBLADORA|CORTATUBO|BALANZA|TERMOMETRO|VACUOMETRO|ESCALERA|HIDROLAVADORA|DATALOGGER|\bDISCO\b|BOCALLAVE|ACOPLE|ADAPTADOR JERINGA|LLAVE DE ACCESO/],
