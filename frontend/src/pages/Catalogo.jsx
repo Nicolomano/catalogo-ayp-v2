@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useTransition, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { SlidersHorizontal, X, Package, BadgeCheck } from "lucide-react";
+import { SlidersHorizontal, X, Package, BadgeCheck, Search } from "lucide-react";
 import API from "../api/axios";
 import { useAuth } from "../Context/AuthContext.jsx";
 import Sidebar from "../components/Sidebar.jsx";
@@ -47,6 +47,13 @@ function Catalogo() {
   const [brands, setBrands]               = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [drawerOpen, setDrawerOpen]       = useState(false);
+  // Término alternativo con el que el servidor encontró resultados, cuando lo
+  // escrito no devolvía nada.
+  const [sugerencia, setSugerencia]       = useState(null);
+
+  // Cuántos resultados vio la persona: se manda junto con la búsqueda al
+  // registrarla. Va en ref para no re-disparar el efecto del registro.
+  const ultimoTotal = useRef(0);
 
   const loaderRef = useRef(null);
   const location  = useLocation();
@@ -57,6 +64,24 @@ function Catalogo() {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
     return () => clearTimeout(t);
   }, [search]);
+
+  /**
+   * Registro de la búsqueda, aparte de la búsqueda misma.
+   *
+   * La búsqueda dispara a los 400 ms para que se sienta instantánea; el
+   * registro espera 1,5 s, cuando la persona ya dejó de escribir. Si no, las
+   * métricas cuentan teclas en vez de intenciones: "ma", "mani" y "manifold"
+   * figuraban como tres búsquedas distintas de la misma persona.
+   */
+  useEffect(() => {
+    const termino = debouncedSearch.trim();
+    if (termino.length < 2) return;
+    const t = setTimeout(() => {
+      API.post("/metrics/search", { term: termino, resultCount: ultimoTotal.current })
+        .catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [debouncedSearch, allProducts]);
 
   useEffect(() => {
     API.get("/products/meta/categories").then((res) => {
@@ -104,6 +129,12 @@ function Catalogo() {
       .then((res) => {
         const incoming = res.data?.products || [];
         setHasMore(res.data?.hasMore ?? false);
+        // El servidor avisa cuando tuvo que reintentar con una variante del
+        // término (el catálogo abrevia: "NITRO" por nitrógeno).
+        if (page === 1) {
+          setSugerencia(res.data?.sugerencia || null);
+          ultimoTotal.current = res.data?.total ?? 0;
+        }
         startTransition(() =>
           setAllProducts((prev) => page === 1 ? incoming : [...prev, ...incoming])
         );
@@ -258,6 +289,21 @@ function Catalogo() {
             <div className="mb-4 rounded-xl px-4 py-2.5 text-sm flex items-center gap-2"
               style={{ background: "#F0FDF4", color: "#15803D", border: "1px solid #BBF7D0" }}>
               <BadgeCheck className="h-4 w-4 flex-shrink-0" /> Estás viendo precios con <strong>10% de descuento service</strong>
+            </div>
+          )}
+
+          {/* Aviso cuando lo que se escribió no daba resultados y el servidor
+              encontró algo con una variante (el catálogo abrevia: "NITRO"). */}
+          {sugerencia && allProducts.length > 0 && (
+            <div
+              className="flex items-start gap-2 text-sm rounded-xl px-3 py-2.5 mb-4"
+              style={{ background: "var(--brand-tint)", color: "var(--text2)" }}
+            >
+              <Search className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "var(--brand)" }} />
+              <span>
+                No encontramos nada con <strong>«{debouncedSearch}»</strong>. Te mostramos
+                resultados parecidos.
+              </span>
             </div>
           )}
 

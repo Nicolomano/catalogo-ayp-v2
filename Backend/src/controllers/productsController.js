@@ -2,19 +2,19 @@ import mongoose from "mongoose";
 import productModel from "../services/models/productModel.js";
 import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
-import SearchLog from "../services/models/searchLogModel.js";
+import {
+  filtroBusqueda,
+  filtroReintento,
+  terminoSugerido,
+} from "../utils/busqueda.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadToR2, deleteFromR2, keyFromUrl } from "../utils/r2.js";
-/* ---- búsqueda insensible a tildes ---- */
-// El $regex resultante no usa índice: escanea toda la colección, y encima el
-// endpoint corre find + countDocuments. Sin tope, un `search` de 15 KB se
-// expande a un patrón enorme aplicado a cada documento. 64 caracteres alcanzan
-// de sobra para cualquier búsqueda real.
-const MAX_SEARCH = 64;
+// El armado del filtro de búsqueda (tildes, palabras sueltas, plurales,
+// abreviaturas y el tope de 64 caracteres) vive en utils/busqueda.js.
 
 /**
  * Los precios en dólares quedaron sin uso: hoy todo sale del Excel en pesos, y
@@ -32,20 +32,6 @@ function requiereCotizacion(rate, res) {
       "Cargá el precio directamente en pesos, o definí la cotización en Configuración.",
   });
   return false;
-}
-
-function toAccentInsensitiveRegex(raw) {
-  const map = {
-    a: "[aáàâäã]", á: "[aáàâäã]", à: "[aáàâäã]", â: "[aáàâäã]", ä: "[aáàâäã]", ã: "[aáàâäã]",
-    e: "[eéèêë]",  é: "[eéèêë]",  è: "[eéèêë]",  ê: "[eéèêë]",  ë: "[eéèêë]",
-    i: "[iíìîï]",  í: "[iíìîï]",  ì: "[iíìîï]",  î: "[iíìîï]",  ï: "[iíìîï]",
-    o: "[oóòôöõ]", ó: "[oóòôöõ]", ò: "[oóòôöõ]", ô: "[oóòôöõ]", ö: "[oóòôöõ]", õ: "[oóòôöõ]",
-    u: "[uúùûü]",  ú: "[uúùûü]",  ù: "[uúùûü]",  û: "[uúùûü]",  ü: "[uúùûü]",
-    n: "[nñ]",     ñ: "[nñ]",
-  };
-  return [...raw.toLowerCase()]
-    .map((c) => map[c] ?? c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("");
 }
 
 /* ----------------------- CREAR PRODUCTO ----------------------- */
@@ -278,15 +264,11 @@ export const getProductsByCategory = async (req, res) => {
       filter.brand = { $in: brand };
     }
 
-    if (search) {
-      const pattern = toAccentInsensitiveRegex(String(search).trim().slice(0, MAX_SEARCH));
-      andConditions.push({
-        $or: [
-          { name: { $regex: pattern, $options: "i" } },
-          { productCode: { $regex: pattern, $options: "i" } },
-        ],
-      });
-    }
+    // Búsqueda por palabras sueltas, en cualquier orden (ver utils/busqueda.js).
+    // Se guarda aparte para poder reemplazarla por el reintento si no hay
+    // resultados, sin rearmar el resto del filtro.
+    const condBusqueda = search ? filtroBusqueda(search) : null;
+    if (condBusqueda) andConditions.push(condBusqueda);
 
     if (andConditions.length > 0) {
       filter.$and = andConditions;
@@ -307,24 +289,42 @@ export const getProductsByCategory = async (req, res) => {
       sortOption[field] = order === "desc" ? -1 : 1;
     }
 
-    const products = await productModel
-      .find(filter)
-      .select("productCode name brand image priceARS inStock")
-      .sort(sortOption)
-      .skip(skip)
-      .limit(parsedLimit)
-      .lean();
+    const consultar = async (f) => {
+      const [docs, cuenta] = await Promise.all([
+        productModel
+          .find(f)
+          .select("productCode name brand image priceARS inStock")
+          .sort(sortOption)
+          .skip(skip)
+          .limit(parsedLimit)
+          .lean(),
+        productModel.countDocuments(f),
+      ]);
+      return { docs, cuenta };
+    };
 
-    const total = await productModel.countDocuments(filter);
+    let { docs: products, cuenta: total } = await consultar(filter);
 
-    // Registro de búsquedas. Fire-and-forget: este endpoint ya es el más caro del
-    // sitio (el $regex no usa índice), así que el logging no puede bloquear la
-    // respuesta ni romperla si falla. Solo la primera página, para no contar de
-    // nuevo en cada tirón del scroll infinito.
-    if (search && Number(page) === 1) {
-      const termino = String(search).trim().slice(0, MAX_SEARCH).toLowerCase();
-      if (termino.length >= 2) {
-        SearchLog.create({ term: termino, resultCount: total }).catch(() => {});
+    /**
+     * Reintento: solo si la búsqueda no devolvió NADA.
+     *
+     * Acorta las palabras y tolera un error de tipeo, que es lo que hace falta
+     * cuando el contable abrevió el nombre ("TUBO DE NITRO" para quien busca
+     * nitrógeno) o cuando el cliente escribió "tuvo" por "tubo". Es más caro que
+     * la búsqueda normal, por eso corre acá y no siempre.
+     */
+    let sugerencia = null;
+    if (total === 0 && condBusqueda) {
+      const alternativo = filtroReintento(search);
+      if (alternativo) {
+        const otras = andConditions.filter((c) => c !== condBusqueda);
+        const filtroAlt = { ...filter, $and: [...otras, alternativo] };
+        const r = await consultar(filtroAlt);
+        if (r.cuenta > 0) {
+          products = r.docs;
+          total = r.cuenta;
+          sugerencia = terminoSugerido(search);
+        }
       }
     }
 
@@ -334,6 +334,9 @@ export const getProductsByCategory = async (req, res) => {
       page: Number(page),
       pages: Math.ceil(total / parsedLimit),
       hasMore: Number(page) * parsedLimit < total,
+      // Presente solo cuando hubo que reintentar: el catálogo avisa al cliente
+      // que le está mostrando resultados de algo levemente distinto.
+      ...(sugerencia ? { sugerencia } : {}),
       products,
     });
   } catch (error) {
@@ -437,14 +440,11 @@ export const getProductsAdmin = async (req, res) => {
 
     const adminAnd = [];
 
+    // Mismo buscador que el público: el panel sufría el mismo problema —
+    // "rulemanes" no encontraba los rulemanes cargados.
     if (search) {
-      const pattern = toAccentInsensitiveRegex(String(search).trim().slice(0, MAX_SEARCH));
-      adminAnd.push({
-        $or: [
-          { name: { $regex: pattern, $options: "i" } },
-          { productCode: { $regex: pattern, $options: "i" } },
-        ],
-      });
+      const cond = filtroBusqueda(search);
+      if (cond) adminAnd.push(cond);
     }
 
     if (category) {
