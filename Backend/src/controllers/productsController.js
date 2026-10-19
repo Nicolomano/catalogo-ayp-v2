@@ -2,11 +2,7 @@ import mongoose from "mongoose";
 import productModel from "../services/models/productModel.js";
 import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
-import {
-  filtroBusqueda,
-  filtroReintento,
-  terminoSugerido,
-} from "../utils/busqueda.js";
+import { filtroBusqueda, filtroReintento } from "../utils/busqueda.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
@@ -313,7 +309,7 @@ export const getProductsByCategory = async (req, res) => {
      * nitrógeno) o cuando el cliente escribió "tuvo" por "tubo". Es más caro que
      * la búsqueda normal, por eso corre acá y no siempre.
      */
-    let sugerencia = null;
+    let aproximado = false;
     if (total === 0 && condBusqueda) {
       const alternativo = filtroReintento(search);
       if (alternativo) {
@@ -323,7 +319,7 @@ export const getProductsByCategory = async (req, res) => {
         if (r.cuenta > 0) {
           products = r.docs;
           total = r.cuenta;
-          sugerencia = terminoSugerido(search);
+          aproximado = true;
         }
       }
     }
@@ -334,9 +330,11 @@ export const getProductsByCategory = async (req, res) => {
       page: Number(page),
       pages: Math.ceil(total / parsedLimit),
       hasMore: Number(page) * parsedLimit < total,
-      // Presente solo cuando hubo que reintentar: el catálogo avisa al cliente
-      // que le está mostrando resultados de algo levemente distinto.
-      ...(sugerencia ? { sugerencia } : {}),
+      // Presente solo cuando lo escrito no daba nada y hubo que reintentar: el
+      // catálogo avisa que lo que muestra es parecido, no exacto. No se devuelve
+      // "quisiste decir X" porque el reintento prueba muchas variantes a la vez
+      // y no sabe cuál fue la que encontró.
+      ...(aproximado ? { aproximado: true } : {}),
       products,
     });
   } catch (error) {

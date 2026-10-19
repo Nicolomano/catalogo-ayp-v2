@@ -39,7 +39,7 @@ process.env.MONGO_URI = mongod.getUri();
 await mongoose.connect(process.env.MONGO_URI);
 
 const productModel = (await import("../services/models/productModel.js")).default;
-const { filtroBusqueda, filtroReintento, palabrasDe, terminoSugerido } = await import(
+const { filtroBusqueda, filtroReintento, palabrasDe } = await import(
   "../utils/busqueda.js"
 );
 
@@ -240,10 +240,6 @@ await check("El plural no se come palabras cortas", () => {
   esperar(palabrasDe("gas").join(""), "gas", "gas no pierde la s");
   esperar(palabrasDe("mes").join(""), "mes", "mes no pierde la s");
   esperar(palabrasDe("tubos").join(""), "tubo", "tubos sí");
-});
-
-await check("terminoSugerido devuelve lo que se buscó de verdad", () => {
-  esperar(terminoSugerido("Tubo de Nitrógeno"), "tubo nitrogeno", "sugerencia");
 });
 
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);

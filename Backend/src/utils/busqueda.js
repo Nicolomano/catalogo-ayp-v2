@@ -248,14 +248,3 @@ export function filtroReintento(termino) {
   if (!algunaCambio) return null;
   return { $and: condiciones };
 }
-
-/**
- * Qué mostrarle al cliente cuando el reintento encontró algo: el término que
- * efectivamente trajo resultados, para poner "te mostramos resultados para X".
- *
- * Se arma con las palabras ya normalizadas y sin las vacías, que es lo que de
- * verdad se buscó.
- */
-export function terminoSugerido(termino) {
-  return palabrasDe(termino).join(" ");
-}

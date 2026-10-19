@@ -49,7 +49,7 @@ function Catalogo() {
   const [drawerOpen, setDrawerOpen]       = useState(false);
   // Término alternativo con el que el servidor encontró resultados, cuando lo
   // escrito no devolvía nada.
-  const [sugerencia, setSugerencia]       = useState(null);
+  const [aproximado, setAproximado]       = useState(false);
 
   // Cuántos resultados vio la persona: se manda junto con la búsqueda al
   // registrarla. Va en ref para no re-disparar el efecto del registro.
@@ -132,7 +132,7 @@ function Catalogo() {
         // El servidor avisa cuando tuvo que reintentar con una variante del
         // término (el catálogo abrevia: "NITRO" por nitrógeno).
         if (page === 1) {
-          setSugerencia(res.data?.sugerencia || null);
+          setAproximado(Boolean(res.data?.aproximado));
           ultimoTotal.current = res.data?.total ?? 0;
         }
         startTransition(() =>
@@ -294,7 +294,7 @@ function Catalogo() {
 
           {/* Aviso cuando lo que se escribió no daba resultados y el servidor
               encontró algo con una variante (el catálogo abrevia: "NITRO"). */}
-          {sugerencia && allProducts.length > 0 && (
+          {aproximado && allProducts.length > 0 && (
             <div
               className="flex items-start gap-2 text-sm rounded-xl px-3 py-2.5 mb-4"
               style={{ background: "var(--brand-tint)", color: "var(--text2)" }}
