@@ -4,7 +4,25 @@ import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
 import { filtroBusqueda, filtroReintento } from "../utils/busqueda.js";
 import { vocabulario } from "../utils/vocabulario.js";
-import { resolverCombos, recalcularCombosGuardados, SOLO_PRODUCTOS } from "../utils/combos.js";
+import { resolverCombos, recalcularCombosGuardados, SOLO_PRODUCTOS, esCombo } from "../utils/combos.js";
+
+/**
+ * Entero entre `min` y `max`; si no es un número, `porDefecto`.
+ *
+ * `Number("abc")` es NaN, y `Math.min(100, NaN)` también: con `limit=abc` el
+ * catálogo devolvía los 3665 productos de una (842 KB), salteándose el tope
+ * de 100. Y `page=0` daba un skip negativo, que Mongo rechaza con un 500.
+ */
+const enteroEntre = (valor, min, max, porDefecto) => {
+  const n = Number.parseInt(valor, 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : porDefecto;
+};
+
+/**
+ * Por qué campos se puede ordenar el catálogo público: los del selector.
+ * Antes se aceptaba cualquiera, incluido priceUSD, que es el costo.
+ */
+const ORDEN_PUBLICO = new Set(["soldCount", "name", "createdAt", "priceARS"]);
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
@@ -165,7 +183,17 @@ export async function updateProduct(req, res) {
     const priceUSD = req.body.priceUSD ? Number(req.body.priceUSD) : undefined;
     const priceARS = req.body.priceARS ? Number(req.body.priceARS) : undefined;
 
-    if (!fixedFlag && priceUSD != null) {
+    // Un combo no tiene precio propio: sale de la suma de sus piezas. Los
+    // combos también aparecen en la pantalla de Productos, y editarlos ahí
+    // guardaba el precio del formulario: el catálogo lo calcula al vuelo y
+    // nunca lo mostraba, pero el combo se ordenaba y filtraba por ese valor
+    // falso. Y con fixedInARS en false pasaba a recalcularse desde el dólar en
+    // cada save(). Para un combo, los campos de precio se ignoran.
+    const esUnCombo = esCombo(current);
+
+    if (esUnCombo) {
+      updateData.fixedInARS = true;
+    } else if (!fixedFlag && priceUSD != null) {
       const cfg = await Config.findOne();
       const rate = Number(cfg?.exchangeRate);
       if (!requiereCotizacion(rate, res)) return;
@@ -180,6 +208,12 @@ export async function updateProduct(req, res) {
       new: true,
       runValidators: true,
     });
+
+    // Si se tocó una pieza (su código o su precio) o el combo mismo, el precio
+    // guardado de los combos puede haber quedado viejo. Sin combos, no consulta.
+    await recalcularCombosGuardados().catch((e) =>
+      console.error("No se pudieron recalcular los combos:", e.message)
+    );
 
     res.json(updated);
   } catch (error) {
@@ -282,19 +316,24 @@ export const getProductsByCategory = async (req, res) => {
       filter.$and = andConditions;
     }
 
-    if (minPrice || maxPrice) {
+    // Un precio que no es número (minPrice=abc) daba $gte: NaN, que no
+    // coincide con nada: el catálogo quedaba vacío. Se ignora.
+    const min = Number(minPrice);
+    const max = Number(maxPrice);
+    if ((minPrice && Number.isFinite(min)) || (maxPrice && Number.isFinite(max))) {
       filter.priceARS = {};
-      if (minPrice) filter.priceARS.$gte = Number(minPrice);
-      if (maxPrice) filter.priceARS.$lte = Number(maxPrice);
+      if (minPrice && Number.isFinite(min)) filter.priceARS.$gte = min;
+      if (maxPrice && Number.isFinite(max)) filter.priceARS.$lte = max;
     }
 
-    const parsedLimit = Math.max(1, Math.min(100, Number(limit)));
-    const skip = (Number(page) - 1) * parsedLimit;
+    const parsedLimit = enteroEntre(limit, 1, 100, 24);
+    const parsedPage = enteroEntre(page, 1, 10000, 1);
+    const skip = (parsedPage - 1) * parsedLimit;
     const sortOption = {};
 
     if (sort) {
       const [field, order] = sort.split(":");
-      sortOption[field] = order === "desc" ? -1 : 1;
+      if (ORDEN_PUBLICO.has(field)) sortOption[field] = order === "desc" ? -1 : 1;
     }
 
     const consultar = async (f) => {
@@ -364,9 +403,9 @@ export const getProductsByCategory = async (req, res) => {
     res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({
       total,
-      page: Number(page),
+      page: parsedPage,
       pages: Math.ceil(total / parsedLimit),
-      hasMore: Number(page) * parsedLimit < total,
+      hasMore: parsedPage * parsedLimit < total,
       // Presente solo cuando lo escrito no daba nada: el término corregido, para
       // que el catálogo pueda decir "no encontramos «lokring», te mostramos
       // resultados para lockring".
@@ -519,8 +558,8 @@ export const getProductsAdmin = async (req, res) => {
       sortOption = { createdAt: -1 };
     }
 
-    const parsedLimit = Math.max(1, Math.min(100, Number(limit) > 0 ? Number(limit) : 50));
-    const parsedPage = Math.max(1, Number(page));
+    const parsedLimit = enteroEntre(limit, 1, 100, 50);
+    const parsedPage = enteroEntre(page, 1, 10000, 1);
     const skip = (parsedPage - 1) * parsedLimit;
 
     const [products, total] = await Promise.all([

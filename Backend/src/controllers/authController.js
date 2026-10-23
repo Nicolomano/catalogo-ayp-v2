@@ -245,6 +245,13 @@ export const login = async (req, res) => {
     }
 
     // ── Login de admin (por username) ─────────────────────────
+    // Sin username no se busca nada. Hoy findOne({ username: undefined }) no
+    // encuentra a nadie porque el driver manda el undefined como null, pero con
+    // la opción `ignoreUndefined` de la conexión se convertiría en findOne({}):
+    // el primer admin de la base, probando contraseñas sin saber el usuario.
+    if (!username?.trim()) {
+      return res.status(400).json({ message: "Falta el usuario." });
+    }
     const user = await userModel.findOne({ username });
     if (!user) {
       await bcrypt.compare(password, DUMMY_HASH);

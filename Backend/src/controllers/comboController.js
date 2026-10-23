@@ -78,6 +78,13 @@ async function validarComponentes(crudos, codigoDelCombo) {
   return { componentes };
 }
 
+/** Solo los textos de una lista: un objeto ahí termina en un 500 al guardar. */
+const soloTextos = (v) =>
+  Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()) : [];
+
+/** La URL de la foto, o null. */
+const urlDeFoto = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+
 /** Recalcula y guarda el precio y el stock de UN combo recién tocado. */
 async function refrescarPrecio(id) {
   const doc = await productModel.findById(id).select("componentes").lean();
@@ -142,9 +149,9 @@ export const crearCombo = async (req, res) => {
       // nombre, que es mejor que obligarlo a repetirlo.
       description: String(description ?? "").trim() || nombre,
       productCode: codigo,
-      image: image || null,
-      categories: Array.isArray(categories) ? categories : [],
-      subcategories: Array.isArray(subcategories) ? subcategories : [],
+      image: urlDeFoto(image),
+      categories: soloTextos(categories),
+      subcategories: soloTextos(subcategories),
       componentes,
       fixedInARS: true, // el precio sale de las piezas, no de la cotización del dólar
       priceARS: 0,      // se completa abajo con la suma real
@@ -187,9 +194,9 @@ export const actualizarCombo = async (req, res) => {
     if (req.body?.description !== undefined) {
       update.description = String(req.body.description).trim() || update.name || undefined;
     }
-    if (req.body?.image !== undefined) update.image = req.body.image || null;
-    if (Array.isArray(req.body?.categories)) update.categories = req.body.categories;
-    if (Array.isArray(req.body?.subcategories)) update.subcategories = req.body.subcategories;
+    if (req.body?.image !== undefined) update.image = urlDeFoto(req.body.image);
+    if (Array.isArray(req.body?.categories)) update.categories = soloTextos(req.body.categories);
+    if (Array.isArray(req.body?.subcategories)) update.subcategories = soloTextos(req.body.subcategories);
 
     if (req.body?.componentes !== undefined) {
       const { componentes, error } = await validarComponentes(

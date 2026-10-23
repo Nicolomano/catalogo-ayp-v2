@@ -49,7 +49,7 @@ const SiteConfig = (await import("../services/models/siteConfigModel.js")).defau
 const { resolverCombos, recalcularCombosGuardados, SOLO_PRODUCTOS, esCombo } =
   await import("../utils/combos.js");
 const { createOrder } = await import("../controllers/orderController.js");
-const { toggleStock } = await import("../controllers/productsController.js");
+const { toggleStock, updateProduct } = await import("../controllers/productsController.js");
 const { crearCombo, actualizarCombo, cotizarCombo, listarCombos } = await import(
   "../controllers/comboController.js"
 );
@@ -480,6 +480,23 @@ await check("Editar como combo un producto del contable se rechaza", async () =>
   });
   esperar(res.statusCode, 400, "status");
   return "sería una forma silenciosa de reescribirle el precio";
+});
+
+await check("Editar un combo desde la pantalla de Productos no le pisa el precio", async () => {
+  // Los combos también aparecen en Panel → Productos. Ahí había un campo de
+  // precio que se guardaba: el catálogo nunca lo mostraba (se calcula al vuelo),
+  // pero el combo se ordenaba y filtraba por ese valor falso.
+  const res = await llamar(updateProduct, {
+    params: { id: String(combo._id) },
+    body: { name: "Combo instalación split 3500W", priceARS: "1", priceUSD: "5", fixedInARS: "false" },
+  });
+  esperar(res.statusCode, 200, "status");
+  const enLaBase = await productModel.findById(combo._id).lean();
+  esperar(enLaBase.priceARS, PRECIO_ESPERADO, "precio guardado");
+  // Con fixedInARS en false, cada save() lo recalculaba desde el dólar.
+  esperar(enLaBase.fixedInARS, true, "fixedInARS");
+  esperar(enLaBase.componentes.length, 3, "piezas");
+  return "el precio sigue siendo la suma de las piezas";
 });
 
 console.log("\nEl panel");
