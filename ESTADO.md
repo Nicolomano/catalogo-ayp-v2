@@ -1,6 +1,6 @@
 # Estado del trabajo
 
-> Última actualización: **20/10/2026**
+> Última actualización: **23/10/2026**
 > Este archivo viaja con el repositorio: en cualquier computadora, `git pull` y está acá.
 
 ---
@@ -16,38 +16,67 @@ El sitio está **en producción y funcionando**: www.refrigeracionayp.com
 | **Sin categoría** | **1159 (33%)** |
 | Categorías creadas | 27 |
 
-Lo último que se terminó fue el **arreglo del buscador** (commits `783d8d0` y `35f60d6`),
-desplegado y verificado contra producción.
+Lo último que se terminó fue la **segunda vuelta del buscador** (commits `03c55ef`,
+`1055f53` y `beb00a8`), desplegada y verificada contra producción.
 
 ---
 
-## Lo que se hizo ayer (19–20/10)
+## Lo que se hizo el 23/10: el buscador entiende lo que escriben mal
 
-El buscador exigía la frase exacta: `rulemanes` devolvía **0** teniendo 59 rulemanes
-cargados. Resultados después del arreglo, medidos en producción:
+Los técnicos escriben `lokring` por lockring y `tecunse` por tecumseh. Y había un
+problema que había quedado del arreglo anterior: el reintento **inventaba palabras**.
+Armaba variantes cambiando una letra, y `jabon` se volvía `labon`, que no existe pero
+aparece dentro de "ESLABON de lujo": buscar jabón devolvía 10 productos sin ninguna
+relación. Mostrar diez resultados equivocados es peor que no mostrar ninguno.
 
-| Búsqueda | Antes | Ahora |
-|---|---:|---:|
-| `rulemanes` | 0 | 59 |
-| `tubo de nitrógeno` | 0 | 5 |
-| `plaqueta inverter` | 0 | 13 |
-| `filtro capilar` | 0 | 16 |
-| `tuvo` | 0 | 81 (con aviso) |
-| `bomba vacio` | 2 | 22 |
+Ahora hay un **vocabulario** con las ~3000 palabras que de verdad están en los nombres y
+las marcas, y la corrección va hacia ellas. Medido en producción:
 
-Qué hace ahora: separa en palabras y las exige todas en cualquier orden, descarta las
-vacías (`de`, `la`, `para`), saca plurales, busca también en marca y descripción, y tiene
-un diccionario para las abreviaturas del sistema contable (`FILCAP` = filtro capilar,
-`NITRO` = nitrógeno). Si una búsqueda da **cero**, reintenta acortando las palabras y
-tolerando un error de tipeo, y el catálogo avisa que lo que muestra es aproximado.
+| Búsqueda | Antes | Ahora | |
+|---|---:|---:|---|
+| `lokring` | 0 | 1 | dice "te mostramos resultados para **lockring**" |
+| `jabon` | 10 basura | 0 | muestra lo más vendido |
+| `válvula de seguridad` | 0 | 1 | el producto se llama "Valv.de seguridad" |
+| `whirlpool` | 39 | 79 | las cuatro grafías de la marca |
+| `tecunse` | 25 | 28 | |
+| `tuvo` | 81 | 111 | |
+| `ruleman` | 60 | 60 | sin cambios, como tiene que ser |
 
-De paso: el buscador del panel tenía el mismo problema y también quedó arreglado, y el
-tiempo de respuesta **bajó** de ~430 ms a ~320 ms.
+Tres cosas nuevas:
 
-**Las métricas de búsqueda ahora miden intenciones, no teclas.** Antes cada pausa de
-400 ms al tipear registraba una búsqueda, por eso el panel mostraba `ma`, `mani` y
-`manifold` como tres búsquedas distintas. Los datos viejos quedan como están; de acá en
-adelante son reales.
+1. **Corrige hacia palabras que existen**, tolerando una letra de más, de menos, cambiada
+   o dos invertidas (`drena` → `drean`). Si lo escrito no se parece a nada del catálogo,
+   devuelve **cero** en vez de inventar.
+2. **Acepta los nombres abreviados** del sistema contable: el cliente escribe "valvula" y
+   el producto dice "Valv.". Solo se acepta el recorte si la forma corta **es** una palabra
+   del catálogo y no se comió más de 4 letras — si no, buscar "capacitor" traería todo lo
+   que diga "capa".
+3. **Cuando no hay nada, muestra lo más vendido** de la categoría en la que estaba
+   buscando, en vez de una pantalla vacía.
+
+### Falta correr el script de marcas (3 minutos)
+
+**Whirlpool está cargada de las dos formas: 39 productos bien escritos y 33 como
+`WHIRPOOL`, sin la L.** El buscador ya las encuentra todas, pero conviene arreglar los
+nombres igual, porque se ven mal en el catálogo. También hay `TECUMSHE`, `KOHINOR` y
+`DANFOS`.
+
+```powershell
+cd Backend
+$env:MONGO_URI = 'la-cadena-de-conexión-de-Atlas'
+
+# ver qué haría y revisar el CSV que deja (no escribe nada)
+node src/scripts/corregirMarcas.mjs
+
+# aplicarlo
+node src/scripts/corregirMarcas.mjs --confirmar
+
+# si algo salió mal
+node src/scripts/corregirMarcas.mjs --deshacer marcas-FECHA-HORA.json --confirmar
+```
+
+Es permanente: la importación de Excel toca precio, stock y categorías, pero **nunca el
+nombre**.
 
 ---
 
@@ -149,7 +178,8 @@ Productos armados con otros productos. Lo que ya está decidido:
 # las cuatro suites del backend (necesitan mongodb-memory-server)
 cd Backend
 npm install --no-save mongodb-memory-server
-node src/scripts/__test-busqueda.mjs       # 19 pruebas — buscador
+node src/scripts/__test-busqueda.mjs       # 36 pruebas — buscador
+node src/scripts/__test-marcas.mjs         # 13 pruebas — script de marcas
 node src/scripts/__test-registro.mjs       # 39 pruebas — registro de técnicos
 node src/scripts/__test-recuperacion.mjs   # 18 pruebas — contraseñas y backup
 node src/scripts/__test-categorias.mjs     #  6 pruebas — menú de categorías
@@ -171,10 +201,12 @@ node scripts/verificar-matriculas.mjs TU_TOKEN
 | Dónde | Qué hay |
 |---|---|
 | `Backend/src/controllers/productsController.js` | Catálogo, búsqueda, importación de Excel |
-| `Backend/src/utils/busqueda.js` | Armado del filtro de búsqueda (palabras, plurales, sinónimos) |
+| `Backend/src/utils/busqueda.js` | Armado del filtro de búsqueda (palabras, plurales, sinónimos, marcas) |
+| `Backend/src/utils/vocabulario.js` | Las palabras que existen en el catálogo, para corregir hacia ellas |
 | `Backend/src/controllers/serviceUserController.js` | Técnicos: registro, matrículas, exportaciones |
 | `Backend/src/controllers/kitController.js` | Kit de instalación — **el patrón a reusar para combos** |
 | `Backend/src/scripts/asignarCategorias.mjs` | Asignación masiva de categorías |
+| `Backend/src/scripts/corregirMarcas.mjs` | Corrección masiva de marcas mal escritas |
 | `frontend/src/pages/Catalogo.jsx` | El catálogo público y su buscador |
 | `frontend/src/components/ProductCard.jsx` | La tarjeta de producto |
 | `frontend/api/og-product.js` | Meta tags por producto para WhatsApp y Google |
