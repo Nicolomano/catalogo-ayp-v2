@@ -932,15 +932,34 @@ function extractRow(row, format) {
   return { code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag };
 }
 
-/** Arma el objeto $set para un producto EXISTENTE (misma lógica que antes; nunca toca `name`). */
-function buildUpdate(p, existing, format, exchangeRate) {
+/**
+ * Arma el $set para un producto EXISTENTE: SOLO lo que cambió. Nunca toca
+ * `name` (por eso las correcciones de marca de corregirMarcas.mjs son permanentes).
+ *
+ * Antes devolvía siempre el precio y el stock aunque fueran los mismos, y
+ * Mongoose renueva `updatedAt` en cada escritura: cada importación marcaba los
+ * 3666 productos como modificados ese día. El sitemap le pasa esa fecha a
+ * Google, que aprendía que no significaba nada y la ignoraba. Y la vista previa
+ * decía "3664 a actualizar" aunque hubieran cambiado diez.
+ *
+ * `existing` tiene que traer priceARS, priceUSD, inStock, brand, fixedInARS,
+ * categories y subcategories (ver CAMPOS_PARA_COMPARAR).
+ */
+export function buildUpdate(p, existing, format, exchangeRate) {
   const update = {};
+  const siCambia = (campo, valor) => {
+    const igual = Array.isArray(valor)
+      ? JSON.stringify(valor) === JSON.stringify(existing[campo] || [])
+      : valor === existing[campo];
+    if (!igual) update[campo] = valor;
+  };
+
   if (format === "new") {
     if (p.priceARS !== null) {
-      update.priceARS = Math.round(p.priceARS);
-      update.fixedInARS = true;
+      siCambia("priceARS", Math.round(p.priceARS));
+      siCambia("fixedInARS", true);
     }
-    update.inStock = p.inStock;
+    siCambia("inStock", p.inStock);
     if (p.parsedCats.length > 0 && (!existing.categories || existing.categories.length === 0)) {
       update.categories = p.parsedCats;
     }
@@ -950,26 +969,30 @@ function buildUpdate(p, existing, format, exchangeRate) {
   } else {
     // Formato clásico: respetar fixedInARS (precio fijado a mano no se recalcula por dólar)
     if (existing.fixedInARS) {
-      if (p.priceARS !== null) update.priceARS = p.priceARS;
-      if (p.priceUSD !== null) update.priceUSD = p.priceUSD;
+      if (p.priceARS !== null) siCambia("priceARS", p.priceARS);
+      if (p.priceUSD !== null) siCambia("priceUSD", p.priceUSD);
     } else {
       if (p.priceUSD !== null) {
-        update.priceUSD = p.priceUSD;
+        siCambia("priceUSD", p.priceUSD);
         // Sin cotización se deja el precio en pesos como estaba, en vez de
         // multiplicar por 1 y publicar el número de dólares como precio.
-        if (exchangeRate) update.priceARS = p.priceUSD * exchangeRate;
-        else if (p.priceARS !== null) update.priceARS = p.priceARS;
+        if (exchangeRate) siCambia("priceARS", p.priceUSD * exchangeRate);
+        else if (p.priceARS !== null) siCambia("priceARS", p.priceARS);
       } else if (p.priceARS !== null) {
-        update.priceARS = p.priceARS;
+        siCambia("priceARS", p.priceARS);
       }
     }
-    if (p.inStock !== undefined) update.inStock = p.inStock;
-    if (p.brandVal !== undefined) update.brand = p.brandVal;
-    if (p.parsedCats !== undefined) update.categories = p.parsedCats;
-    if (p.parsedSubs !== undefined) update.subcategories = p.parsedSubs;
+    if (p.inStock !== undefined) siCambia("inStock", p.inStock);
+    if (p.brandVal !== undefined) siCambia("brand", p.brandVal);
+    if (p.parsedCats !== undefined) siCambia("categories", p.parsedCats);
+    if (p.parsedSubs !== undefined) siCambia("subcategories", p.parsedSubs);
   }
   return update;
 }
+
+/** Lo que buildUpdate necesita de cada producto existente para comparar. */
+const CAMPOS_PARA_COMPARAR =
+  "productCode _id fixedInARS categories subcategories priceARS priceUSD inStock brand";
 
 /**
  * Arma el documento para un producto NUEVO (misma lógica que antes).
@@ -1055,7 +1078,7 @@ export const previewImportExcel = async (req, res) => {
     const codes = [...excelCodeSet];
     const existingDocs = await productModel
       .find({ productCode: { $in: codes } })
-      .select("productCode _id fixedInARS categories subcategories")
+      .select(CAMPOS_PARA_COMPARAR)
       .lean();
     const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
 
@@ -1154,7 +1177,7 @@ export const importProductsExcel = async (req, res) => {
     const codes = finalRows.map((p) => p.code);
     const existingDocs = await productModel
       .find({ productCode: { $in: codes } })
-      .select("productCode _id fixedInARS categories subcategories")
+      .select(CAMPOS_PARA_COMPARAR)
       .lean();
     const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
     const tPrefetch = Date.now();
@@ -1257,7 +1280,7 @@ export const commitImportExcel = async (req, res) => {
     const codes = [...excelCodeSet];
     const existingDocs = await productModel
       .find({ productCode: { $in: codes } })
-      .select("productCode _id fixedInARS categories subcategories")
+      .select(CAMPOS_PARA_COMPARAR)
       .lean();
     const existingMap = new Map(existingDocs.map((d) => [d.productCode, d]));
 
