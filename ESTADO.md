@@ -11,13 +11,18 @@ El sitio está **en producción y funcionando**: www.refrigeracionayp.com
 
 | | |
 |---|---:|
-| Productos en el catálogo | 3564 |
-| Con categoría | 2405 |
-| **Sin categoría** | **1159 (33%)** |
+| Productos publicados | 3665 |
+| **Sin categoría** | **~1150 (31%)** |
 | Categorías creadas | 27 |
 
-Lo último que se terminó fue la **segunda vuelta del buscador** (commits `03c55ef`,
-`1055f53` y `beb00a8`), desplegada y verificada contra producción.
+> Los productos publicados se midieron hoy contra producción. El número de los que no
+> tienen categoría es del 20/10: para volver a contarlos hay que correr
+> `asignarCategorias.mjs`, que lo informa antes de tocar nada.
+
+Lo último que se terminó, todo desplegado y verificado contra producción:
+
+1. la **segunda vuelta del buscador** (`03c55ef`, `1055f53`, `beb00a8`);
+2. los **combos** (`3f198a3`) — falta armar el primero desde el panel.
 
 ---
 
@@ -80,6 +85,42 @@ nombre**.
 
 ---
 
+## Lo que se hizo el 23/10: combos
+
+Productos armados con otros productos, **mezclados en el catálogo** como uno más.
+Se arman desde **Tienda → Combos**: se busca cada producto por nombre o código, se pone
+la cantidad, y el panel muestra el precio que va a salir mientras se arma.
+
+| | |
+|---|---|
+| Precio | La **suma de las piezas al precio del día**, sin descuento por ser combo. No se congela: después de importar el Excel se actualiza solo. |
+| Stock | Sin stock si **cualquier** pieza lo está, y dice cuál falta, para poder reponer esa pieza. |
+| En el pedido | **Una sola línea** con su precio. |
+
+**El WhatsApp llega con el detalle de cada pieza y su código**, porque en el sistema los
+combos no existen y el presupuesto se carga pieza por pieza:
+
+```
+• 2× Combo instalación split 3500W (Código: COMBO-001) — $90.000 ARS
+    ↳ 4× CAÑO 1/4 X 1MT (Código: 10234)
+    ↳ 2× AISLANTE 1/4 (Código: 10567)
+```
+
+Las cantidades ya vienen **multiplicadas por la cantidad de combos**: son las que se
+cargan para facturar. Lo mismo se ve en el carrito y en el detalle de la orden en el
+panel, que queda como una foto del día del pedido: si después se le cambian las piezas
+al combo, el presupuesto viejo sigue diciendo lo que se pidió.
+
+Tres cosas que el sistema **no** deja hacer, a propósito: poner un combo adentro de otro,
+armar uno con una sola pieza, y convertir en combo un producto del contable (sería una
+forma silenciosa de reescribirle el precio).
+
+> **Lo que había que cubrir primero**: la importación lista como "faltantes" todo lo que
+> no viene en el Excel, y un combo no va a venir en ninguno. Sin la guarda aparecía en la
+> pantalla de borrado con un tilde al lado, y no hay vuelta atrás.
+
+---
+
 ## Lo próximo, en orden
 
 ### 1. Terminar de categorizar — lo que más impacto tiene
@@ -115,19 +156,7 @@ Con subcategorías `Condensadores` (10) y `Evaporadores` (20).
 > El script **no inventa categorías**: si no existe, avisa cuál falta y la saltea.
 > Tampoco toca productos que ya tengan categoría.
 
-### 2. Combos (decidido, sin empezar)
-
-Productos armados con otros productos. Lo que ya está decidido:
-
-- El combo entra al carrito como **una sola línea con precio propio**.
-- El precio es la **suma de los componentes al precio actual, sin descuento**. El valor es
-  la comodidad de no buscar pieza por pieza.
-- El precio **no se guarda**: se calcula al vuelo, como hace hoy el kit de instalación
-  (`Backend/src/controllers/kitController.js`), así nunca queda un combo con precios viejos
-  después de una importación.
-- Un combo está sin stock si cualquier componente lo está.
-
-### 3. Que los productos llamen más la atención
+### 2. Que los productos llamen más la atención
 
 - Badge **"Más vendido"** con `soldCount`, que ya existe y ya es el orden por defecto.
 - La cuota está en 10 px gris: subirla de jerarquía.
@@ -138,7 +167,7 @@ Productos armados con otros productos. Lo que ya está decidido:
 > invita a que un particular falsee datos para que lo den de alta como técnico. Se
 > promociona donde solo miran técnicos: registro, WhatsApp y circulares.
 
-### 4. SEO
+### 3. SEO
 
 1. Search Console + Google Business Profile (gratis, alto impacto, sin código).
 2. Título y descripción propios en la home y `/catalogo` — hoy son genéricos incluso para
@@ -178,6 +207,7 @@ Productos armados con otros productos. Lo que ya está decidido:
 # las cuatro suites del backend (necesitan mongodb-memory-server)
 cd Backend
 npm install --no-save mongodb-memory-server
+node src/scripts/__test-combos.mjs         # 28 pruebas — combos
 node src/scripts/__test-busqueda.mjs       # 36 pruebas — buscador
 node src/scripts/__test-marcas.mjs         # 13 pruebas — script de marcas
 node src/scripts/__test-registro.mjs       # 39 pruebas — registro de técnicos
@@ -204,7 +234,10 @@ node scripts/verificar-matriculas.mjs TU_TOKEN
 | `Backend/src/utils/busqueda.js` | Armado del filtro de búsqueda (palabras, plurales, sinónimos, marcas) |
 | `Backend/src/utils/vocabulario.js` | Las palabras que existen en el catálogo, para corregir hacia ellas |
 | `Backend/src/controllers/serviceUserController.js` | Técnicos: registro, matrículas, exportaciones |
-| `Backend/src/controllers/kitController.js` | Kit de instalación — **el patrón a reusar para combos** |
+| `Backend/src/utils/combos.js` | Precio, stock y detalle de los combos |
+| `Backend/src/controllers/comboController.js` | Armar combos, con toda la validación |
+| `frontend/src/pages/AdminCombos.jsx` | La pantalla para armarlos |
+| `Backend/src/controllers/kitController.js` | Kit de instalación (el mismo criterio de precio que los combos) |
 | `Backend/src/scripts/asignarCategorias.mjs` | Asignación masiva de categorías |
 | `Backend/src/scripts/corregirMarcas.mjs` | Corrección masiva de marcas mal escritas |
 | `frontend/src/pages/Catalogo.jsx` | El catálogo público y su buscador |
