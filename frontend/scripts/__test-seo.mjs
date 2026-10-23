@@ -18,9 +18,9 @@ import { fileURLToPath } from "url";
 
 import ogProduct from "../api/og-product.js";
 import ogCategoria from "../api/og-categoria.js";
-import ogHome, { horarioDeApertura, direccionPostal } from "../api/og-home.js";
+import { negocioLd, horarioDeApertura, direccionPostal } from "../src/utils/negocio.js";
 import sitemap from "../api/sitemap.js";
-import { API_URL, jsonLd } from "../api/_shared.js";
+import { API_URL, SITE_URL, jsonLd } from "../api/_shared.js";
 import { slug, porSlug, urlCategoria, esSubcategoriaReal } from "../src/utils/slug.js";
 import { TITULO_HOME, DESCRIPCION_HOME } from "../src/utils/seo.js";
 
@@ -110,20 +110,26 @@ await check("index.html tiene el mismo título y descripción que la home", () =
   contiene(html, `content="${DESCRIPCION_HOME}"`, "descripción");
 });
 
-let home;
-await check("La home para Google lleva los datos del local", async () => {
-  home = await llamar(ogHome);
-  esperar(home.statusCode, 200, "estado");
-  const tienda = delTipo(home.body, "Store");
-  if (!tienda) throw new Error("no hay JSON-LD del negocio");
+// La home no tiene página armada para el robot: Vercel sirve index.html antes
+// de mirar las reglas de vercel.json, así que Google recibe la SPA y la ejecuta.
+// Los datos del local los pone Landing.jsx con negocioLd(), que se prueba acá con
+// lo que hay cargado de verdad en el panel.
+let tienda;
+await check("Los datos del local salen bien de lo cargado en el panel", async () => {
+  tienda = negocioLd(await api("/site-config"), SITE_URL);
+  esperar(tienda["@type"], "Store", "tipo");
   esperar(tienda.address?.addressLocality, "Los Polvorines", "localidad");
   if (!tienda.telephone?.startsWith("+54")) throw new Error(`teléfono raro: ${tienda.telephone}`);
-  return `${tienda.address.streetAddress}, ${tienda.openingHoursSpecification?.length || 0} tramos de horario`;
+  return `${tienda.address.streetAddress}, ${tienda.telephone}, ${tienda.openingHoursSpecification?.length || 0} tramos de horario`;
 });
 
-await check("La home linkea a todas las categorías", async () => {
-  const cats = await api("/products/meta/categories");
-  for (const c of cats) contiene(home.body, `href="${urlCategoria(c.category)}"`, c.category);
+await check("Los datos de ejemplo no se publican como si fueran reales", () => {
+  const ejemplo = negocioLd(
+    { address: "Dirección del local, Ciudad, Provincia", phone: "+54 11 XXXX-XXXX" },
+    SITE_URL
+  );
+  if (ejemplo.address) throw new Error("publicó la dirección de ejemplo");
+  if (ejemplo.telephone) throw new Error(`publicó el teléfono de ejemplo: ${ejemplo.telephone}`);
 });
 
 await check("El horario del panel se entiende bien", () => {
@@ -299,7 +305,7 @@ await check("Un nombre con </script> no rompe el JSON-LD", () => {
 });
 
 await check("Todos los JSON-LD de todas las páginas son JSON válido", () => {
-  for (const html of [home.body, ficha.body, lavarropas.body]) bloquesLd(html);
+  for (const html of [jsonLd(tienda), ficha.body, lavarropas.body]) bloquesLd(html);
 });
 
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);

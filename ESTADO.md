@@ -22,7 +22,11 @@ El sitio está **en producción y funcionando**: www.refrigeracionayp.com
 Lo último que se terminó, todo desplegado y verificado contra producción:
 
 1. la **segunda vuelta del buscador** (`03c55ef`, `1055f53`, `beb00a8`);
-2. los **combos** (`3f198a3`) — falta armar el primero desde el panel.
+2. los **combos** (`3f198a3`);
+3. una **auditoría** con 13 arreglos (`a249847`, `161cbe4`) — entre ellos, que el catálogo
+   se podía bajar entero de un pedido y que en el celular no se podía ordenar;
+4. **SEO** (`905a875`, `5a0f798`) — falta tu parte: Search Console y el Perfil de Empresa
+   (ver abajo).
 
 ---
 
@@ -167,21 +171,37 @@ Con subcategorías `Condensadores` (10) y `Evaporadores` (20).
 > invita a que un particular falsee datos para que lo den de alta como técnico. Se
 > promociona donde solo miran técnicos: registro, WhatsApp y circulares.
 
-### 3. SEO
+### 3. SEO — el código está, falta tu parte
 
-1. Search Console + Google Business Profile (gratis, alto impacto, sin código).
-2. Título y descripción propios en la home y `/catalogo` — hoy son genéricos incluso para
-   Googlebot. Extender el patrón de `frontend/api/og-product.js`.
-3. Páginas de categoría con URL propia (`/catalogo/gases-refrigerantes`).
-4. Arreglar `buildUpdate()` (`productsController.js`): siempre escribe `inStock`, así que
-   cada importación reescribe los 3564 productos y les renueva la fecha. Por eso el sitemap
-   dice que todo cambió hoy.
-5. Datos estructurados `Product` y `LocalBusiness`.
+**Lo que ya está hecho** (23/10):
 
-> **Dos correcciones a la auditoría SEO en PDF**, verificadas: las fichas **sí** mandan
-> título, foto y `og:url` propios a WhatsApp y a Googlebot (la auditoría probó con
-> navegador, que a propósito recibe la SPA); y el sitemap **ya usa** el `updatedAt` real —
-> el problema está en el importador, no en el sitemap.
+- **Google recibe páginas de verdad.** Antes, de cada producto veía el nombre dos veces y
+  nada más. Ahora ve marca, código, precio de lista, stock, migas de pan, productos
+  relacionados y datos estructurados (`Product`). Lo arman `frontend/api/og-*.js`; las
+  personas siguen recibiendo la SPA.
+- **Categorías con URL propia**: `/catalogo/lavarropas`, `/catalogo/lavarropas/bombas`. Para
+  Google, cada categoría lista **todos** sus productos como links (antes veía 24: no
+  scrollea). Los links viejos `?cat=` redirigen.
+- **La home** le pasa a Google la dirección, el teléfono y el horario del panel.
+- **El sitemap** suma las categorías, y la fecha de cada producto ahora es real: la
+  importación solo escribe lo que cambió.
+- Producto borrado → **404**, para que salga del índice.
+
+**Lo que tenés que hacer vos** (20 minutos, sin código):
+
+1. **Google Search Console** (search.google.com/search-console): agregar
+   `refrigeracionayp.com` como *dominio*, verificarlo con el registro TXT que te da en el
+   DNS, y en *Sitemaps* enviar `https://www.refrigeracionayp.com/sitemap.xml`. Después, en
+   *Inspección de URLs*, pedir la indexación de la home y de 4 o 5 categorías. Es la única
+   forma de ver qué indexa Google y qué no.
+2. **Perfil de Empresa de Google** (business.google.com) con la misma dirección, teléfono y
+   horario que el panel, y el link al sitio. Para "repuestos de refrigeración cerca de mí"
+   pesa más que todo lo anterior.
+3. **Dominio propio para las fotos** (ver la tabla de abajo).
+
+> **Categorizar ahora también es SEO**: un producto sin categoría no aparece en ninguna
+> página de categoría ni tiene relacionados, así que Google solo lo encuentra por el
+> sitemap. El más vendido de la tienda (`12100321`, bolsa recolectora) está así.
 
 ---
 
@@ -204,10 +224,12 @@ Con subcategorías `Condensadores` (10) y `Evaporadores` (20).
 ## Cómo probar que todo anda
 
 ```powershell
-# las cuatro suites del backend (necesitan mongodb-memory-server)
+# las suites del backend (necesitan mongodb-memory-server)
 cd Backend
 npm install --no-save mongodb-memory-server
-node src/scripts/__test-combos.mjs         # 28 pruebas — combos
+node src/scripts/__test-importacion.mjs    # 10 pruebas — importación de Excel
+node src/scripts/__test-catalogo.mjs       # 11 pruebas — parámetros del catálogo
+node src/scripts/__test-combos.mjs         # 29 pruebas — combos
 node src/scripts/__test-busqueda.mjs       # 36 pruebas — buscador
 node src/scripts/__test-marcas.mjs         # 13 pruebas — script de marcas
 node src/scripts/__test-registro.mjs       # 39 pruebas — registro de técnicos
@@ -218,6 +240,7 @@ node src/scripts/__test-categorias.mjs     #  6 pruebas — menú de categorías
 cd ../frontend
 npm run lint    # 15 problemas es el valor normal, no sumar ninguno
 npm run build
+node scripts/__test-seo.mjs   # 27 pruebas — lo que ve Google (lee la API de producción)
 
 # contra producción (pide el token de admin: F12 → Application → Local Storage → token)
 node scripts/test-produccion.mjs TU_TOKEN
@@ -242,7 +265,10 @@ node scripts/verificar-matriculas.mjs TU_TOKEN
 | `Backend/src/scripts/corregirMarcas.mjs` | Corrección masiva de marcas mal escritas |
 | `frontend/src/pages/Catalogo.jsx` | El catálogo público y su buscador |
 | `frontend/src/components/ProductCard.jsx` | La tarjeta de producto |
-| `frontend/api/og-product.js` | Meta tags por producto para WhatsApp y Google |
+| `frontend/api/og-product.js`, `og-categoria.js` | Las páginas que reciben Google y WhatsApp (las personas reciben la SPA). La home no tiene: Vercel sirve `index.html` antes de mirar las reglas, así que ahí Google ejecuta la SPA |
+| `frontend/src/utils/negocio.js` | Dirección, teléfono y horario del panel como datos para Google (los usa la home) |
+| `frontend/src/utils/slug.js` | La única forma de armar una URL de categoría (la usan la SPA y Google) |
+| `frontend/src/utils/seo.js` | Títulos y descripciones, los mismos para la SPA y para Google |
 | `MANUAL-EMPLEADOS.md` | Manual de uso, al día |
 
 ---

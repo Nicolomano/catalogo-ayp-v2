@@ -9,6 +9,7 @@ import PromoBanner from "../components/PromoBanner.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
 import { urlCategoria } from "../utils/slug.js";
 import { TITULO_HOME, DESCRIPCION_HOME } from "../utils/seo.js";
+import { negocioLd } from "../utils/negocio.js";
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
@@ -88,6 +89,9 @@ function Landing() {
   const [landingData, setLandingData] = useState({ featured: [] });
   const [todasLasCategorias, setTodasLasCategorias] = useState([]);
   const [siteConfig, setSiteConfig]   = useState(DEFAULT_CONFIG);
+  // Los datos del local van a Google recién cuando llegan los del panel: los
+  // valores por defecto tienen una dirección y un teléfono de ejemplo.
+  const [configDelPanel, setConfigDelPanel] = useState(false);
   const [banners, setBanners]         = useState(null);
   const [promo, setPromo]             = useState(null);
 
@@ -112,7 +116,10 @@ function Landing() {
       })
       .catch(() => {});
     API.get("/site-config")
-      .then((r) => setSiteConfig((prev) => ({ ...prev, ...r.data })))
+      .then((r) => {
+        setSiteConfig((prev) => ({ ...prev, ...r.data }));
+        setConfigDelPanel(true);
+      })
       .catch(() => {});
     API.get("/banners?type=home")
       .then((r) => setBanners(Array.isArray(r.data) ? r.data : []))
@@ -157,6 +164,11 @@ function Landing() {
         <title>{TITULO_HOME}</title>
         <meta name="description" content={DESCRIPCION_HOME} />
         <link rel="canonical" href={`${SITE_URL}/`} />
+        {configDelPanel && (
+          <script type="application/ld+json">
+            {JSON.stringify(negocioLd(siteConfig, SITE_URL))}
+          </script>
+        )}
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10 sm:space-y-14">
