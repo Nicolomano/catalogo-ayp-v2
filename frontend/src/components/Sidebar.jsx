@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { urlCategoria } from "../utils/slug.js";
 
 function AccordionSection({ title, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -53,14 +55,12 @@ function Sidebar({
     if (selectedCategory && selectedCategory !== "all") setExpanded(selectedCategory);
   }, [selectedCategory]);
 
-  const handleCategoryTap = (cat, subs) => {
-    // Sin subcategorías no hay nada que elegir: filtra directo.
-    if (!subs.length) {
-      onSelect(cat, "all");
-      return;
-    }
-    setExpanded((prev) => (prev === cat ? null : cat));
-  };
+  // Lo que ELIGE una categoría es un link (/catalogo/lavarropas/bombas): se
+  // puede abrir en otra pestaña y cualquier buscador lo puede seguir. Antes eran
+  // botones. Desplegar una categoría con subcategorías sigue siendo un botón,
+  // porque no navega. `onSelect` queda para lo que pasa después de elegir (en el
+  // celular, cerrar el panel).
+  const alElegir = () => onSelect?.();
 
   return (
     <div className="flex flex-col h-full">
@@ -86,9 +86,10 @@ function Sidebar({
         {/* Categorías */}
         <AccordionSection title="Categorías">
           <div className="space-y-0.5">
-            <button
-              onClick={() => onSelect("all", "all")}
-              className="w-full text-left text-sm py-2 rounded-lg transition-all font-medium"
+            <Link
+              to="/catalogo"
+              onClick={alElegir}
+              className="block w-full text-left text-sm py-2 rounded-lg transition-all font-medium"
               style={{
                 background: selectedCategory === "all" ? "var(--brand-tint)" : "transparent",
                 color: selectedCategory === "all" ? "var(--brand)" : "var(--text)",
@@ -97,27 +98,35 @@ function Sidebar({
               }}
             >
               Todas las categorías
-            </button>
+            </Link>
             {categories.map((c) => {
               const subs = c.subcategories || [];
               const isOpen = expanded === c.category;
               const isActive = selectedCategory === c.category;
+              const estiloFila = {
+                background: isActive ? "var(--brand-tint)" : "transparent",
+                color: isActive ? "var(--brand)" : "var(--text)",
+                borderLeft: isActive ? "3px solid var(--brand)" : "3px solid transparent",
+                paddingLeft: "10px",
+                paddingRight: "6px",
+              };
+              const claseFila =
+                "w-full flex items-center justify-between gap-2 text-left text-sm py-2 rounded-lg transition-all font-medium";
               return (
                 <div key={c.category}>
-                  <button
-                    onClick={() => handleCategoryTap(c.category, subs)}
-                    aria-expanded={subs.length ? isOpen : undefined}
-                    className="w-full flex items-center justify-between gap-2 text-left text-sm py-2 rounded-lg transition-all font-medium"
-                    style={{
-                      background: isActive ? "var(--brand-tint)" : "transparent",
-                      color: isActive ? "var(--brand)" : "var(--text)",
-                      borderLeft: isActive ? "3px solid var(--brand)" : "3px solid transparent",
-                      paddingLeft: "10px",
-                      paddingRight: "6px",
-                    }}
-                  >
-                    <span className="min-w-0">{c.category}</span>
-                    {subs.length > 0 && (
+                  {subs.length === 0 ? (
+                    // Sin subcategorías no hay nada que desplegar: elige directo.
+                    <Link to={urlCategoria(c.category)} onClick={alElegir} className={claseFila} style={estiloFila}>
+                      <span className="min-w-0">{c.category}</span>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => setExpanded((prev) => (prev === c.category ? null : c.category))}
+                      aria-expanded={isOpen}
+                      className={claseFila}
+                      style={estiloFila}
+                    >
+                      <span className="min-w-0">{c.category}</span>
                       <ChevronDown
                         className="h-3.5 w-3.5 shrink-0 transition-transform"
                         style={{
@@ -125,33 +134,35 @@ function Sidebar({
                           color: "var(--muted)",
                         }}
                       />
-                    )}
-                  </button>
+                    </button>
+                  )}
 
                   {isOpen && subs.length > 0 && (
                     <div className="ml-3 mt-1 mb-2 space-y-0.5">
-                      <button
-                        onClick={() => onSelect(c.category, "all")}
-                        className="w-full text-left text-xs px-2 py-2 rounded transition-colors"
+                      <Link
+                        to={urlCategoria(c.category)}
+                        onClick={alElegir}
+                        className="block w-full text-left text-xs px-2 py-2 rounded transition-colors"
                         style={{
                           color: isActive && selectedSubcategory === "all" ? "var(--brand)" : "var(--text2)",
                           fontWeight: isActive && selectedSubcategory === "all" ? 600 : 500,
                         }}
                       >
                         Ver todo en {c.category}
-                      </button>
+                      </Link>
                       {[...subs].sort((a, b) => a.localeCompare(b)).map((s) => (
-                        <button
+                        <Link
                           key={s}
-                          onClick={() => onSelect(c.category, s)}
-                          className="w-full text-left text-xs px-2 py-2 rounded transition-colors"
+                          to={urlCategoria(c.category, s)}
+                          onClick={alElegir}
+                          className="block w-full text-left text-xs px-2 py-2 rounded transition-colors"
                           style={{
                             color: isActive && selectedSubcategory === s ? "var(--brand)" : "var(--muted)",
                             fontWeight: isActive && selectedSubcategory === s ? 600 : 400,
                           }}
                         >
                           — {s}
-                        </button>
+                        </Link>
                       ))}
                     </div>
                   )}

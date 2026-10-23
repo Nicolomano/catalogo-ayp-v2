@@ -7,6 +7,10 @@ import HeroCarousel from "../components/HeroCarousel.jsx";
 import ProductCarousel from "../components/ProductCarousel.jsx";
 import PromoBanner from "../components/PromoBanner.jsx";
 import { useReveal } from "../hooks/useIntersectionObserver.js";
+import { urlCategoria } from "../utils/slug.js";
+import { TITULO_HOME, DESCRIPCION_HOME } from "../utils/seo.js";
+
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
 const INFO_ICONS = [
   <Zap className="h-4 w-4" />,
@@ -148,8 +152,11 @@ function Landing() {
   return (
     <>
       <Helmet>
-        <title>A&P Refrigeración — Repuestos y equipos de refrigeración</title>
-        <meta name="description" content="A&P Refrigeración: productos y repuestos de refrigeración comercial e industrial." />
+        {/* Los mismos textos que la página que se le arma a Google
+            (frontend/api/og-home.js) y que index.html: salen de utils/seo.js. */}
+        <title>{TITULO_HOME}</title>
+        <meta name="description" content={DESCRIPCION_HOME} />
+        <link rel="canonical" href={`${SITE_URL}/`} />
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10 sm:space-y-14">
@@ -376,7 +383,7 @@ function Landing() {
               {categories.map((cat, i) => (
                 <Link
                   key={cat.category}
-                  to={`/catalogo?cat=${encodeURIComponent(cat.category)}`}
+                  to={urlCategoria(cat.category)}
                   className={`bento bento-link px-5 py-6 flex items-center justify-center text-center group reveal reveal-delay-${Math.min(i + 1, 4)}`}
                 >
                   <span

@@ -1,11 +1,20 @@
 import { useEffect, useState, useMemo, useTransition, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { SlidersHorizontal, X, Package, BadgeCheck, Search } from "lucide-react";
+import { SlidersHorizontal, BadgeCheck, Search } from "lucide-react";
 import API from "../api/axios";
 import { useAuth } from "../Context/AuthContext.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import { slug, porSlug, urlCategoria } from "../utils/slug.js";
+import {
+  TITULO_CATALOGO,
+  DESCRIPCION_CATALOGO,
+  tituloCategoria,
+  descripcionCategoria,
+} from "../utils/seo.js";
+
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
 const PAGE_SIZE = 24;
 const SKELETON_INITIAL = 8;
@@ -41,16 +50,19 @@ function Catalogo() {
   const [search, setSearch]               = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categories, setCategories]       = useState([]);
-  // Arrancan desde la URL. Antes arrancaban en "all" y se corregían recién al
-  // llegar la lista de categorías: entrando desde una categoría de la home, la
-  // primera carga traía todo el catálogo y se veía un parpadeo de productos que
-  // no eran de esa categoría. Si la de la URL no existe, el efecto de abajo la
-  // vuelve a "all".
-  const [category, setCategory]           = useState(
-    () => new URLSearchParams(window.location.search).get("cat") || "all"
-  );
-  const [subcategory, setSubcategory]     = useState(
-    () => new URLSearchParams(window.location.search).get("sub") || "all"
+  const [categoriasListas, setCategoriasListas] = useState(false);
+
+  // La categoría sale de la URL: /catalogo/lavarropas/bombas. La URL trae el
+  // slug, y el nombre real (con tildes y mayúsculas, que es lo que filtra el
+  // servidor) se resuelve cuando llega la lista de categorías.
+  const { cat: catSlug, sub: subSlug } = useParams();
+  const [category, setCategory]           = useState("all");
+  const [subcategory, setSubcategory]     = useState("all");
+  // Mientras no se sabe a qué categoría corresponde la URL, no se busca nada:
+  // si no, la primera carga traía todo el catálogo y se veía un parpadeo de
+  // productos que no eran de esa categoría.
+  const [resuelto, setResuelto] = useState(
+    () => !catSlug && !new URLSearchParams(window.location.search).get("cat")
   );
   const [sort, setSort]                   = useState("soldCount:desc");
   const [brands, setBrands]               = useState([]);
@@ -117,24 +129,34 @@ function Catalogo() {
       const normalized = data.length && typeof data[0] === "string"
         ? data.map((c) => ({ category: c, subcategories: [] })) : data;
       setCategories(normalized);
-    }).catch(() => {});
+    }).catch(() => {})
+      // Lista o no, se marca como lista: si falló, una URL de categoría termina
+      // en el catálogo entero en vez de quedar cargando para siempre.
+      .finally(() => setCategoriasListas(true));
     API.get("/products/brands").then((res) => setBrands(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!categories.length) return;
-    const cat = params.get("cat");
-    const sub = params.get("sub");
-    if (cat) {
-      const sel = categories.find((c) => c.category === cat);
-      if (sel) {
-        setCategory(cat);
-        setSubcategory(sub && sel.subcategories?.includes(sub) ? sub : "all");
-        return;
-      }
+    if (!categoriasListas) return;
+
+    // Links viejos (/catalogo?cat=Lavarropas): a la URL nueva, reemplazando la
+    // entrada del historial para que "atrás" no vuelva a la vieja.
+    const vieja = params.get("cat");
+    if (vieja) {
+      navigate(urlCategoria(vieja, params.get("sub")), { replace: true });
+      return;
     }
-    setCategory("all"); setSubcategory("all");
-  }, [categories, params]);
+
+    const sel = catSlug ? categories.find((c) => slug(c.category) === slug(catSlug)) : null;
+    if (catSlug && !sel) {
+      // Una categoría que ya no existe: al catálogo entero, sin dejar la URL rota.
+      navigate("/catalogo", { replace: true });
+      return;
+    }
+    setCategory(sel ? sel.category : "all");
+    setSubcategory(sel && subSlug ? porSlug(sel.subcategories, subSlug) || "all" : "all");
+    setResuelto(true);
+  }, [categoriasListas, categories, catSlug, subSlug, params, navigate]);
 
   useEffect(() => {
     isFetchingRef.current = true;  // bloquear observer durante el reset
@@ -143,6 +165,7 @@ function Catalogo() {
   }, [category, subcategory, sort, debouncedSearch, selectedBrands]);
 
   useEffect(() => {
+    if (!resuelto) return;
     const controller = new AbortController();
     isFetchingRef.current = true;
     setIsFetching(true);
@@ -182,7 +205,7 @@ function Catalogo() {
       });
 
     return () => controller.abort();
-  }, [category, subcategory, sort, debouncedSearch, selectedBrands, page]);
+  }, [resuelto, category, subcategory, sort, debouncedSearch, selectedBrands, page]);
 
   useEffect(() => {
     const el = loaderRef.current;
@@ -197,32 +220,36 @@ function Catalogo() {
     return () => observer.disconnect();
   }, [hasMore]); // ya no depende de isFetching (usa el ref)
 
-  // Categoría y subcategoría se eligen juntas desde el sidebar (tocar una
-  // categoría solo despliega; el filtro se aplica al elegir dentro).
-  const handleSelect = (cat, sub = "all") => {
-    setCategory(cat);
-    setSubcategory(sub);
-    const u = new URL(window.location.href);
-    if (cat === "all") u.searchParams.delete("cat");
-    else u.searchParams.set("cat", cat);
-    if (sub === "all") u.searchParams.delete("sub");
-    else u.searchParams.set("sub", sub);
-    navigate(`${u.pathname}${u.search}`, { replace: true });
-  };
+  // Las categorías del costado son links: la navegación la hacen ellas, y la
+  // categoría elegida sale de la URL (efecto de arriba). Acá solo queda lo que
+  // no es navegación.
   const handleBrandToggle = (brand) =>
     setSelectedBrands((prev) => prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]);
   const handleClearAll = () => {
-    setCategory("all"); setSubcategory("all"); setSelectedBrands([]); setSearch("");
-    navigate("/catalogo", { replace: true });
+    setSelectedBrands([]); setSearch("");
+    navigate("/catalogo");
   };
 
   const activeFilterCount = (category !== "all" ? 1 : 0) + (subcategory !== "all" ? 1 : 0) + selectedBrands.length;
 
+  const elegida = categories.find((c) => c.category === category);
+  const sub = subcategory !== "all" ? subcategory : null;
+
   return (
     <>
+      {/* Los mismos textos que la página que se le arma a Google
+          (frontend/api/og-categoria.js): salen de utils/seo.js. */}
       <Helmet>
-        <title>{category !== "all" ? `${category} | A&P Refrigeración` : "Productos | A&P Refrigeración"}</title>
-        <meta name="description" content={category !== "all" ? `Productos de ${category} en A&P Refrigeración.` : "Tienda online de A&P Refrigeración. Repuestos de refrigeración comercial e industrial."} />
+        <title>{category !== "all" ? tituloCategoria(category, sub) : TITULO_CATALOGO}</title>
+        <meta
+          name="description"
+          content={
+            category !== "all"
+              ? descripcionCategoria(category, elegida?.subcategories || [], sub)
+              : DESCRIPCION_CATALOGO
+          }
+        />
+        <link rel="canonical" href={`${SITE_URL}${urlCategoria(category, subcategory)}`} />
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex gap-6">
@@ -240,7 +267,6 @@ function Catalogo() {
           >
             <Sidebar
               categories={categories} selectedCategory={category} selectedSubcategory={subcategory}
-              onSelect={handleSelect}
               brands={brands} selectedBrands={selectedBrands} onBrandToggle={handleBrandToggle}
               onClearAll={handleClearAll} activeFilterCount={activeFilterCount}
             />
@@ -394,7 +420,7 @@ function Catalogo() {
         style={{ background: "var(--surface)" }}>
         <Sidebar
           categories={categories} selectedCategory={category} selectedSubcategory={subcategory}
-          onSelect={(c, s) => { handleSelect(c, s); setDrawerOpen(false); }}
+          onSelect={() => setDrawerOpen(false)}
           brands={brands} selectedBrands={selectedBrands} onBrandToggle={handleBrandToggle}
           onClearAll={() => { handleClearAll(); setDrawerOpen(false); }}
           activeFilterCount={activeFilterCount} onClose={() => setDrawerOpen(false)}

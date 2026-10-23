@@ -1,4 +1,5 @@
-import { SITE_URL, API_URL, escapeXml, fetchJson } from "./_shared.js";
+import { SITE_URL, API_URL, escapeXml, fetchJson, traerCategorias } from "./_shared.js";
+import { urlCategoria } from "../src/utils/slug.js";
 
 // Páginas fijas del sitio. El admin y el carrito no van (no aportan a la búsqueda).
 const STATIC_ROUTES = [
@@ -26,6 +27,17 @@ export default async function handler(req, res) {
   const entries = STATIC_ROUTES.map((r) =>
     urlEntry({ loc: `${SITE_URL}${r.path}`, changefreq: r.changefreq, priority: r.priority })
   );
+
+  // Categorías y subcategorías, con su URL propia (/catalogo/lavarropas/bombas).
+  // Sin fecha: cambian cuando cambian sus productos, y eso ya lo dicen ellos.
+  for (const c of await traerCategorias()) {
+    entries.push(urlEntry({ loc: `${SITE_URL}${urlCategoria(c.category)}`, changefreq: "weekly", priority: "0.8" }));
+    for (const s of c.subcategories || []) {
+      entries.push(
+        urlEntry({ loc: `${SITE_URL}${urlCategoria(c.category, s)}`, changefreq: "weekly", priority: "0.7" })
+      );
+    }
+  }
 
   // Si la API falla igual devolvemos el sitemap con las páginas fijas:
   // es preferible a responder un 500 que Google interprete como sitemap roto.

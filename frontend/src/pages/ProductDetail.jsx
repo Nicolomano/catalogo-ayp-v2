@@ -10,6 +10,8 @@ import { useReveal } from "../hooks/useIntersectionObserver.js";
 import { useScrollProgress } from "../hooks/useScrollProgress.js";
 import { calcCuota6 } from "../utils/pricing.js";
 import { formatTitle } from "../utils/text.js";
+import { presentacionProducto, tieneDescripcionPropia } from "../utils/seo.js";
+import { urlCategoria, esSubcategoriaReal } from "../utils/slug.js";
 
 // Fallback al dominio real (con www: el apex redirige 307). Se usa en los links
 // que se comparten y en el canonical, así que un valor viejo acá manda a los
@@ -169,7 +171,9 @@ function ProductDetail() {
   );
 
   const pageUrl      = `${SITE_URL}/product/${product.productCode}`;
-  const description  = product.description?.slice(0, 155) || "";
+  const description  = (
+    tieneDescripcionPropia(product) ? product.description : presentacionProducto(product)
+  ).slice(0, 155);
   const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
 
   return (
@@ -181,11 +185,11 @@ function ProductDetail() {
       />
 
       <Helmet>
-        <title>{`${product.name} | A&P Refrigeración`}</title>
+        <title>{`${formatTitle(product.name)} | A&P Refrigeración`}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={pageUrl} />
         <meta property="og:type"        content="product" />
-        <meta property="og:title"       content={product.name} />
+        <meta property="og:title"       content={formatTitle(product.name)} />
         <meta property="og:description" content={description} />
         <meta property="og:image"       content={product.image} />
         <meta property="og:url"         content={pageUrl} />
@@ -214,12 +218,36 @@ function ProductDetail() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
-        {/* Breadcrumb */}
-        <Link to="/catalogo"
-          className="inline-flex items-center gap-1 text-sm mb-6 transition-colors"
-          style={{ color: "var(--muted)" }}>
-          <ChevronLeft className="h-4 w-4" /> Volver
-        </Link>
+        {/* Migas de pan: las mismas que ve Google en api/og-product.js. Antes
+            había solo un "Volver" que iba siempre al catálogo entero. */}
+        <nav
+          aria-label="Ubicación"
+          className="flex flex-wrap items-center gap-1 text-sm mb-6"
+          style={{ color: "var(--muted)" }}
+        >
+          <Link to="/catalogo" className="inline-flex items-center gap-1 hover:underline">
+            <ChevronLeft className="h-4 w-4" /> Productos
+          </Link>
+          {product.categories?.[0] && (
+            <>
+              <span aria-hidden>›</span>
+              <Link to={urlCategoria(product.categories[0])} className="hover:underline">
+                {product.categories[0]}
+              </Link>
+            </>
+          )}
+          {product.categories?.[0] && esSubcategoriaReal(product.subcategories?.[0]) && (
+            <>
+              <span aria-hidden>›</span>
+              <Link
+                to={urlCategoria(product.categories[0], product.subcategories[0])}
+                className="hover:underline"
+              >
+                {product.subcategories[0]}
+              </Link>
+            </>
+          )}
+        </nav>
 
         {/* Card principal */}
         <div className="bento p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8" style={{ borderRadius: "24px" }}>
@@ -295,11 +323,12 @@ function ProductDetail() {
               </div>
             )}
 
-            {product.description && (
-              <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>
-                {product.description}
-              </p>
-            )}
+            {/* En la mayoría de los productos la descripción del Excel es el
+                nombre repetido: ahí va una presentación armada con los datos, la
+                misma que ve Google en api/og-product.js. */}
+            <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>
+              {tieneDescripcionPropia(product) ? product.description : presentacionProducto(product)}
+            </p>
 
             {/* De qué está hecho el combo. Va con los códigos porque el técnico
                 los reconoce y porque es lo que después sale en el pedido. */}

@@ -99,7 +99,11 @@ function App() {
           {/* Público */}
           <Route path="/" element={<PublicLayout />}>
             <Route index element={<Landing />} />
-            <Route path="catalogo" element={<Catalogo />} />
+            {/* Una sola ruta con segmentos opcionales: /catalogo, /catalogo/lavarropas
+                y /catalogo/lavarropas/bombas. Siendo la misma ruta, el catálogo no se
+                vuelve a montar al cambiar de categoría y no se pierden la búsqueda
+                ni las marcas elegidas. */}
+            <Route path="catalogo/:cat?/:sub?" element={<Catalogo />} />
             <Route path="product/:productCode" element={<ProductDetail />} />
             <Route path="cart" element={<Cart />} />
             <Route path="kit-instalacion" element={<KitInstalacion />} />
