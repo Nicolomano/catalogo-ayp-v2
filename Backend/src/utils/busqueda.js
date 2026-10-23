@@ -6,16 +6,22 @@
  * encontrara los 54 rulemanes cargados, y que "tubo de nitrógeno" no encontrara
  * los 5 tubos, que en el catálogo se llaman "TUBO DE NITRO".
  *
- * Acá se resuelven las dos causas que aparecieron al revisar las búsquedas
+ * Acá se resuelven las tres causas que aparecieron al revisar las búsquedas
  * fallidas reales:
  *
  *  1. La gente escribe las palabras sueltas y en otro orden ("bomba vacio",
  *     "plaqueta inverter"). → Se parte en palabras y se exigen todas.
  *  2. El sistema contable ABREVIA los nombres: NITRO por nitrógeno, MOTOC. por
  *     motocompresor, FILCAP por filtro capilar. El cliente escribe la palabra
- *     completa y no encuentra nada. → Reintento acortando, y sinónimos para las
- *     abreviaturas que no son prefijo.
+ *     completa y no encuentra nada. → Se aceptan los prefijos que son palabras
+ *     del catálogo, y hay sinónimos para las abreviaturas que no son prefijo.
+ *  3. Los técnicos escriben mal los nombres: "lokring" por lockring, "tecunse"
+ *     por tecumseh. → Si no hubo resultados, se corrige cada palabra hacia la
+ *     más parecida de las que de verdad están en el catálogo (ver
+ *     utils/vocabulario.js), y se le dice al cliente qué se corrigió.
  */
+
+import { corregirPalabra, prefijosDelCatalogo, MIN_PALABRA } from "./vocabulario.js";
 
 /** Tope de caracteres del término. Un `search` de 15 KB se expande a un patrón
  *  enorme que se aplica a cada documento de la colección. */
@@ -23,10 +29,6 @@ export const MAX_SEARCH = 64;
 
 /** Tope de palabras, para no armar un $and de 300 regex. */
 const MAX_PALABRAS = 6;
-
-/** Mínimo al que se puede acortar una palabra en el reintento. Por debajo de
- *  esto los falsos positivos se disparan: "tub" trae TUBULAR, TUBERIA y demás. */
-const MIN_PREFIJO = 5;
 
 /**
  * Palabras que no aportan a la búsqueda y que, si se exigieran, dejarían afuera
@@ -61,6 +63,18 @@ const SINONIMOS = {
   resistencia: ["resist"],
   plaqueta: ["placa"],
   placa: ["plaqueta"],
+  // Marcas que están escritas de las dos formas en el catálogo. Hay un script
+  // que corrige los nombres en la base (scripts/corregirMarcas.mjs), pero esto
+  // queda igual como red de seguridad: el próximo Excel puede traer un producto
+  // nuevo mal escrito.
+  whirlpool: ["whirpool"],
+  whirpool: ["whirlpool"],
+  tecumseh: ["tecumshe"],
+  tecumshe: ["tecumseh"],
+  kohinoor: ["kohinor"],
+  kohinor: ["kohinoor"],
+  danfoss: ["danfos"],
+  danfos: ["danfoss"],
 };
 
 /**
@@ -131,18 +145,31 @@ export function palabrasDe(termino) {
   return salida;
 }
 
-/** Las formas alternativas de una palabra: ella misma más sus sinónimos. */
-function variantes(palabra) {
-  const alts = SINONIMOS[palabra] || [];
-  return [palabra, ...alts.map(normalizar)];
+/**
+ * Las formas en las que una palabra puede estar escrita en el catálogo:
+ *
+ *  - ella misma;
+ *  - sus sinónimos del diccionario de arriba;
+ *  - sus prefijos que SON palabras del catálogo: el cliente escribe "valvula" y
+ *    el producto se llama "Valv.de seguridad BITZER".
+ *
+ * Los prefijos se aplican SIEMPRE, no solo cuando la búsqueda no encontró nada.
+ * Si no, "válvula de seguridad" no encontraría nunca ese producto: el problema
+ * no es que falten las dos palabras, es que una está abreviada, así que la
+ * búsqueda normal da cero y el reintento tampoco tiene nada que corregir
+ * ("valvula" está bien escrita).
+ */
+function variantes(palabra, vocab) {
+  const alts = (SINONIMOS[palabra] || []).map(normalizar);
+  return [palabra, ...alts, ...prefijosDelCatalogo(palabra, vocab)];
 }
 
 /**
- * Condición de Mongo para UNA palabra: tiene que aparecer en alguno de los
- * campos buscables, en cualquiera de sus formas.
+ * Condición de Mongo para un grupo de formas: alguna de ellas tiene que
+ * aparecer en alguno de los campos buscables.
  */
-function condicionPalabra(palabra) {
-  const patron = variantes(palabra).map(patronFlexible).join("|");
+function condicionDeFormas(formas) {
+  const patron = [...new Set(formas)].map(patronFlexible).join("|");
   const regex = { $regex: patron, $options: "i" };
   return {
     $or: [
@@ -169,82 +196,64 @@ function alternativas(termino) {
  * Filtro para el término tal cual se escribió: todas las palabras, en cualquier
  * orden. Si alguna reescritura de frase aplica, se buscan las dos variantes y
  * vale cualquiera. Devuelve null si no quedó ninguna palabra buscable.
+ *
+ * `vocab` es opcional: sin él se pierden los prefijos del catálogo, pero la
+ * búsqueda sigue funcionando.
  */
-export function filtroBusqueda(termino) {
+export function filtroBusqueda(termino, vocab) {
   const variantesTermino = alternativas(termino);
   if (!variantesTermino.length) return null;
 
   const filtros = variantesTermino.map((t) => ({
-    $and: palabrasDe(t).map(condicionPalabra),
+    $and: palabrasDe(t).map((p) => condicionDeFormas(variantes(p, vocab))),
   }));
   return filtros.length === 1 ? filtros[0] : { $or: filtros };
 }
 
 /**
- * Variantes acortadas de una palabra, de la más larga a la más corta.
- * "nitrogeno" → nitrogen, nitroge, nitrog, nitro
+ * Reintento para cuando la búsqueda normal no devolvió nada: corrige cada
+ * palabra hacia las palabras que de verdad están en el catálogo.
  *
- * Es lo que permite que quien escribe la palabra completa encuentre el producto
- * que el contable cargó abreviado.
+ * Devuelve `{ filtro, correccion }`, donde `correccion` es el término corregido
+ * para poder decirle al cliente "no encontramos «lokring», te mostramos
+ * resultados para lockring".
+ *
+ * Devuelve null cuando no hay nada que reintentar, y eso incluye el caso
+ * importante: si alguna palabra no se parece a NINGUNA del catálogo, no se
+ * reintenta nada. Antes se inventaban variantes con una letra cambiada, y
+ * "jabon" se convertía en "labon", que está dentro de "ESLABON de lujo": diez
+ * productos sin relación. Cero resultados es la respuesta correcta.
  */
-function prefijos(palabra) {
-  const salida = [];
-  for (let n = palabra.length - 1; n >= MIN_PREFIJO; n--) {
-    salida.push(palabra.slice(0, n));
-  }
-  return salida;
-}
-
-/**
- * Variantes de la palabra con UN error de tipeo: una letra cambiada, una de
- * más o una de menos. Resuelve "tuvo" por "tubo".
- *
- * Solo para palabras de 4 a 10 letras: más cortas generan demasiadas variantes
- * sin sentido, más largas no suelen escribirse mal enteras.
- */
-function conUnError(palabra) {
-  if (palabra.length < 4 || palabra.length > 10) return [];
-  const letras = "abcdefghijklmnopqrstuvwxyz";
-  const salida = new Set();
-  for (let i = 0; i < palabra.length; i++) {
-    salida.add(palabra.slice(0, i) + palabra.slice(i + 1)); // falta una letra
-    for (const l of letras) {
-      if (l !== palabra[i]) salida.add(palabra.slice(0, i) + l + palabra.slice(i + 1)); // cambiada
-    }
-  }
-  salida.delete(palabra);
-  return [...salida];
-}
-
-/**
- * Filtro del reintento, para cuando la búsqueda normal no devolvió nada.
- *
- * Cada palabra puede aparecer acortada o con un error de tipeo. Es más caro que
- * la búsqueda normal, por eso corre SOLO en el camino de cero resultados.
- *
- * Devuelve null si no hay nada que reintentar (palabras muy cortas para acortar
- * y para corregir).
- */
-export function filtroReintento(termino) {
+export function filtroReintento(termino, vocab) {
   const palabras = palabrasDe(termino);
-  if (!palabras.length) return null;
+  if (!palabras.length || !vocab?.size) return null;
 
   let algunaCambio = false;
-  const condiciones = palabras.map((palabra) => {
-    const formas = [...variantes(palabra), ...prefijos(palabra), ...conUnError(palabra)];
-    if (formas.length > 1) algunaCambio = true;
-    const patron = [...new Set(formas)].map(patronFlexible).join("|");
-    const regex = { $regex: patron, $options: "i" };
-    return {
-      $or: [
-        { name: regex },
-        { productCode: regex },
-        { brand: regex },
-        { description: regex },
-      ],
-    };
-  });
-
+  const corregidas = [];
+  for (const palabra of palabras) {
+    const opciones = corregirPalabra(palabra, vocab);
+    if (opciones.length) {
+      if (opciones[0] !== palabra) algunaCambio = true;
+      corregidas.push(opciones);
+      continue;
+    }
+    // Las palabras muy cortas no se corrigen —a tres letras todo se parece a
+    // todo— pero se dejan como están, porque igual pueden caer dentro de un
+    // nombre: "nex" está dentro de "DREAN NEXT".
+    if (palabra.length < MIN_PALABRA) {
+      corregidas.push([palabra]);
+      continue;
+    }
+    return null;
+  }
   if (!algunaCambio) return null;
-  return { $and: condiciones };
+
+  return {
+    filtro: {
+      $and: corregidas.map((opciones) =>
+        condicionDeFormas(opciones.flatMap((o) => variantes(o, vocab)))
+      ),
+    },
+    correccion: corregidas.map((opciones) => opciones[0]).join(" "),
+  };
 }

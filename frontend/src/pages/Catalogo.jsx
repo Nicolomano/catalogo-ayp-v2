@@ -47,9 +47,11 @@ function Catalogo() {
   const [brands, setBrands]               = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [drawerOpen, setDrawerOpen]       = useState(false);
-  // Término alternativo con el que el servidor encontró resultados, cuando lo
-  // escrito no devolvía nada.
-  const [aproximado, setAproximado]       = useState(false);
+  // Término corregido con el que el servidor encontró resultados, cuando lo
+  // escrito no devolvía nada ("lokring" → "lockring").
+  const [correccion, setCorreccion]       = useState(null);
+  // Lo más vendido, para no dejar la pantalla vacía cuando no hay resultados.
+  const [sugeridos, setSugeridos]         = useState([]);
 
   // Cuántos resultados vio la persona: se manda junto con la búsqueda al
   // registrarla. Va en ref para no re-disparar el efecto del registro.
@@ -129,10 +131,11 @@ function Catalogo() {
       .then((res) => {
         const incoming = res.data?.products || [];
         setHasMore(res.data?.hasMore ?? false);
-        // El servidor avisa cuando tuvo que reintentar con una variante del
-        // término (el catálogo abrevia: "NITRO" por nitrógeno).
+        // El servidor avisa cuando tuvo que corregir lo escrito, y cuando no
+        // encontró nada manda lo más vendido para no dejar la pantalla vacía.
         if (page === 1) {
-          setAproximado(Boolean(res.data?.aproximado));
+          setCorreccion(res.data?.correccion || null);
+          setSugeridos(res.data?.sugeridos || []);
           ultimoTotal.current = res.data?.total ?? 0;
         }
         startTransition(() =>
@@ -292,9 +295,9 @@ function Catalogo() {
             </div>
           )}
 
-          {/* Aviso cuando lo que se escribió no daba resultados y el servidor
-              encontró algo con una variante (el catálogo abrevia: "NITRO"). */}
-          {aproximado && allProducts.length > 0 && (
+          {/* Aviso cuando lo escrito no daba resultados y el servidor lo corrigió
+              hacia una palabra que sí está en el catálogo. */}
+          {correccion && allProducts.length > 0 && (
             <div
               className="flex items-start gap-2 text-sm rounded-xl px-3 py-2.5 mb-4"
               style={{ background: "var(--brand-tint)", color: "var(--text2)" }}
@@ -302,7 +305,7 @@ function Catalogo() {
               <Search className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "var(--brand)" }} />
               <span>
                 No encontramos nada con <strong>«{debouncedSearch}»</strong>. Te mostramos
-                resultados parecidos.
+                resultados para <strong>{correccion}</strong>.
               </span>
             </div>
           )}
@@ -313,9 +316,26 @@ function Catalogo() {
               {Array.from({ length: SKELETON_INITIAL }).map((_, i) => <ProductCardSkeleton key={i} />)}
             </div>
           ) : allProducts.length === 0 ? (
-            <p className="text-center py-16 text-lg" style={{ color: "var(--muted)" }}>
-              No se encontraron productos.
-            </p>
+            /* Sin resultados: en vez de una pantalla vacía, lo más vendido de
+               donde estaba buscando. Van aparte y bien titulados, para que no se
+               confundan con lo que se buscó. */
+            sugeridos.length > 0 ? (
+              <div>
+                <p className="text-center text-base" style={{ color: "var(--text2)" }}>
+                  No encontramos nada con <strong>«{debouncedSearch}»</strong>.
+                </p>
+                <p className="text-center text-sm mt-1 mb-5" style={{ color: "var(--muted)" }}>
+                  Esto es lo que más nos piden:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  {sugeridos.map((p) => <ProductCard key={p._id} product={p} />)}
+                </div>
+              </div>
+            ) : (
+              <p className="text-center py-16 text-lg" style={{ color: "var(--muted)" }}>
+                No se encontraron productos.
+              </p>
+            )
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {allProducts.map((p) => <ProductCard key={p._id} product={p} />)}

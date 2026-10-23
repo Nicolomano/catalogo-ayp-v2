@@ -17,6 +17,7 @@ import siteConfigRouter from "./src/routes/siteConfigRoutes.js";
 import userRouter from "./src/routes/userRoutes.js";
 import metricsRouter from "./src/routes/metricsRoutes.js";
 import corsOptions from "./src/utils/cors.js";
+import { vocabulario } from "./src/utils/vocabulario.js";
 import productModel from "./src/services/models/productModel.js";
 import orderModel from "./src/services/models/orderModel.js";
 import searchLogModel from "./src/services/models/searchLogModel.js";
@@ -161,4 +162,12 @@ mongoose.connection.once("open", async () => {
   } catch (e) {
     console.error("Error syncing product indexes:", e.message);
   }
+
+  // Se arma el vocabulario del buscador —las palabras que de verdad aparecen
+  // en los nombres y las marcas— acá, al arrancar, para que no lo pague la
+  // primera persona que busque algo. Se refresca solo cada 10 minutos, y si
+  // falla no rompe nada: la búsqueda pierde la corrección de tipeos y sigue
+  // andando.
+  const palabras = await vocabulario();
+  console.log(`Vocabulario del buscador: ${palabras.size} palabras`);
 });

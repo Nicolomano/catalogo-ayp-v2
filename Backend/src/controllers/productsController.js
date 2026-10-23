@@ -3,6 +3,7 @@ import productModel from "../services/models/productModel.js";
 import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
 import { filtroBusqueda, filtroReintento } from "../utils/busqueda.js";
+import { vocabulario } from "../utils/vocabulario.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
@@ -260,10 +261,16 @@ export const getProductsByCategory = async (req, res) => {
       filter.brand = { $in: brand };
     }
 
+    // El vocabulario son las palabras que de verdad aparecen en el catálogo.
+    // Sirve para dos cosas: aceptar los nombres abreviados ("valv" por válvula)
+    // y, si no hay resultados, corregir lo que escribió el cliente hacia algo
+    // que existe. Está cacheado en memoria, así que no cuesta una consulta.
+    const vocab = search ? await vocabulario() : null;
+
     // Búsqueda por palabras sueltas, en cualquier orden (ver utils/busqueda.js).
-    // Se guarda aparte para poder reemplazarla por el reintento si no hay
+    // Se guarda aparte para poder reemplazarla por la corrección si no hay
     // resultados, sin rearmar el resto del filtro.
-    const condBusqueda = search ? filtroBusqueda(search) : null;
+    const condBusqueda = search ? filtroBusqueda(search, vocab) : null;
     if (condBusqueda) andConditions.push(condBusqueda);
 
     if (andConditions.length > 0) {
@@ -304,24 +311,43 @@ export const getProductsByCategory = async (req, res) => {
     /**
      * Reintento: solo si la búsqueda no devolvió NADA.
      *
-     * Acorta las palabras y tolera un error de tipeo, que es lo que hace falta
-     * cuando el contable abrevió el nombre ("TUBO DE NITRO" para quien busca
-     * nitrógeno) o cuando el cliente escribió "tuvo" por "tubo". Es más caro que
-     * la búsqueda normal, por eso corre acá y no siempre.
+     * Corrige cada palabra hacia la palabra más parecida del catálogo, así
+     * "lokring" encuentra la PINZA LOCKRING y "tecunse" los motores Tecumseh.
+     * Es más caro que la búsqueda normal, por eso corre acá y no siempre.
      */
-    let aproximado = false;
+    let correccion = null;
+    const otrasCondiciones = andConditions.filter((c) => c !== condBusqueda);
     if (total === 0 && condBusqueda) {
-      const alternativo = filtroReintento(search);
+      const alternativo = filtroReintento(search, vocab);
       if (alternativo) {
-        const otras = andConditions.filter((c) => c !== condBusqueda);
-        const filtroAlt = { ...filter, $and: [...otras, alternativo] };
+        const filtroAlt = { ...filter, $and: [...otrasCondiciones, alternativo.filtro] };
         const r = await consultar(filtroAlt);
         if (r.cuenta > 0) {
           products = r.docs;
           total = r.cuenta;
-          aproximado = true;
+          correccion = alternativo.correccion;
         }
       }
+    }
+
+    /**
+     * Si ni lo escrito ni la corrección encontraron nada, en vez de dejar la
+     * pantalla vacía se muestra lo más vendido —de la categoría en la que estaba
+     * buscando, o de todo el catálogo si no había ninguna—. No se mezclan con
+     * los resultados: van en su propio campo y el catálogo los presenta como lo
+     * que son.
+     */
+    let sugeridos = [];
+    if (total === 0 && condBusqueda && Number(page) === 1) {
+      const filtroSinTermino = { ...filter, inStock: true };
+      if (otrasCondiciones.length) filtroSinTermino.$and = otrasCondiciones;
+      else delete filtroSinTermino.$and;
+      sugeridos = await productModel
+        .find(filtroSinTermino)
+        .select("productCode name brand image priceARS inStock")
+        .sort({ soldCount: -1 })
+        .limit(8)
+        .lean();
     }
 
     res.set("Cache-Control", "public, max-age=60");
@@ -330,11 +356,11 @@ export const getProductsByCategory = async (req, res) => {
       page: Number(page),
       pages: Math.ceil(total / parsedLimit),
       hasMore: Number(page) * parsedLimit < total,
-      // Presente solo cuando lo escrito no daba nada y hubo que reintentar: el
-      // catálogo avisa que lo que muestra es parecido, no exacto. No se devuelve
-      // "quisiste decir X" porque el reintento prueba muchas variantes a la vez
-      // y no sabe cuál fue la que encontró.
-      ...(aproximado ? { aproximado: true } : {}),
+      // Presente solo cuando lo escrito no daba nada: el término corregido, para
+      // que el catálogo pueda decir "no encontramos «lokring», te mostramos
+      // resultados para lockring".
+      ...(correccion ? { correccion } : {}),
+      ...(sugeridos.length ? { sugeridos } : {}),
       products,
     });
   } catch (error) {
@@ -441,7 +467,7 @@ export const getProductsAdmin = async (req, res) => {
     // Mismo buscador que el público: el panel sufría el mismo problema —
     // "rulemanes" no encontraba los rulemanes cargados.
     if (search) {
-      const cond = filtroBusqueda(search);
+      const cond = filtroBusqueda(search, await vocabulario());
       if (cond) adminAnd.push(cond);
     }
 
