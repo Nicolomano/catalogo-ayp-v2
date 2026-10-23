@@ -90,7 +90,8 @@ function Cart() {
   const total = cart.reduce((sum, item) => sum + precioUnitario(item) * item.quantity, 0);
 
   const handleConfirm = async () => {
-    if (!customerName || !customerPhone) {
+    // trim: con solo espacios pasaba esta validación y el servidor lo rechazaba.
+    if (!customerName.trim() || !customerPhone.trim()) {
       toast.error("Por favor, ingresá tu nombre y teléfono.");
       return;
     }
@@ -129,7 +130,13 @@ function Cart() {
     } catch (err) {
       if (waTab) waTab.close();
       console.error("Error creando orden:", err.response?.data || err);
-      toast.error("Error al procesar la orden. Intentá nuevamente.");
+      // El servidor explica qué pasó ("ninguno de los productos está
+      // disponible", "faltan datos del cliente"): antes se tapaba con un error
+      // genérico y el cliente no sabía qué hacer.
+      toast.error(
+        err.response?.data?.message || "Error al procesar la orden. Intentá nuevamente.",
+        { duration: 6000 }
+      );
     } finally {
       setLoading(false);
     }

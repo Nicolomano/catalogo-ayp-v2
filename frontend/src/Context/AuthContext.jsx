@@ -69,11 +69,15 @@ export function AuthProvider({ children }) {
   };
 
   const logoutService = () => {
-    localStorage.removeItem(SERVICE_USER_KEY);
-    // Only remove token if it doesn't belong to an admin session
-    if (localStorage.getItem(TOKEN_KEY)) {
-      const payload = readTokenPayload();
-      if (!payload || payload.role === "service") localStorage.removeItem(TOKEN_KEY);
+    try {
+      localStorage.removeItem(SERVICE_USER_KEY);
+      // Only remove token if it doesn't belong to an admin session
+      if (localStorage.getItem(TOKEN_KEY)) {
+        const payload = readTokenPayload();
+        if (!payload || payload.role === "service") localStorage.removeItem(TOKEN_KEY);
+      }
+    } catch {
+      // sin storage no hay sesión guardada: alcanza con olvidarla en memoria
     }
     setServiceUser(null);
   };

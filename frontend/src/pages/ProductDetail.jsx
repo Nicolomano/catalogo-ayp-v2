@@ -35,7 +35,7 @@ function RelatedCard({ product }) {
   return (
     <Link
       to={`/product/${product.productCode}`}
-      className="bento flex flex-col hover:shadow-lg transition-shadow group flex-shrink-0"
+      className="bento flex flex-col hover:shadow-lg transition-shadow group/card flex-shrink-0"
       style={{ width: "160px" }}
     >
       <div
@@ -43,7 +43,7 @@ function RelatedCard({ product }) {
         style={{ background: "var(--surface2)", height: "120px" }}
       >
         {product.image
-          ? <img src={product.image} alt={product.name} className="object-contain max-h-full group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+          ? <img src={product.image} alt={product.name} className="object-contain max-h-full group-hover/card:scale-105 transition-transform duration-300" loading="lazy" />
           : <Package className="h-10 w-10 opacity-15" style={{ color: "var(--muted)" }} />
         }
       </div>
@@ -77,12 +77,24 @@ function ProductDetail() {
 
   /* Cargar producto */
   useEffect(() => {
+    // Al pasar de un producto a otro (desde "También te puede interesar"), la
+    // página se reutiliza. Sin limpiar el estado:
+    //  - la cantidad quedaba la del producto anterior, y "Agregar" sumaba esa
+    //    cantidad del nuevo sin que nadie la eligiera;
+    //  - si el nuevo fallaba, se seguía viendo el anterior bajo la URL nueva.
+    let vigente = true;
     setLoading(true);
+    setProduct(null);
     setRelated([]);
+    setQuantity(1);
+    setZoomOpen(false);
     API.get(`/products/code/${productCode}`)
-      .then((res) => setProduct(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+      // Navegando rápido A → B → C, la respuesta de B puede llegar después que
+      // la de C: solo se usa la del producto que está en la URL.
+      .then((res) => { if (vigente) setProduct(res.data); })
+      .catch((err) => { if (vigente) console.error(err); })
+      .finally(() => { if (vigente) setLoading(false); });
+    return () => { vigente = false; };
   }, [productCode]);
 
   /* Cargar productos relacionados una vez que el producto está disponible */
@@ -180,14 +192,22 @@ function ProductDetail() {
         <meta property="og:site_name"   content="A&P Refrigeración" />
         <meta name="twitter:card"       content="summary_large_image" />
         <meta name="twitter:image"      content={product.image} />
+        {/* Ojo: Googlebot NO ve esto. vercel.json lo manda a api/og-product.js,
+            que es donde tienen que ir los datos estructurados para Google. Esto
+            queda para los buscadores que ejecutan la SPA. */}
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org", "@type": "Product",
           name: product.name, description: product.description,
           image: product.image, sku: product.productCode, url: pageUrl,
-          brand: { "@type": "Brand", name: "A&P Refrigeración" },
+          // La marca es la del producto (Danfoss, Tecumseh...), no la tienda.
+          ...(product.brand && { brand: { "@type": "Brand", name: product.brand } }),
           ...(product.priceARS && {
             offers: { "@type": "Offer", priceCurrency: "ARS", price: product.priceARS,
-              availability: "https://schema.org/InStock", url: pageUrl }
+              // Antes decía InStock siempre, aunque no hubiera.
+              availability: product.inStock === false
+                ? "https://schema.org/OutOfStock"
+                : "https://schema.org/InStock",
+              url: pageUrl }
           }),
         })}</script>
       </Helmet>

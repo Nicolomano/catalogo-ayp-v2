@@ -52,7 +52,7 @@ export default function ProductCarousel({ products = [] }) {
   if (!products.length) return null;
 
   return (
-    <div className="relative group">
+    <div className="relative">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
           {products.map((p) => (

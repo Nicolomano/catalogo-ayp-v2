@@ -59,14 +59,14 @@ export default function ProductCard({ product, showInstallments = true }) {
     "min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center text-base font-bold transition-colors";
 
   return (
-    <div className="bento bento-link product-card flex flex-col h-full group">
+    <div className="bento bento-link product-card flex flex-col h-full group/card">
       <Link to={`/product/${product.productCode}`} className="flex flex-col">
         <div className="product-img-wrap rounded-t-[20px] relative">
           {product.image ? (
             <img
               src={product.image}
               alt={product.name}
-              className="object-contain max-h-full w-full h-full p-4 group-hover:scale-105 transition-transform duration-300"
+              className="object-contain max-h-full w-full h-full p-4 group-hover/card:scale-105 transition-transform duration-300"
               loading="lazy"
               decoding="async"
             />

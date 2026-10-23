@@ -12,7 +12,7 @@ const API = axios.create({
 /** Rol del JWT guardado, para decidir a qué login mandar al usuario. */
 function rolDelToken() {
   try {
-    const token = localStorage.getItem("token");
+    const token = leerToken();
     if (!token) return null;
     return JSON.parse(atob(token.split(".")[1]))?.role || null;
   } catch {
@@ -20,9 +20,24 @@ function rolDelToken() {
   }
 }
 
+/**
+ * El token guardado, o null.
+ *
+ * Protegido porque corre en CADA pedido a la API: con las cookies bloqueadas,
+ * solo tocar localStorage tira un error, y sin esto no salía ningún pedido y el
+ * catálogo no cargaba nunca. Sin storage se navega igual, sin sesión.
+ */
+function leerToken() {
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+}
+
 // ✅ Interceptor para agregar token a cada request
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = leerToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -66,8 +81,12 @@ API.interceptors.response.use(
     if (error.response?.status === 401) {
       const destino = destinoTras401(error.config?.url || "", rolDelToken());
       if (destino) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("ayp_service_user");
+        try {
+          localStorage.removeItem("token");
+          localStorage.removeItem("ayp_service_user");
+        } catch {
+          // sin storage no hay nada guardado que borrar
+        }
         window.location.href = destino;
       }
     }

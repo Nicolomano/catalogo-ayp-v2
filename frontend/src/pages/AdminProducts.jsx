@@ -648,17 +648,29 @@ function AdminProducts() {
                   "precio fijo en ARS" se ocultaron: todos los precios salen del
                   Excel en pesos, así que solo servían para equivocarse. La
                   lógica sigue en el backend por si algún día vuelve a usarse. */}
-              <label className="block">
-                <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
-                  Precio (ARS)
-                </span>
-                <input
-                  type="number" step="0.01" min="0"
-                  value={editingProduct.priceARS || ""}
-                  onChange={(e) => setEditingProduct((p) => ({ ...p, priceARS: e.target.value }))}
-                  className={inputCls} style={inputStyle} required
-                />
-              </label>
+              {/* Un combo no tiene precio propio: es la suma de sus piezas. Antes
+                  este campo aparecía igual, se "guardaba", y el catálogo seguía
+                  mostrando la suma: el cambio no se veía en ningún lado. */}
+              {editingProduct.componentes?.length > 0 ? (
+                <div className="rounded-xl px-3 py-2.5 text-sm"
+                  style={{ background: "var(--brand-tint)", color: "var(--text2)" }}>
+                  Este producto es un <strong>combo</strong>: el precio es la suma de sus
+                  piezas y se actualiza solo. Para cambiar qué incluye, andá a{" "}
+                  <strong>Tienda → Combos</strong>.
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="text-xs font-medium mb-1 block" style={{ color: "var(--muted)" }}>
+                    Precio (ARS)
+                  </span>
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={editingProduct.priceARS || ""}
+                    onChange={(e) => setEditingProduct((p) => ({ ...p, priceARS: e.target.value }))}
+                    className={inputCls} style={inputStyle} required
+                  />
+                </label>
+              )}
 
               {/* Categorías */}
               <div>

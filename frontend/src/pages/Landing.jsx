@@ -18,7 +18,23 @@ const INFO_ICONS = [
 // Índices de infoCards que se muestran en la tira del home (0=Envíos, 3=Horario)
 const INFO_STRIP_INDEXES = [0, 3];
 
+// Los mismos valores por defecto que el modelo del servidor (siteConfigModel.js).
+// Sin los del hero, hasta que respondía /site-config —y para siempre si esa
+// llamada fallaba— la home mostraba el título vacío y los dos botones
+// principales sin texto.
 const DEFAULT_CONFIG = {
+  heroBadge:     "Stock permanente · Buenos Aires",
+  heroTitle:     "Repuestos para",
+  heroHighlight: "Refrigeración",
+  heroSubtitle:  "Distribuidora oficial. Más de 2000 productos para el técnico profesional.",
+  heroCTA1:      "Ver Catálogo →",
+  heroCTA2:      "Precio Service",
+  stat1Title: "PRODUCTOS",
+  stat1Value: "2k+",
+  stat1Label: "En catálogo",
+  stat2Title: "PRECIO SERVICE",
+  stat2Value: "-10%",
+  stat2Label: "Para técnicos matriculados",
   infoCards: [
     { title: "Envíos rápidos",  desc: "A todo el país" },
     { title: "WhatsApp",        desc: "Cotizá al instante" },

@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useCart } from "../Context/CartContext.jsx";
 import { useAuth } from "../Context/AuthContext.jsx";
 import { ShoppingCart, Menu, X, User, LogOut, Sun, Moon, Home, Package, Wrench } from "lucide-react";
@@ -11,10 +11,23 @@ import useWhatsappNumber from "../hooks/useWhatsappNumber.js";
 import useRegistrarVisita from "../hooks/useRegistrarVisita.js";
 
 function useDarkMode() {
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  // localStorage protegido igual que en el carrito: con las cookies bloqueadas,
+  // solo tocarlo tira un error, y como esto vive en el Layout, el sitio entero
+  // quedaba en blanco. Sin storage, el tema simplemente no se recuerda.
+  const [dark, setDark] = useState(() => {
+    try {
+      return localStorage.getItem("theme") === "dark";
+    } catch {
+      return false;
+    }
+  });
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("theme", dark ? "dark" : "light");
+    try {
+      localStorage.setItem("theme", dark ? "dark" : "light");
+    } catch {
+      // sin storage: el tema dura lo que dura la pestaña
+    }
   }, [dark]);
   return [dark, setDark];
 }
@@ -27,7 +40,15 @@ function Layout() {
   const [dark, setDark] = useDarkMode();
   const [scrolled, setScrolled] = useState(false);
   const whatsapp = useWhatsappNumber();
+  const { pathname } = useLocation();
   useRegistrarVisita(); // métricas propias de visitas (solo el sitio público)
+
+  // El menú del celular se cierra al cambiar de página. Los links del propio
+  // menú ya lo cerraban, pero la barra de abajo no: se tocaba "Pedido" con el
+  // menú abierto y quedaba abierto encima del carrito.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
@@ -146,6 +167,8 @@ function Layout() {
               className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors hover:bg-[var(--surface2)]"
               style={{ color: "var(--muted)" }}
               onClick={() => setMenuOpen(!menuOpen)}
+              aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={menuOpen}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>

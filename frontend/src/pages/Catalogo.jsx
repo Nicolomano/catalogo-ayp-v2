@@ -41,8 +41,17 @@ function Catalogo() {
   const [search, setSearch]               = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categories, setCategories]       = useState([]);
-  const [category, setCategory]           = useState("all");
-  const [subcategory, setSubcategory]     = useState("all");
+  // Arrancan desde la URL. Antes arrancaban en "all" y se corregían recién al
+  // llegar la lista de categorías: entrando desde una categoría de la home, la
+  // primera carga traía todo el catálogo y se veía un parpadeo de productos que
+  // no eran de esa categoría. Si la de la URL no existe, el efecto de abajo la
+  // vuelve a "all".
+  const [category, setCategory]           = useState(
+    () => new URLSearchParams(window.location.search).get("cat") || "all"
+  );
+  const [subcategory, setSubcategory]     = useState(
+    () => new URLSearchParams(window.location.search).get("sub") || "all"
+  );
   const [sort, setSort]                   = useState("soldCount:desc");
   const [brands, setBrands]               = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -53,9 +62,16 @@ function Catalogo() {
   // Lo más vendido, para no dejar la pantalla vacía cuando no hay resultados.
   const [sugeridos, setSugeridos]         = useState([]);
 
-  // Cuántos resultados vio la persona: se manda junto con la búsqueda al
-  // registrarla. Va en ref para no re-disparar el efecto del registro.
-  const ultimoTotal = useRef(0);
+  // Cuántos resultados vio la persona, y para qué término: se manda junto con
+  // la búsqueda al registrarla. Va en ref para no re-disparar el efecto. Lleva
+  // el término porque con la red lenta la respuesta puede tardar más que el
+  // registro, y se mandaba el total de la búsqueda anterior.
+  const ultimoTotal = useRef({ termino: null, total: 0 });
+  // Qué término ya se registró, para registrarlo UNA vez. El efecto del registro
+  // depende de allProducts (para esperar los resultados), y allProducts cambia
+  // con cada página que se carga al scrollear: sin esto, buscar "ruleman" y
+  // bajar tres páginas contaba como tres búsquedas.
+  const registrada = useRef(null);
 
   const loaderRef = useRef(null);
   const location  = useLocation();
@@ -76,10 +92,20 @@ function Catalogo() {
    * figuraban como tres búsquedas distintas de la misma persona.
    */
   useEffect(() => {
+    // Un término nuevo se puede volver a registrar (buscar A, después B, y
+    // volver a A son tres búsquedas de verdad).
+    registrada.current = null;
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     const termino = debouncedSearch.trim();
-    if (termino.length < 2) return;
+    if (termino.length < 2 || registrada.current === termino) return;
+    // Todavía no llegaron los resultados de ESTE término: cuando lleguen,
+    // allProducts cambia y este efecto vuelve a correr.
+    if (ultimoTotal.current.termino !== debouncedSearch) return;
     const t = setTimeout(() => {
-      API.post("/metrics/search", { term: termino, resultCount: ultimoTotal.current })
+      registrada.current = termino;
+      API.post("/metrics/search", { term: termino, resultCount: ultimoTotal.current.total })
         .catch(() => {});
     }, 1500);
     return () => clearTimeout(t);
@@ -136,7 +162,7 @@ function Catalogo() {
         if (page === 1) {
           setCorreccion(res.data?.correccion || null);
           setSugeridos(res.data?.sugeridos || []);
-          ultimoTotal.current = res.data?.total ?? 0;
+          ultimoTotal.current = { termino: debouncedSearch, total: res.data?.total ?? 0 };
         }
         startTransition(() =>
           setAllProducts((prev) => page === 1 ? incoming : [...prev, ...incoming])
@@ -228,7 +254,10 @@ function Catalogo() {
               lo primero que se ve, sobre todo en mobile. Las promos van en la Home. */}
 
           {/* Barra de búsqueda + controles */}
-          <div className="flex gap-2 mb-4">
+          {/* flex-wrap: en el celular el orden baja a su propia línea. Antes
+              estaba oculto debajo de 640px y desde el teléfono no había forma de
+              ordenar por precio. */}
+          <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border transition-colors"
@@ -243,7 +272,7 @@ function Catalogo() {
               )}
             </button>
 
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <input
                 type="text"
                 placeholder="Buscar por nombre o código..."
@@ -276,7 +305,8 @@ function Catalogo() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="hidden sm:block rounded-xl px-3 py-2.5 text-sm outline-none border"
+              aria-label="Ordenar productos"
+              className="w-full sm:w-auto rounded-xl px-3 py-2.5 text-sm outline-none border"
               style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
             >
               <option value="soldCount:desc">Más vendidos</option>
