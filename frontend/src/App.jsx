@@ -27,6 +27,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
 const AdminOrders = lazy(() => import("./components/AdminOrders.jsx"));
 const AdminProducts = lazy(() => import("./pages/AdminProducts.jsx"));
 const AdminDestacados = lazy(() => import("./pages/AdminDestacados.jsx"));
+const AdminCombos = lazy(() => import("./pages/AdminCombos.jsx"));
 const AdminImportar = lazy(() => import("./pages/AdminImportar.jsx"));
 const AdminBanners = lazy(() => import("./pages/AdminBanners.jsx"));
 const AdminConfig = lazy(() => import("./pages/AdminConfig.jsx"));
@@ -129,6 +130,7 @@ function App() {
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="destacados" element={<AdminDestacados />} />
+            <Route path="combos" element={<AdminCombos />} />
             <Route path="importar" element={<SoloTotal><AdminImportar /></SoloTotal>} />
             <Route path="banners" element={<AdminBanners />} />
             <Route path="config" element={<SoloTotal><AdminConfig /></SoloTotal>} />

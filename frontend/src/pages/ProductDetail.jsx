@@ -260,16 +260,67 @@ function ProductDetail() {
             </p>
 
             {!product.inStock && (
-              <span className="inline-block self-start text-xs font-semibold px-3 py-1 rounded-full mb-4"
-                style={{ background: "#FEF2F2", color: "#DC2626" }}>
-                Sin stock
-              </span>
+              <div className="mb-4">
+                <span className="inline-block self-start text-xs font-semibold px-3 py-1 rounded-full"
+                  style={{ background: "#FEF2F2", color: "#DC2626" }}>
+                  Sin stock
+                </span>
+                {/* En un combo, saber QUÉ pieza falta es lo que le permite a la
+                    persona preguntar por esa pieza en vez de irse. */}
+                {product.faltan?.length > 0 && (
+                  <p className="text-xs mt-1.5" style={{ color: "#DC2626" }}>
+                    Falta: {product.faltan.join(", ")}
+                  </p>
+                )}
+              </div>
             )}
 
             {product.description && (
               <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>
                 {product.description}
               </p>
+            )}
+
+            {/* De qué está hecho el combo. Va con los códigos porque el técnico
+                los reconoce y porque es lo que después sale en el pedido. */}
+            {product.componentesDetalle?.length > 0 && (
+              <div
+                className="rounded-2xl p-4 mb-6"
+                style={{ background: "var(--brand-tint)" }}
+              >
+                <p className="text-sm font-bold mb-2.5" style={{ color: "var(--text)" }}>
+                  Qué incluye
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {product.componentesDetalle.map((c) => (
+                    <li key={c.productCode} className="flex items-start gap-2 text-sm">
+                      <span className="font-bold" style={{ color: "var(--brand)" }}>
+                        {c.quantity}×
+                      </span>
+                      <span className="flex-1">
+                        <Link
+                          to={`/product/${c.productCode}`}
+                          className="hover:underline"
+                          style={{ color: "var(--text)" }}
+                        >
+                          {formatTitle(c.name)}
+                        </Link>
+                        <span className="font-mono text-xs ml-1.5" style={{ color: "var(--muted)" }}>
+                          {c.productCode}
+                        </span>
+                        {!c.inStock && (
+                          <span className="text-xs font-semibold ml-1.5" style={{ color: "#DC2626" }}>
+                            sin stock
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs mt-3" style={{ color: "var(--muted)" }}>
+                  El precio es la suma de estos productos.
+                </p>
+              </div>
             )}
 
             {displayPrice ? (

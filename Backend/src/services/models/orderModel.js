@@ -14,6 +14,28 @@ const orderSchema = new mongoose.Schema(
             quantity: { type: Number, required: true, min: 1 },
         priceUSD: Number,
         priceARS: Number,
+
+        /**
+         * Si la línea es un combo, de qué piezas estaba hecho.
+         *
+         * En el sistema de A&P los combos no existen: el presupuesto final se
+         * carga pieza por pieza, así que el pedido tiene que traer los códigos.
+         *
+         * Es una FOTO del momento del pedido, no una referencia al combo: si
+         * mañana se le cambian las piezas, este presupuesto tiene que seguir
+         * diciendo lo que se pidió ese día.
+         *
+         * `quantity` es la cantidad TOTAL a facturar, ya multiplicada por la
+         * cantidad de combos pedidos: es el número que se carga en el sistema.
+         */
+        componentes: [
+          {
+            _id: false,
+            name: String,
+            productCode: String,
+            quantity: Number,
+          },
+        ],
       },
     ],
     totalUSD: { type: Number, required: true },

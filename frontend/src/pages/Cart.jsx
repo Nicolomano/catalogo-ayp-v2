@@ -174,7 +174,8 @@ function Cart() {
       {/* Items */}
       <div className="space-y-3 mb-6">
         {cart.map((item) => (
-          <div key={item._id} className="bento p-4 flex items-center gap-4">
+          <div key={item._id} className="bento p-4">
+            <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{ background: "var(--surface2)" }}>
               {item.image
@@ -218,7 +219,36 @@ function Cart() {
                 className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors text-red-400 hover:text-red-600 hover:bg-red-50">
                 <Trash2 className="h-4 w-4" />
               </button>
+              </div>
             </div>
+
+            {/* Si es un combo, las piezas con su código.
+
+                No es un adorno: en el sistema de A&P los combos no existen, el
+                presupuesto se carga pieza por pieza, y esto es exactamente lo
+                que va a llegar por WhatsApp. Que el cliente vea lo mismo que ve
+                quien atiende evita la mitad de las idas y vueltas.
+
+                Las cantidades son las TOTALES (por la cantidad de combos),
+                igual que en el mensaje. */}
+            {item.componentesDetalle?.length > 0 && (
+              <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--text2)" }}>
+                  Incluye
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {item.componentesDetalle.map((c) => (
+                    <li key={c.productCode} className="text-xs flex gap-1.5" style={{ color: "var(--muted)" }}>
+                      <span className="font-semibold" style={{ color: "var(--text2)" }}>
+                        {c.quantity * item.quantity}×
+                      </span>
+                      <span className="flex-1">{c.name}</span>
+                      <span className="font-mono">{c.productCode}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ))}
       </div>

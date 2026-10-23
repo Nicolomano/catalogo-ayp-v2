@@ -22,6 +22,12 @@ import {
   listFeaturedAdmin,
   reorderFeatured,
 } from "../controllers/productsController.js";
+import {
+  listarCombos,
+  crearCombo,
+  actualizarCombo,
+  cotizarCombo,
+} from "../controllers/comboController.js";
 import { protect, requireAdmin, requireNivelTotal } from "../middlewares/authMiddleware.js";
 import uploadCloud, { uploadExcel } from "../middlewares/multer.js";
 
@@ -42,6 +48,13 @@ productRouter.get("/export/excel",    protect, requireAdmin, exportProductsExcel
 
 // Admin
 productRouter.get("/admin/all",             protect, requireAdmin, getProductsAdmin);
+// Combos. Van ANTES de la ruta genérica /:category, como todo lo demás de acá.
+// Borrar, activar y destacar un combo usan las rutas de producto de abajo: un
+// combo ES un producto, y lo único propio es armarlo.
+productRouter.get("/combos/list",           protect, requireAdmin, listarCombos);
+productRouter.post("/combos/cotizar",       protect, requireAdmin, cotizarCombo);
+productRouter.post("/combos",               protect, requireAdmin, crearCombo);
+productRouter.put("/combos/:id",            protect, requireAdmin, actualizarCombo);
 productRouter.get("/featured/list",         protect, requireAdmin, listFeaturedAdmin);
 productRouter.patch("/featured/reorder",    protect, requireAdmin, reorderFeatured);
 // migrate-categories: script de migración de una sola vez, no se expone como ruta HTTP.

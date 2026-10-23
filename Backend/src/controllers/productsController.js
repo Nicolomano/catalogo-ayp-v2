@@ -4,6 +4,7 @@ import Config from "../services/models/configModel.js";
 import Category from "../services/models/category.js";
 import { filtroBusqueda, filtroReintento } from "../utils/busqueda.js";
 import { vocabulario } from "../utils/vocabulario.js";
+import { resolverCombos, recalcularCombosGuardados, SOLO_PRODUCTOS } from "../utils/combos.js";
 import XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
@@ -203,14 +204,18 @@ export async function getProductByCode(req, res) {
       {
         new: true,
         projection:
-          "productCode name description brand image priceARS inStock categories subcategories",
+          "productCode name description brand image priceARS inStock categories subcategories componentes",
       }
-    );
+    ).lean();
 
     if (!product)
       return res
         .status(404)
         .json({ message: `No se encontró producto con código ${productCode}` });
+
+    // Si es un combo, acá se le completan precio, stock y la lista de qué
+    // incluye, que es lo que muestra la ficha.
+    await resolverCombos(product);
 
     res.status(200).json(product);
   } catch (error) {
@@ -296,7 +301,7 @@ export const getProductsByCategory = async (req, res) => {
       const [docs, cuenta] = await Promise.all([
         productModel
           .find(f)
-          .select("productCode name brand image priceARS inStock")
+          .select("productCode name brand image priceARS inStock componentes")
           .sort(sortOption)
           .skip(skip)
           .limit(parsedLimit)
@@ -344,11 +349,17 @@ export const getProductsByCategory = async (req, res) => {
       else delete filtroSinTermino.$and;
       sugeridos = await productModel
         .find(filtroSinTermino)
-        .select("productCode name brand image priceARS inStock")
+        .select("productCode name brand image priceARS inStock componentes")
         .sort({ soldCount: -1 })
         .limit(8)
         .lean();
     }
+
+    // Los combos no tienen precio ni stock propios: salen de la suma de sus
+    // piezas, con los precios de hoy (ver utils/combos.js). Si la página no
+    // trae ningún combo, esto no consulta nada.
+    await resolverCombos(products);
+    if (sugeridos.length) await resolverCombos(sugeridos);
 
     res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({
@@ -393,9 +404,14 @@ export async function revalidarProductos(req, res) {
     const productos = validos.length
       ? await productModel
           .find({ _id: { $in: validos }, active: true })
-          .select("productCode name image priceARS inStock")
+          .select("productCode name image priceARS inStock componentes")
           .lean()
       : [];
+
+    // Un combo que quedó en el carrito se recotiza con los precios de hoy, y
+    // si a una pieza le falta stock vuelve marcado sin stock: el carrito lo
+    // saca solo, como hace con cualquier producto.
+    await resolverCombos(productos);
 
     res.set("Cache-Control", "no-store");
     res.json({ productos });
@@ -432,6 +448,15 @@ export const toggleProduct = async (req, res) => {
 
     product.active = !product.active;
     await product.save();
+
+    // Si esa pieza está en algún combo, el stock y el precio GUARDADOS del
+    // combo quedaron viejos. Lo que se muestra se calcula al vuelo, pero el
+    // valor guardado es el que usa Mongo para ordenar y para elegir qué
+    // mostrar cuando una búsqueda no encuentra nada. Si no hay combos, sale
+    // en la primera línea.
+    await recalcularCombosGuardados().catch((e) =>
+      console.error("No se pudieron recalcular los combos:", e.message)
+    );
 
     res.json({
       message: `Producto ${
@@ -507,6 +532,8 @@ export const getProductsAdmin = async (req, res) => {
         .lean(),
       productModel.countDocuments(filter),
     ]);
+
+    await resolverCombos(products);
 
     res.json({
       total,
@@ -652,7 +679,7 @@ export const getProductsSitemap = async (req, res) => {
 /* ----------------------- PRODUCTOS LANDING ----------------------- */
 export const getLandingProducts = async (req, res) => {
   try {
-    const cardFields = "productCode name brand image priceARS inStock";
+    const cardFields = "productCode name brand image priceARS inStock componentes";
     const [featured, newArrivals] = await Promise.all([
       productModel
         .find({ active: true, featured: true })
@@ -667,6 +694,8 @@ export const getLandingProducts = async (req, res) => {
         .limit(8)
         .lean(),
     ]);
+    await resolverCombos([...featured, ...newArrivals]);
+
     res.set("Cache-Control", "public, max-age=60");
     res.json({ featured, newArrivals });
   } catch (error) {
@@ -752,6 +781,16 @@ export const toggleStock = async (req, res) => {
     if (!product) return res.status(404).json({ message: "Producto no encontrado" });
     product.inStock = !product.inStock;
     await product.save();
+
+    // Si esa pieza está en algún combo, el stock y el precio GUARDADOS del
+    // combo quedaron viejos. Lo que se muestra se calcula al vuelo, pero el
+    // valor guardado es el que usa Mongo para ordenar y para elegir qué
+    // mostrar cuando una búsqueda no encuentra nada. Si no hay combos, sale
+    // en la primera línea.
+    await recalcularCombosGuardados().catch((e) =>
+      console.error("No se pudieron recalcular los combos:", e.message)
+    );
+
     res.json({ message: `Stock ${product.inStock ? "disponible" : "agotado"}`, product });
   } catch (error) {
     console.error(error);
@@ -995,9 +1034,14 @@ export const previewImportExcel = async (req, res) => {
       }
     }
 
-    // Faltantes: productos ACTIVOS en la web cuyo código no está en el Excel
+    // Faltantes: productos ACTIVOS en la web cuyo código no está en el Excel.
+    //
+    // Los combos quedan afuera a propósito: un combo no existe en el sistema
+    // del contable, así que NUNCA va a venir en el Excel, y si entrara acá
+    // aparecería en la lista de borrar con un tilde al lado. No hay
+    // soft-delete: un clic y se pierde.
     const activeProducts = await productModel
-      .find({ active: true })
+      .find({ active: true, ...SOLO_PRODUCTOS })
       .select("_id productCode name priceARS image")
       .lean();
     const missing = activeProducts.filter((d) => !excelCodeSet.has(d.productCode));
@@ -1228,7 +1272,12 @@ export const commitImportExcel = async (req, res) => {
     }
 
     // ── Faltantes: validar contra los que realmente NO están en el Excel ──
-    const activeCodes = await productModel.find({ active: true }).select("productCode").lean();
+    // Igual que en el preview: los combos no cuentan como faltantes, porque no
+    // están en ningún Excel y se borrarían en cada importación.
+    const activeCodes = await productModel
+      .find({ active: true, ...SOLO_PRODUCTOS })
+      .select("productCode")
+      .lean();
     const missingSet = new Set(
       activeCodes.map((d) => d.productCode).filter((c) => !excelCodeSet.has(c))
     );
@@ -1264,9 +1313,18 @@ export const commitImportExcel = async (req, res) => {
       deactivated = r.modifiedCount || 0;
     }
 
+    // El Excel acaba de cambiar precios y stock de las piezas, así que el
+    // precio GUARDADO de los combos quedó viejo. Mostrar y cotizar se calculan
+    // al vuelo, pero el valor guardado es el que usa Mongo para ordenar y
+    // filtrar por precio en el catálogo.
+    const combos = await recalcularCombosGuardados().catch((e) => {
+      console.error("No se pudieron recalcular los combos:", e.message);
+      return 0;
+    });
+
     const ms = Date.now() - t0;
-    console.log(`[import-commit] ${ms}ms · creados=${created} actualizados=${updated} eliminados=${deleted} desactivados=${deactivated} omitidos=${skipped} errores=${errors.length}`);
-    res.json({ created, updated, skipped, deleted, deactivated, errors: errors.slice(0, 50), ms });
+    console.log(`[import-commit] ${ms}ms · creados=${created} actualizados=${updated} eliminados=${deleted} desactivados=${deactivated} omitidos=${skipped} errores=${errors.length} combos=${combos}`);
+    res.json({ created, updated, skipped, deleted, deactivated, combos, errors: errors.slice(0, 50), ms });
   } catch (error) {
     console.error("Error en commit de import:", error);
     res.status(500).json({ message: "Error importando Excel"});

@@ -42,6 +42,25 @@ const productSchema = new mongoose.Schema(
     featuredOrder: { type: Number, default: 0 },
     views:     { type: Number, default: 0 },
     soldCount: { type: Number, default: 0 },
+
+    /**
+     * 📦 De qué está hecho un combo. Vacío o ausente = producto normal.
+     *
+     * Un combo ES un producto, no otra cosa: así aparece en el catálogo, en el
+     * buscador, en los filtros, en el carrito y en las métricas sin que haya
+     * que tocar nada de eso. Lo único propio es que su precio y su stock se
+     * calculan a partir de estas piezas (ver utils/combos.js).
+     *
+     * Se guardan por productCode y no por _id porque es el código lo que se
+     * carga a mano desde el panel y lo que viaja en el Excel del contable.
+     */
+    componentes: [
+      {
+        _id: false,
+        productCode: { type: String, required: true, trim: true },
+        quantity: { type: Number, required: true, min: 1, default: 1 },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -61,6 +80,9 @@ productSchema.index({ active: 1, soldCount: -1 });
 productSchema.index({ active: 1, views: -1 });
 productSchema.index({ active: 1, createdAt: -1 });
 productSchema.index({ featured: 1, featuredOrder: 1 });
+// Para separar combos de productos: la importación de Excel no los puede tocar y
+// el panel los lista aparte.
+productSchema.index({ active: 1, "componentes.0": 1 });
 
 // ⚙️ recalcula el precio en ARS si no es fijo
 productSchema.pre("save", async function (next) {

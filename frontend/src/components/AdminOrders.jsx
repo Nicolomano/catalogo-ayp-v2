@@ -155,8 +155,9 @@ function AdminOrders() {
                     Productos del pedido
                   </p>
                   {order.products.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 py-2 border-b last:border-0"
+                    <div key={i} className="py-2 border-b last:border-0"
                       style={{ borderColor: "var(--border)" }}>
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>{p.name}</p>
                         {p.productCode && (
@@ -171,6 +172,27 @@ function AdminOrders() {
                           = {(p.quantity * p.priceARS)?.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })}
                         </p>
                       </div>
+                    </div>
+
+                    {/* Las piezas de un combo, con su código y la cantidad total.
+
+                        En el sistema los combos no existen: el presupuesto se
+                        carga pieza por pieza. Esto es para poder cargarlo desde
+                        acá sin tener que volver al WhatsApp.
+
+                        Es la foto del día del pedido: si después se le cambiaron
+                        las piezas al combo, acá sigue estando lo que se pidió. */}
+                    {p.componentes?.length > 0 && (
+                      <div className="mt-1.5 ml-3 pl-3" style={{ borderLeft: "2px solid var(--border)" }}>
+                        {p.componentes.map((c, j) => (
+                          <p key={j} className="text-xs flex gap-2" style={{ color: "var(--muted)" }}>
+                            <span className="font-semibold">{c.quantity}×</span>
+                            <span className="flex-1 truncate">{c.name}</span>
+                            <span className="font-mono">#{c.productCode}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     </div>
                   ))}
                 </div>

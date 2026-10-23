@@ -18,6 +18,7 @@ import {
   X,
   BarChart3,
   ShieldCheck,
+  Boxes,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
 import { esAdminTotal } from "../utils/auth.js";
@@ -39,6 +40,7 @@ const NAV_GROUPS = [
       { to: "/admin/products", icon: Package, label: "Productos" },
       { to: "/admin/importar", icon: Upload, label: "Importar Excel", soloTotal: true },
       { to: "/admin/destacados", icon: Star, label: "Destacados" },
+      { to: "/admin/combos", icon: Boxes, label: "Combos" },
       { to: "/admin/categories", icon: FolderTree, label: "Categorías" },
       { to: "/admin/install-kit", icon: Wrench, label: "Kit de instalación", soloTotal: true },
     ],

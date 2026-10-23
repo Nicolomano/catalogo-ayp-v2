@@ -5,6 +5,7 @@ import Config from "../services/models/configModel.js";
 import SiteConfig from "../services/models/siteConfigModel.js";
 import Product from "../services/models/productModel.js";
 import serviceUserModel from "../services/models/serviceUserModel.js";
+import { resolverCombos } from "../utils/combos.js";
 import config from "../config/config.js";
 
 const JWT_SECRET = config.jwtSecret;
@@ -98,8 +99,12 @@ export const createOrder = async (req, res) => {
       .map((it) => it.productId)
       .filter((id) => mongoose.isValidObjectId(id));
     const encontrados = idsValidos.length
-      ? await Product.find({ _id: { $in: idsValidos }, active: true })
+      ? await Product.find({ _id: { $in: idsValidos }, active: true }).lean()
       : [];
+    // Un combo no tiene precio ni stock propios: salen de la suma de sus
+    // piezas, con los precios de hoy. Se resuelve ACÁ, del lado servidor, por
+    // el mismo motivo que el descuento: lo que manda el navegador no se cree.
+    await resolverCombos(encontrados);
     const porId = new Map(encontrados.map((p) => [String(p._id), p]));
 
     // Releemos cada producto desde DB para evitar manipulación del precio
@@ -112,7 +117,12 @@ export const createOrder = async (req, res) => {
         continue;
       }
       if (prod.inStock === false) {
-        descartados.push({ productId: item.productId, name: prod.name, motivo: "sin stock" });
+        // En un combo, saber QUÉ pieza lo frena es la diferencia entre poder
+        // reponerla y tener que revisar el combo entero a mano.
+        const motivo = prod.faltan?.length
+          ? `sin stock: falta ${prod.faltan.join(", ")}`
+          : "sin stock";
+        descartados.push({ productId: item.productId, name: prod.name, motivo });
         continue;
       }
 
@@ -142,6 +152,13 @@ export const createOrder = async (req, res) => {
         quantity: qty,
         priceUSD,
         priceARS,
+        // La cantidad de cada pieza se guarda ya multiplicada por la cantidad
+        // de combos: es el número que se carga en el sistema para facturar.
+        componentes: (prod.componentesDetalle || []).map((c) => ({
+          name: c.name,
+          productCode: c.productCode,
+          quantity: c.quantity * qty,
+        })),
       });
     }
 
@@ -173,14 +190,21 @@ export const createOrder = async (req, res) => {
 
     // Texto de WhatsApp: va dirigido AL LOCAL
     const lines = orderProducts
-      .map(
-        (p) =>
-          `• ${p.quantity}× ${p.name} (Código: ${
-            p.productCode
-          }) — ${formatMoney(p.priceARS * p.quantity)} ARS (${formatMoney(
-            p.priceARS
-          )} c/u)`
-      )
+      .map((p) => {
+        const linea =
+          `• ${p.quantity}× ${p.name} (Código: ${p.productCode})` +
+          ` — ${formatMoney(p.priceARS * p.quantity)} ARS (${formatMoney(p.priceARS)} c/u)`;
+        if (!p.componentes?.length) return linea;
+
+        // El combo va con el detalle de sus piezas porque en el sistema de A&P
+        // los combos no existen: el presupuesto se carga pieza por pieza. Las
+        // piezas van SIN precio a propósito, para que no haya dos totales
+        // distintos en el mismo mensaje; el precio es uno solo, el del combo.
+        const piezas = p.componentes
+          .map((c) => `    ↳ ${c.quantity}× ${c.name} (Código: ${c.productCode})`)
+          .join("\n");
+        return `${linea}\n${piezas}`;
+      })
       .join("\n");
 
     const text = encodeURIComponent(

@@ -41,6 +41,10 @@ export default function ProductCard({ product, showInstallments = true }) {
 
   const displayPrice = isServiceApproved ? servicePrice(product.priceARS) : product.priceARS;
   const outOfStock = product.inStock === false;
+  // Un combo es un producto armado con otros productos. Su precio y su stock
+  // ya vienen calculados del servidor (Backend/src/utils/combos.js); acá solo
+  // se avisa que lo es, porque cambia lo que la persona cree que está comprando.
+  const piezas = product.componentes?.length || 0;
 
   // La cantidad sale del carrito real: así el stepper refleja lo que hay en el
   // pedido y no un estado local que quedaba pegado después de agregar.
@@ -77,6 +81,14 @@ export default function ProductCard({ product, showInstallments = true }) {
               Sin stock
             </span>
           )}
+          {piezas > 0 && (
+            <span
+              className="absolute top-1.5 right-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{ background: "var(--brand)", color: "#fff" }}
+            >
+              Combo
+            </span>
+          )}
           <div className="product-card-overlay rounded-t-[20px]">
             <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-sm">
               Ver producto
@@ -85,10 +97,16 @@ export default function ProductCard({ product, showInstallments = true }) {
         </div>
 
         <div className="px-3 pt-3">
-          {product.brand && (
-            <p className="text-xs font-medium mb-0.5" style={{ color: "var(--muted)" }}>
-              {product.brand}
+          {piezas > 0 ? (
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--brand)" }}>
+              {piezas} productos en uno
             </p>
+          ) : (
+            product.brand && (
+              <p className="text-xs font-medium mb-0.5" style={{ color: "var(--muted)" }}>
+                {product.brand}
+              </p>
+            )
           )}
           <h3 className="text-sm font-semibold line-clamp-2" style={{ color: "var(--text)" }}>
             {formatTitle(product.name)}
