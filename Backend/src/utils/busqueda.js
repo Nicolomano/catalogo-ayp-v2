@@ -67,8 +67,14 @@ const SINONIMOS = {
   // que corrige los nombres en la base (scripts/corregirMarcas.mjs), pero esto
   // queda igual como red de seguridad: el próximo Excel puede traer un producto
   // nuevo mal escrito.
-  whirlpool: ["whirpool"],
-  whirpool: ["whirlpool"],
+  // El catálogo tiene cuatro formas de la misma marca: WHIRLPOOL, WHIRPOOL
+  // (sin la L), WHIRPOLL y la abreviatura WHIR. / WHIRL. Buscar "whir" las
+  // encuentra todas y, verificado en producción, no encuentra nada que no sea
+  // de esa marca. La abreviatura no se corrige en la base: ahí está a
+  // propósito, y lo que haría falta para alcanzarla es justamente esto.
+  whirlpool: ["whir"],
+  whirpool: ["whir"],
+  whirpoll: ["whir"],
   tecumseh: ["tecumshe"],
   tecumshe: ["tecumseh"],
   kohinoor: ["kohinor"],

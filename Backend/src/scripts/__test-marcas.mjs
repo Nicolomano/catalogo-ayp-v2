@@ -62,6 +62,10 @@ const SEMILLA = [
   { name: "VALVULA DANFOS 3/8", brand: "" },
   { name: "FILTRO DANFOSS 1/4 SOLDAR", brand: "" },       // DANFOSS no se toca
   { name: "ESLABON de lujo 10 MM", brand: "" },           // nada que ver
+  // Se agregan al final a propósito: el código de producto sale de la posición,
+  // y meterlos en el medio le cambiaría el código a todos los de abajo.
+  { name: "INTERFASE WHIRPOLL WRE48D/DR", brand: "" },    // otra grafía más
+  { name: "RETEN BRU-C WHIR. 680 3 LABIOS", brand: "" },  // abreviatura: no se toca
 ];
 
 await productModel.insertMany(
@@ -154,6 +158,16 @@ await check("No toca lo que ya estaba bien escrito", async () => {
   esperar((await nombreDe("30000007")).name, "ESLABON de lujo 10 MM", "producto ajeno");
 });
 
+await check("Corrige WHIRPOLL pero deja la abreviatura WHIR.", async () => {
+  esperar((await nombreDe("30000008")).name, "INTERFASE WHIRLPOOL WRE48D/DR", "whirpoll");
+  esperar(
+    (await nombreDe("30000009")).name,
+    "RETEN BRU-C WHIR. 680 3 LABIOS",
+    "la abreviatura del contable está a propósito"
+  );
+  return "a WHIR. la alcanza el alias del buscador, no hace falta reescribirla";
+});
+
 await check("Correrlo de nuevo no encuentra nada que corregir", () => {
   const salida = correr("--confirmar");
   if (!/No hay nada que corregir/.test(salida)) throw new Error(`salida inesperada:\n${salida}`);
@@ -177,8 +191,8 @@ await check("No revierte lo que se editó después de la corrida", async () => {
     { $set: { name: "TURBINA WHIRLPOOL 220V REFORZADA" } }
   );
   const salida = correr("--deshacer", registro);
-  if (!/se revertirían 4 de 5/.test(salida)) {
-    throw new Error(`esperaba 4 de 5 reversibles:\n${salida}`);
+  if (!/se revertirían 5 de 6/.test(salida)) {
+    throw new Error(`esperaba 5 de 6 reversibles:\n${salida}`);
   }
   return "el que cambió a mano queda afuera";
 });

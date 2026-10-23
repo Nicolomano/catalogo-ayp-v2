@@ -92,10 +92,12 @@ const NOMBRES = [
   "ESLABON de lujo 10 MM",
   // El nombre abreviado que ningún acortamiento a ciegas alcanzaba
   "Valv.de seguridad BITZER",
-  // Las dos grafías de la misma marca, como están en producción
+  // Las cuatro formas de la misma marca, como están en producción
   "PLACA POTENCIA WHIRLPOOL 6° SENTIDO",
   "MOTOR LAVARROPAS WHIRLPOOL",
   "TURBINA WHIRPOOL",
+  "INTERFASE WHIRPOLL WRE48D/DR/ER/EB",
+  "RETEN BRU-C WHIR. 680 3 LABIOS MOD/NUEVO",
   "MOTOC.TECUMSHE 1/4 R134",
 ];
 
@@ -257,13 +259,15 @@ await check("Un prefijo no puede recortar más de 4 letras", () => {
 console.log("\nLas marcas escritas de las dos formas");
 console.log("─".repeat(50));
 
-await check("«whirlpool» encuentra también los WHIRPOOL", async () => {
-  esperar(await contar("whirlpool"), 4, "resultados");
-  return "2 bien escritos + 2 sin la L";
+await check("«whirlpool» encuentra las cuatro formas de la marca", async () => {
+  esperar(await contar("whirlpool"), 6, "resultados");
+  return "WHIRLPOOL, WHIRPOOL, WHIRPOLL y la abreviatura WHIR.";
 });
 
-await check("«whirpool» encuentra también los WHIRLPOOL", async () => {
-  esperar(await contar("whirpool"), 4, "resultados");
+await check("Escribirla mal encuentra exactamente lo mismo", async () => {
+  esperar(await contar("whirpool"), 6, "whirpool");
+  esperar(await contar("whirpoll"), 6, "whirpoll");
+  return "escribirla bien no puede ver menos productos que escribirla mal";
 });
 
 await check("«tecumseh» encuentra también el TECUMSHE", async () => {

@@ -42,7 +42,7 @@ import path from "path";
  * Se compara con límites de palabra, así que corregir DANFOS no toca DANFOSS.
  */
 const MARCAS = [
-  ["Whirlpool", ["WHIRPOOL", "WHILPOOL", "WIRLPOOL"]],
+  ["Whirlpool", ["WHIRPOOL", "WHIRPOLL", "WHILPOOL", "WIRLPOOL"]],
   ["Tecumseh", ["TECUMSHE", "TECUNSEH"]],
   ["Kohinoor", ["KOHINOR"]],
   ["Danfoss", ["DANFOS"]],
