@@ -22,6 +22,21 @@ export const DESCRIPCION_HOME =
   `Repuestos de refrigeración en ${ZONA}, zona norte del GBA: motocompresores, ` +
   "gas, caños de cobre, plaquetas y más. Envíos a todo el país.";
 
+// Cada página pública declara los suyos. Kit y Contacto no lo hacían y heredaban
+// los de index.html, que son los de la home: Google las marcó como "duplicada,
+// sin versión canónica" de la home.
+export const TITULO_KIT = `Kit de instalación de aire acondicionado | ${NEGOCIO}`;
+
+export const DESCRIPCION_KIT =
+  "Calculá los materiales para instalar un split: caño de cobre, aislante, ménsulas, " +
+  "tacos, cable y manguera. Elegí las medidas y armá el pedido con el total al instante.";
+
+export const TITULO_CONTACTO = `Contacto | ${NEGOCIO}`;
+
+export const DESCRIPCION_CONTACTO =
+  `Encontranos en ${ZONA}, zona norte del GBA. Consultá por productos, precios o envíos ` +
+  "por WhatsApp o teléfono.";
+
 export const TITULO_CATALOGO = `Productos | ${NEGOCIO}`;
 
 export const DESCRIPCION_CATALOGO =

@@ -7,7 +7,8 @@ const STATIC_ROUTES = [
   { path: "/catalogo",         priority: "0.9", changefreq: "daily"   },
   { path: "/kit-instalacion",  priority: "0.7", changefreq: "monthly" },
   { path: "/contacto",         priority: "0.6", changefreq: "monthly" },
-  { path: "/privacidad",       priority: "0.2", changefreq: "yearly"  },
+  // /privacidad no va: tiene noindex, y pedirle a Google que indexe una página
+  // que le dice que no la indexe termina en un aviso en Search Console.
 ];
 
 function urlEntry({ loc, lastmod, changefreq, priority }) {

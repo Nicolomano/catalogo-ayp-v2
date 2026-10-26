@@ -3,6 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
 import toast from "react-hot-toast";
 import { useAuth } from "../Context/AuthContext.jsx";
+import { Helmet } from "react-helmet-async";
+import { TITULO_KIT, DESCRIPCION_KIT } from "../utils/seo.js";
+
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
 const stepperClamp = (n, step = 0.5) =>
   Math.max(0, Math.round(n / step) * step);
@@ -107,6 +111,16 @@ export default function KitInstalacion() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      {/* Título y canonical propios: sin esto heredaba los de la home desde
+          index.html, y Google la marcaba como copia de la home. */}
+      <Helmet>
+        <title>{TITULO_KIT}</title>
+        <meta name="description" content={DESCRIPCION_KIT} />
+        <link rel="canonical" href={`${SITE_URL}/kit-instalacion`} />
+        <meta property="og:title" content={TITULO_KIT} />
+        <meta property="og:description" content={DESCRIPCION_KIT} />
+        <meta property="og:url" content={`${SITE_URL}/kit-instalacion`} />
+      </Helmet>
 
       {/* Encabezado */}
       <div>

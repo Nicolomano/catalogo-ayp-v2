@@ -299,6 +299,31 @@ await check("El sitemap trae las categorías y subcategorías", async () => {
   return `${subs} subcategorías`;
 });
 
+await check("Cada página fija del sitemap tiene título y canonical propios, y se puede indexar", async () => {
+  // Kit y Contacto no declaraban nada y heredaban de index.html el título de la
+  // home: Search Console las marcó como "duplicada, sin versión canónica".
+  const PAGINAS = {
+    "/": "Landing.jsx",
+    "/catalogo": "Catalogo.jsx",
+    "/kit-instalacion": "KitInstalacion.jsx",
+    "/contacto": "Contacto.jsx",
+  };
+  const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "pages");
+  const r = await llamar(sitemap, {});
+  const fijas = [...r.body.matchAll(/<loc>https:\/\/www\.refrigeracionayp\.com([^<]*)<\/loc>/g)]
+    .map((m) => m[1] || "/")
+    .filter((ruta) => !ruta.startsWith("/product/") && !ruta.startsWith("/catalogo/"));
+  for (const ruta of fijas) {
+    const archivo = PAGINAS[ruta];
+    if (!archivo) throw new Error(`${ruta} está en el sitemap pero no en esta prueba: agregala`);
+    const fuente = fs.readFileSync(path.join(dir, archivo), "utf8");
+    if (!fuente.includes('rel="canonical"')) throw new Error(`${ruta} no declara canonical`);
+    if (/content="noindex/.test(fuente)) throw new Error(`${ruta} tiene noindex y está en el sitemap`);
+    if (ruta !== "/" && fuente.includes("TITULO_HOME")) throw new Error(`${ruta} usa el título de la home`);
+  }
+  return fijas.join(", ");
+});
+
 await check("Un nombre con </script> no rompe el JSON-LD", () => {
   const bloque = jsonLd({ name: "</script><script>alert(1)</script>" });
   esperar((bloque.match(/<\/script>/g) || []).length, 1, "cierres de script");

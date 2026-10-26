@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import API from "../api/axios";
+import { Helmet } from "react-helmet-async";
+import { TITULO_CONTACTO, DESCRIPCION_CONTACTO } from "../utils/seo.js";
+
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.refrigeracionayp.com";
 
 const FALLBACK = {
   phone:     "+5491168815837",
@@ -47,6 +51,16 @@ export default function Contacto() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+      {/* Título y canonical propios: sin esto heredaba los de la home desde
+          index.html, y Google la marcaba como copia de la home. */}
+      <Helmet>
+        <title>{TITULO_CONTACTO}</title>
+        <meta name="description" content={DESCRIPCION_CONTACTO} />
+        <link rel="canonical" href={`${SITE_URL}/contacto`} />
+        <meta property="og:title" content={TITULO_CONTACTO} />
+        <meta property="og:description" content={DESCRIPCION_CONTACTO} />
+        <meta property="og:url" content={`${SITE_URL}/contacto`} />
+      </Helmet>
 
       <div>
         <span
