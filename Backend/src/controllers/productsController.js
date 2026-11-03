@@ -873,39 +873,57 @@ function detectFormat(rows) {
 
 /* ----------------------- IMPORTAR EXCEL ----------------------- */
 /**
+ * Las columnas de la fila con el nombre en minúscula. El sistema contable
+ * cambió la exportación: antes los encabezados venían como "Codigo_catalogo"
+ * y ahora vienen en MAYÚSCULA ("CODIGO_CATALOGO").
+ */
+function lowerCaseKeys(row) {
+  const result = {};
+  for (const [key, value] of Object.entries(row)) result[key.trim().toLowerCase()] = value;
+  return result;
+}
+
+/** El primer valor que no esté vacío. Una celda vacía puede llegar como "". */
+const firstNonEmpty = (...values) =>
+  values.find((v) => v !== undefined && v !== null && String(v).trim() !== "");
+
+/**
  * Extrae los campos de una fila del Excel (misma lógica que la versión anterior,
  * separada en helper para poder armar las operaciones en memoria).
- * Devuelve { code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag }.
+ * Devuelve { code, nombre, priceARS, priceUSD, inStock, brandVal, parsedCats, parsedSubs, fixedFlag }
+ * y, en el formato del sistema contable, stockRead.
  */
 function extractRow(row, format) {
   if (format === "new") {
-    const code = String(
-      row["Codigo_catalogo"] ?? row["Codigo_catalogo"] ??
-      row["Codigo_ze"] ?? row["Codigo_Ze"] ?? row["CODIGO_ZE"] ?? ""
-    ).trim();
+    const cols = lowerCaseKeys(row);
 
-    const nombre = String(row["Descripcion"] ?? row["descripcion"] ?? code).trim();
+    let code = String(firstNonEmpty(cols.codigo_catalogo, cols.codigo_ze) ?? "").trim();
+    // La exportación agrupada trae, debajo de los encabezados, una franja con
+    // "LOS PRECIOS INCLUIDOS EN ESTE CATALOGO...". Un código nunca tiene espacios:
+    // sin esto, esa franja entraba como un producto nuevo.
+    if (/\s/.test(code)) code = "";
 
-    const rubro = String(row["Rubro"] ?? row["rubro"] ?? "").trim();
-    const subrubro = String(row["SubRubro"] ?? row["Subrubro"] ?? row["subrubro"] ?? "").trim();
-    const parsedCats = rubro && rubro.toUpperCase() !== "TODOS" ? [rubro] : [];
-    const parsedSubs = subrubro ? [subrubro] : [];
+    const nombre = String(firstNonEmpty(cols.descripcion) ?? code).trim();
 
-    const priceARS = parseARNumber(
-      row["precio_venta"] ?? row["Precio_venta"] ?? row["PRECIO_VENTA"] ??
-      row["Precio"] ?? row["precio"] ?? row["PrecioVenta"] ?? row["Precio_Venta"]
-    );
+    const category = String(firstNonEmpty(cols.rubro) ?? "").trim();
+    const subcategory = String(firstNonEmpty(cols.subrubro) ?? "").trim();
+    const parsedCats = category && category.toUpperCase() !== "TODOS" ? [category] : [];
+    const parsedSubs = subcategory ? [subcategory] : [];
+
+    const priceARS = parseARNumber(firstNonEmpty(cols.precio_venta, cols.precio, cols.precioventa));
     const priceUSD = null;
     const fixedFlag = priceARS !== null;
 
-    const stockRaw =
-      row["Moneda"] ?? row["moneda"] ??
-      row["Cotizador"] ?? row["cotizador"] ??
-      row["Cotizacion"] ?? row["cotizacion"];
-    const stockQty = parseARNumber(stockRaw);
+    // El stock: en la exportación vieja venía en "Moneda". En la agrupada esa
+    // columna viene vacía y el stock queda en "Cotizacion".
+    const stockQty = parseARNumber(firstNonEmpty(cols.moneda, cols.cotizador, cols.cotizacion));
     const inStock = stockQty !== null ? stockQty > 0 : true;
 
-    return { code, nombre, priceARS, priceUSD, inStock, brandVal: null, parsedCats, parsedSubs, fixedFlag };
+    return {
+      code, nombre, priceARS, priceUSD, inStock,
+      brandVal: null, parsedCats, parsedSubs, fixedFlag,
+      stockRead: stockQty !== null,
+    };
   }
 
   // ── Formato clásico ──
@@ -1027,7 +1045,7 @@ function buildInsert(p, format, exchangeRate) {
  * (misma lógica de parseo/dedup que el import). No escribe nada. Lo usan el
  * preview y el commit del flujo con confirmación.
  */
-function analyzeImport(fileBuffer) {
+export function analyzeImport(fileBuffer) {
   const workbook = XLSX.read(fileBuffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
@@ -1052,8 +1070,12 @@ function analyzeImport(fileBuffer) {
   }
   const finalRows = [...lastByCode.values()];
   const excelCodeSet = new Set(finalRows.map((p) => p.code));
+  // Si ninguna fila trajo stock, la columna no está o cambió de nombre: importar
+  // así marcaría todo "en stock" sin avisar.
+  const missingStockColumn =
+    format === "new" && finalRows.length > 0 && finalRows.every((p) => !p.stockRead);
 
-  return { format, detectedColumns, finalRows, duplicates, noCodeCount, excelCodeSet };
+  return { format, detectedColumns, finalRows, duplicates, noCodeCount, excelCodeSet, missingStockColumn };
 }
 
 /* --------- PREVIEW del import (dry-run, no escribe) --------- */
@@ -1062,7 +1084,13 @@ export const previewImportExcel = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No se recibió archivo" });
 
-    const { format, detectedColumns, finalRows, duplicates, excelCodeSet } = analyzeImport(req.file.buffer);
+    const { format, detectedColumns, finalRows, duplicates, excelCodeSet, missingStockColumn } = analyzeImport(req.file.buffer);
+    if (missingStockColumn) {
+      return res.status(400).json({
+        message:
+          "No encontré la columna de stock (Moneda o Cotizacion). Revisá el Excel: importarlo así marcaría todos los productos en stock.",
+      });
+    }
     if (format === "unknown") {
       return res.status(400).json({
         message: "Formato de Excel no reconocido. Se esperan columnas 'Codigo_catalogo' (sistema contable) o 'Código' (exportación clásica).",
@@ -1267,7 +1295,13 @@ export const commitImportExcel = async (req, res) => {
     const wantDelete = new Set((decisions.deleteCodes || []).map(String));
     const wantDeactivate = new Set((decisions.deactivateCodes || []).map(String));
 
-    const { format, finalRows, excelCodeSet } = analyzeImport(req.file.buffer);
+    const { format, finalRows, excelCodeSet, missingStockColumn } = analyzeImport(req.file.buffer);
+    if (missingStockColumn) {
+      return res.status(400).json({
+        message:
+          "No encontré la columna de stock (Moneda o Cotizacion). Revisá el Excel: importarlo así marcaría todos los productos en stock.",
+      });
+    }
     if (format === "unknown") {
       return res.status(400).json({ message: "Formato de Excel no reconocido." });
     }

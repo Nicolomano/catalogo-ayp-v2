@@ -15,6 +15,7 @@
  */
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
+import XLSX from "xlsx";
 
 process.env.JWT_SECRET ||= "secreto-solo-para-esta-prueba-descartable";
 
@@ -42,7 +43,7 @@ process.env.MONGO_URI = mongod.getUri();
 await mongoose.connect(process.env.MONGO_URI);
 
 const productModel = (await import("../services/models/productModel.js")).default;
-const { buildUpdate } = await import("../controllers/productsController.js");
+const { buildUpdate, analyzeImport } = await import("../controllers/productsController.js");
 
 /** Un producto como está en la base, con los campos que trae CAMPOS_PARA_COMPARAR. */
 const enLaBase = {
@@ -136,6 +137,49 @@ await check("Escribir el mismo valor SÍ renueva la fecha (por eso hay que no es
   const despues = (await productModel.findById(p._id).lean()).updatedAt.getTime();
   if (despues === antes) throw new Error("Mongoose no renovó la fecha: el arreglo no haría falta");
   return "Mongoose agrega updatedAt a cualquier $set, aunque no cambie nada";
+});
+
+console.log("\nEl Excel tal cual sale del sistema");
+console.log("─".repeat(50));
+
+/** Arma un .xlsx en memoria con estas filas. */
+function buildWorkbook(rows) {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Articulos");
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+}
+
+await check("La exportación agrupada se lee sin tocarla", () => {
+  const result = analyzeImport(buildWorkbook([
+    ["CODIGO_CATALOGO", "DESCRIPCION", "PRECIO_VENTA", "MONEDA", "COTIZACION"],
+    [],
+    ["LOS PRECIOS INCLUIDOS EN ESTE CATALOGO SE ENCUENTRAN SUJETOS A MODIFICACION SIN PREVIO AVISO"],
+    ["10300810", "COMPRESOR 1/4 HP R600 INVERTER HUAYI", 136690.27, "", "(4,00) $"],
+    ["10300352", "BIMETAL ML-45 TB-07", 3206.02, "", "(0,00) $"],
+  ]));
+  esperar(result.format, "new", "formato");
+  esperar(result.finalRows.map((p) => p.code), ["10300810", "10300352"], "códigos, sin la franja verde");
+  esperar(result.finalRows[0].nombre, "COMPRESOR 1/4 HP R600 INVERTER HUAYI", "nombre");
+  esperar(result.finalRows[0].priceARS, 136690.27, "precio");
+  esperar(result.finalRows.map((p) => p.inStock), [true, false], "stock");
+  esperar(result.missingStockColumn, false, "aviso de stock");
+});
+
+await check("La exportación de antes sigue andando", () => {
+  const result = analyzeImport(buildWorkbook([
+    ["Rubro", "SubRubro", "Codigo_catalogo", "Descripcion", "precio_venta", "Moneda", "Cotizacion"],
+    ["TODOS", "-", "10300810", "COMPRESOR 1/4 HP", 136690, "(4.00) $", 21],
+  ]));
+  esperar(result.finalRows.map((p) => p.code), ["10300810"], "código");
+  esperar(result.finalRows[0].inStock, true, "stock");
+});
+
+await check("Sin columna de stock, avisa en vez de marcar todo en stock", () => {
+  const result = analyzeImport(buildWorkbook([
+    ["CODIGO_CATALOGO", "DESCRIPCION", "PRECIO_VENTA"],
+    ["10300810", "COMPRESOR", 136690],
+  ]));
+  esperar(result.missingStockColumn, true, "aviso");
 });
 
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
