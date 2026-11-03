@@ -330,18 +330,18 @@ Igual que una categoría principal, pero en **Categoría padre** seleccionar la 
 
 **Solo de acá.** El menú de filtros del catálogo muestra únicamente las categorías y subcategorías creadas en esta pantalla.
 
-Esto importa porque el Excel del sistema contable trae sus propias columnas **Rubro** y **SubRubro**, y al importar quedan guardadas en cada producto. Antes esas se colaban en el filtro: aparecían subcategorías que nadie había armado (por ejemplo "Rulemanes" colgando de "Aceites y lubricantes"). Ahora se ignoran.
+Esto importa porque el Excel del sistema contable traía sus propias columnas **Rubro** y **SubRubro**, y al importar quedaban guardadas en cada producto. (La exportación agrupada que se usa ahora ya no las trae.) Antes esas se colaban en el filtro: aparecían subcategorías que nadie había armado (por ejemplo "Rulemanes" colgando de "Aceites y lubricantes"). Ahora se ignoran.
 
 Dos consecuencias prácticas:
 
-- **Si el contable agrega un rubro nuevo**, los productos de ese rubro **no van a aparecer en el menú** hasta que crees la categoría acá con **el mismo nombre exacto** que usa el Excel.
+- **Los productos nuevos entran sin categoría**, porque el Excel agrupado no trae rubro. No van a aparecer en el menú hasta que les asignes una, a mano o con el script de abajo.
 - Para que una subcategoría funcione como filtro, tiene que estar creada acá **colgando de su categoría**. Que exista "Tuercas" bajo "Accesorios de bronce" no la habilita dentro de otra categoría.
 
 > Un producto sin categoría **no desaparece**: se sigue encontrando con el buscador y en "Todas las categorías". Lo que no hace es aparecer al navegar por categorías.
 
 #### Asignar categorías en masa (2200 productos de una)
 
-El Excel del contable no trae rubro para la mayoría de los productos, así que entran sin categoría y solo se encuentran con el buscador. A mano son años; hay un script que los asigna por las palabras de su propio nombre.
+El Excel del contable no trae rubro, así que entran sin categoría y solo se encuentran con el buscador. A mano son años; hay un script que los asigna por las palabras de su propio nombre.
 
 **Siempre simula primero.** Sin `--confirmar` no escribe nada: muestra el resumen y deja un CSV con el detalle completo para revisar en Excel.
 
@@ -712,8 +712,9 @@ En **G A-Sistemas**, la ventana **Configuración del catálogo**. La configuraci
 |---|---|
 | ☐ **Mostrar Precios NETOS (sin IVA)** | Los precios de la web van **con IVA**. Si se tilda, todo el catálogo queda ~21% más barato. |
 | ☐ Mostrar Precios en su Moneda Original | La web trabaja en pesos. |
-| ☐ Incluir imágenes en el excel | La importación no las usa y el archivo se vuelve enorme. |
-| ☐ Generar Lista en excel sólo datos | |
+| ☐ **SIEMPRE Agrupar por Rubro y Sub Rubro** | Mete filas de título entre los productos. |
+| ☐ Generar Lista en excel sólo datos | Es para el Reporte Crystal, no para la web. |
+| ☐ Exportar imágenes a excel / Tamaño Original | La importación no las usa, el archivo se vuelve enorme y puede tardar horas. |
 | ☐ Fotos Grandes | |
 
 **Lo demás:**
@@ -721,17 +722,20 @@ En **G A-Sistemas**, la ventana **Configuración del catálogo**. La configuraci
 - **Lista de precios: `L0`**
 - **Rubro, Sub Rubro y Descripción: vacíos.** Son filtros: si se completa alguno, el Excel sale **incompleto**.
 - **Ordenar por Rubro, SubRubro y Descripción ascendente**
+- **Observación encabezado:** puede quedar el texto de siempre ("LOS PRECIOS INCLUIDOS EN ESTE CATALOGO…"). Sale como una franja verde arriba del Excel y la web la ignora.
 
 Después:
 
-1. **Listar Artículos** — hasta que no se toca, "Filas: 0"
-2. **Exportar a Excel** (el común, **no** el "Agrupado")
+1. **Listar Artículos**: esperá a que diga **"Finalizado"** y que "Filas" muestre la cantidad de artículos. Si dice "Filas: 0", todavía no se listó nada.
+2. **Exportar a Excel Agrupado**: es la única exportación que tiene el sistema ahora. Esperá a que diga **"Finalizado"**.
 
-Ese archivo es el que se sube en el paso 1.
+Ese archivo es el que se sube en el paso 1. **Subilo tal cual sale**: no hace falta borrar la franja verde, ni las filas vacías, ni cambiar los encabezados. La web los entiende como vienen.
 
 > ⚠️ **Los tres filtros de arriba tienen que quedar vacíos.** Si exportás filtrado por un rubro, la web va a ver que "faltan" todos los demás productos y te los va a ofrecer para desactivar o eliminar. El freno del 20% te avisa, pero mejor no llegar a eso.
 
-> ⚠️ **Si te olvidás de tildar "Incluir el Stock actual"**, el archivo viene sin la columna de stock y la web da por sentado que **todo tiene stock**. No falla ni avisa: simplemente quedan como disponibles productos que no lo están.
+> ⚠️ **Si te olvidás de tildar "Incluir el Stock actual"**, el archivo viene sin stock. La web **no lo importa** y avisa: *"No encontré la columna de stock (Moneda o Cotizacion)…"*. Volvé a exportarlo con la opción tildada.
+
+> **El Excel agrupado no trae Rubro ni SubRubro.** Los productos que ya están en la web conservan su categoría. Los **nuevos** entran **sin categoría**: solo se encuentran con el buscador hasta que les asignes una (ver [8.2](#82-gestión-de-categorías)).
 
 #### Paso 1 — Subir el archivo
 1. Entrar a **Importar Excel** (en el menú del admin, o desde el botón "Importar Excel" en Productos)
