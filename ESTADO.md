@@ -38,6 +38,57 @@ Lo último que se terminó, todo desplegado y verificado contra producción:
 
 ---
 
+## Lo que se hizo el 04/11: los 8 arreglos críticos de la auditoría
+
+Todo desplegado y verificado contra producción: 171 pruebas del backend y 28 de SEO, lint
+y build del frontend bien, la ruta de importación vieja da 404 y la home, el catálogo,
+Contacto y el sitemap responden.
+
+1. **Copia de seguridad** (`6b8bfa3`): no servía para recuperar la tienda. Guardaba los
+   IDs y las fechas como texto, y al restaurar duplicaba todo. Ahora restaura bien, y una
+   prueba hace la copia y la restaura de punta a punta. Para restaurar hay que escribir la
+   conexión (`MONGO_URI`) en el comando, así no se restaura sobre la tienda real por error.
+2. **"Página de inicio" del admin** (`7251302`): si la configuración no cargaba, al
+   guardar se borraban el WhatsApp, la dirección, el teléfono y el mapa de todo el sitio.
+   Ahora no deja editar hasta que carga.
+3. **Después de cada deploy** (`c8850d6`): los clientes con la página abierta veían una
+   pantalla de error técnico. Ahora la página se recarga sola.
+4. **Configuración del sitio** (`10d3647`): el modo mantenimiento y el WhatsApp de los
+   pedidos podían leer una configuración distinta de la que se edita en el panel. Ahora
+   todo lee la misma.
+5. **Librerías** (`f391dba`): multer y xlsx tenían fallas de seguridad conocidas. Se
+   actualizaron y se sacó una que no se usaba; `npm audit` da 0 vulnerabilidades.
+6. **Importación vieja** (`7708f43`): se sacó la de un solo paso, que seguía disponible
+   sin el control de la columna de stock.
+7. **Niveles de administrador** (`5187005`): bajar a un admin de "total" a "limitado"
+   tardaba hasta 2 días en tener efecto. Ahora es inmediato.
+8. **Fechas del sitemap** (`1476bea`): cada visita o venta cambiaba la fecha de
+   modificación del producto, que es la que lee Google. Ya no la cambian.
+
+### Lo que tenés que hacer vos
+
+- **Una copia de seguridad nueva**: las anteriores no se pueden restaurar y el script
+  ahora las rechaza. El comando está en el manual, sección 11.
+
+### Para retomar: por dónde seguir
+
+El resto quedó en [PLAN-MEJORAS.md](PLAN-MEJORAS.md), ordenado por prioridad: errores que
+ve el cliente, panel de admin, seguridad, métricas, operación, accesibilidad y 7 ideas de
+funciones nuevas. Lo primero (Tanda A y B):
+
+- Si la API falla, el catálogo dice "No se encontraron productos".
+- Al volver desde un producto se pierden la búsqueda y el scroll.
+- Los banners de la home no se ven en el celular.
+- En los diálogos de confirmación del admin, Enter confirma aunque estés parado en
+  "Cancelar".
+
+> ❓ **Pregunta pendiente para decidir:** un producto que se desactivó por faltar en un
+> Excel sigue desactivado aunque vuelva a aparecer en el siguiente (la importación no
+> toca el campo `active`). ¿Es lo que querés, o debería reactivarse solo? Está anotada en
+> PLAN-MEJORAS.md, Tanda D punto 5.
+
+---
+
 ## Lo que se hizo el 23/10: el buscador entiende lo que escriben mal
 
 Los técnicos escriben `lokring` por lockring y `tecunse` por tecumseh. Y había un
