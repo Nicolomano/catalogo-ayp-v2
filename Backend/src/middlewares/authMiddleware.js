@@ -29,12 +29,18 @@ export const protect = async (req, res, next) => {
     // al cambiar la contraseña sube tokenVersion y las sesiones viejas mueren.
     // Es una query extra, pero el tráfico de admin es mínimo.
     if (decoded.role === "admin") {
-      const admin = await userModel.findById(decoded.id).select("tokenVersion").lean();
+      const admin = await userModel.findById(decoded.id).select("tokenVersion nivel").lean();
       if (!admin || (admin.tokenVersion || 0) !== (decoded.tv || 0)) {
         return res
           .status(401)
           .json({ message: "Sesión expirada, por favor inicia sesión nuevamente" });
       }
+      // El nivel sale de la base, no del token: si se baja a un admin de "total"
+      // a "limitado", el token que ya tenía decía "total" y le seguía sirviendo
+      // hasta vencer (2 días). Sin nivel guardado es una cuenta de antes de los
+      // niveles, y esas son todas totales (app.js las migra).
+      req.user = { ...decoded, nivel: admin.nivel || "total" };
+      return next();
     }
 
     req.user = decoded;

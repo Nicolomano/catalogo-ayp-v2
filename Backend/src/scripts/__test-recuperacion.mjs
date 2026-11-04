@@ -312,6 +312,32 @@ await check("Cambiar la contraseña propia exige la actual", async () => {
   return `tokenVersion ${antes.tokenVersion} → ${despues.tokenVersion}`;
 });
 
+await check("Bajar a un admin de nivel tiene efecto con la sesión abierta", async () => {
+  const { protect } = await import("../middlewares/authMiddleware.js");
+  const jwt = (await import("jsonwebtoken")).default;
+  const u = await new userModel({ username: "ascendido", password: "unaClaveLarga123", nivel: "total" }).save();
+  const token = jwt.sign(
+    { id: u._id, username: u.username, role: "admin", nivel: "total", tv: u.tokenVersion || 0 },
+    process.env.JWT_SECRET,
+    { expiresIn: "2d" }
+  );
+
+  /** protect + requireNivelTotal, como en las rutas de nivel total. */
+  const pasaNivelTotal = async () => {
+    const req = { headers: { authorization: `Bearer ${token}` } };
+    let paso = false;
+    await protect(req, fakeRes(), () => { paso = true; });
+    if (!paso) throw new Error("protect rechazó el token");
+    return correr(requireNivelTotal, req).paso;
+  };
+
+  esperar(await pasaNivelTotal(), true, "antes de bajarlo");
+  await userModel.updateOne({ _id: u._id }, { $set: { nivel: "limitado" } });
+  // El token sigue diciendo "total": antes eso alcanzaba.
+  esperar(await pasaNivelTotal(), false, "después de bajarlo");
+  return "el token decía total, la base dice limitado: 403";
+});
+
 console.log(`\n${ok.length} pruebas OK${fallos.length ? `, ${fallos.length} FALLA(S)` : ""}`);
 if (fallos.length) fallos.forEach((f) => console.log(`  · ${f}`));
 
