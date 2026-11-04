@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { esErrorDeCarga, recargarPorDeploy } from "../utils/recargaPorDeploy.js";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,6 +13,8 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error("React error boundary caught:", error, info);
+    // Una sección que no se pudo bajar después de un deploy: se arregla recargando.
+    if (esErrorDeCarga(error)) recargarPorDeploy();
   }
 
   render() {
@@ -34,6 +37,7 @@ export default class ErrorBoundary extends Component {
             <p style={{ opacity: 0.7, marginBottom: 16 }}>
               Probá recargar. Si el problema persiste, copiá este mensaje:
             </p>
+            {/* El detalle técnico completo solo en desarrollo: al cliente no le sirve. */}
             <pre style={{
               background: "#111827",
               padding: 16,
@@ -42,7 +46,9 @@ export default class ErrorBoundary extends Component {
               fontSize: 12,
               border: "1px solid #1f2937",
             }}>
-              {String(this.state.error?.stack || this.state.error?.message || this.state.error)}
+              {import.meta.env.DEV
+                ? String(this.state.error?.stack || this.state.error?.message || this.state.error)
+                : String(this.state.error?.message || this.state.error)}
             </pre>
             <button
               onClick={() => { this.setState({ error: null }); window.location.reload(); }}
