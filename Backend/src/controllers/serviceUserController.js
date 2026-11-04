@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { uploadPrivateToR2, getFromR2, keyFromUrl } from "../utils/r2.js";
 import { assertImagenValida, ImagenInvalidaError, SHARP_OPTS } from "../utils/imageGuard.js";
 import { interpretarIdentificacion, avisoIdentificacion } from "../utils/identidad.js";
-import SiteConfig from "../services/models/siteConfigModel.js";
+import SiteConfig, { CONFIG_DEL_SITIO } from "../services/models/siteConfigModel.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MIN_PASSWORD = 8;
@@ -418,7 +418,7 @@ export const updateServiceUserStatus = async (req, res) => {
       // El mail lleva botón de WhatsApp con el número de la administración: la
       // respuesta llega al instante en vez de esperar a que alguien abra la
       // casilla. El número se lee acá porque las plantillas son funciones puras.
-      const cfg = await SiteConfig.findOne().select("adminWhatsapp whatsapp").lean();
+      const cfg = await SiteConfig.findOne(CONFIG_DEL_SITIO).select("adminWhatsapp whatsapp").lean();
       const mail = awaitingInfoEmail(user.name, awaitingReason.trim(), {
         whatsapp: cfg?.adminWhatsapp || cfg?.whatsapp,
       });

@@ -1,9 +1,9 @@
-import SiteConfig from "../services/models/siteConfigModel.js";
+import SiteConfig, { CONFIG_DEL_SITIO } from "../services/models/siteConfigModel.js";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
 import { uploadToR2 } from "../utils/r2.js";
 
-const SINGLETON = { singleton_key: "main" };
+const SINGLETON = CONFIG_DEL_SITIO;
 
 export const getConfig = async (req, res) => {
   try {

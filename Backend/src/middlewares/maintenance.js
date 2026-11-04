@@ -1,4 +1,4 @@
-import SiteConfig from "../services/models/siteConfigModel.js";
+import SiteConfig, { CONFIG_DEL_SITIO } from "../services/models/siteConfigModel.js";
 
 /**
  * Corta las escrituras públicas cuando el modo mantenimiento está activo.
@@ -16,7 +16,7 @@ const TTL = 15 * 1000; // evita una query por request sin quedar desactualizado
 async function enMantenimiento() {
   if (Date.now() < cache.hasta) return cache.valor;
   try {
-    const cfg = await SiteConfig.findOne().select("maintenanceMode").lean();
+    const cfg = await SiteConfig.findOne(CONFIG_DEL_SITIO).select("maintenanceMode").lean();
     cache = { valor: cfg?.maintenanceMode === true, hasta: Date.now() + TTL };
   } catch {
     // Ante un fallo de la base no bloqueamos el sitio.

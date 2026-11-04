@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import Order from "../services/models/orderModel.js";
 import Config from "../services/models/configModel.js";
-import SiteConfig from "../services/models/siteConfigModel.js";
+import SiteConfig, { CONFIG_DEL_SITIO } from "../services/models/siteConfigModel.js";
 import Product from "../services/models/productModel.js";
 import serviceUserModel from "../services/models/serviceUserModel.js";
 import { resolverCombos } from "../utils/combos.js";
@@ -78,7 +78,7 @@ export const createOrder = async (req, res) => {
     }
 
     // Tomamos la cotización y el número de WhatsApp del LOCAL desde la DB
-    const [cfg, siteCfg] = await Promise.all([Config.findOne(), SiteConfig.findOne()]);
+    const [cfg, siteCfg] = await Promise.all([Config.findOne(), SiteConfig.findOne(CONFIG_DEL_SITIO)]);
     const exchangeRate = cfg?.exchangeRate || 1;
     const storeWhatsApp = (siteCfg?.whatsapp || "").replace(/\D/g, "");
 

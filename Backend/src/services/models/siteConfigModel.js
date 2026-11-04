@@ -69,4 +69,12 @@ const siteConfigSchema = new mongoose.Schema(
 siteConfigSchema.add({ singleton_key: { type: String, default: "main", select: false } });
 siteConfigSchema.index({ singleton_key: 1 }, { unique: true, sparse: true });
 
+/**
+ * El filtro del documento que edita el panel. Todo el que lea la config tiene que
+ * usarlo: con un findOne() sin filtro, si quedó un documento de antes de que
+ * existiera singleton_key, el mantenimiento y el WhatsApp de los pedidos salían
+ * de ese documento viejo y no del que se edita.
+ */
+export const CONFIG_DEL_SITIO = { singleton_key: "main" };
+
 export default mongoose.model("siteConfig", siteConfigSchema);
