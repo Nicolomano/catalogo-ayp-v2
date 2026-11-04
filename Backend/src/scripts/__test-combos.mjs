@@ -268,6 +268,51 @@ await check("Después de importar se refrescan los precios guardados", async () 
   await recalcularCombosGuardados();
 });
 
+console.log("\nLa fecha que ve Google (updatedAt, la del sitemap)");
+console.log("─".repeat(50));
+
+const fechaDe = async (productCode) =>
+  (await productModel.findOne({ productCode }).lean()).updatedAt.getTime();
+const unRato = () => new Promise((r) => setTimeout(r, 20));
+
+await check("Recalcular combos que no cambiaron no les toca la fecha", async () => {
+  const antes = await fechaDe("COMBO-001");
+  await unRato();
+  const n = await recalcularCombosGuardados();
+  esperar(n, 0, "combos escritos");
+  esperar(await fechaDe("COMBO-001"), antes, "updatedAt del combo");
+});
+
+await check("Una visita al producto no le cambia la fecha", async () => {
+  const { getProductByCode } = await import("../controllers/productsController.js");
+  const antes = await fechaDe("10234");
+  await unRato();
+  const res = await llamar(getProductByCode, { params: { productCode: "10234" } });
+  esperar(res.body?.productCode, "10234", "devolvió el producto");
+  const p = await productModel.findOne({ productCode: "10234" }).lean();
+  if (!(p.views >= 1)) throw new Error("no sumó la visita");
+  esperar(p.updatedAt.getTime(), antes, "updatedAt");
+});
+
+await check("Una venta no le cambia la fecha a lo vendido", async () => {
+  const pieza = await productModel.findOne({ productCode: "10999" }).lean();
+  const antes = pieza.updatedAt.getTime();
+  await unRato();
+  const res = await llamar(createOrder, {
+    body: {
+      products: [{ productId: pieza._id, quantity: 2 }],
+      customerName: "Prueba Fecha",
+      customerPhone: "1122334455",
+    },
+  });
+  esperar(res.statusCode, 201, "status");
+  const despues = await productModel.findOne({ productCode: "10999" }).lean();
+  esperar(despues.soldCount, (pieza.soldCount || 0) + 2, "soldCount");
+  esperar(despues.updatedAt.getTime(), antes, "updatedAt");
+  await orderModel.deleteOne({ _id: res.body.order._id });
+  await productModel.updateOne({ _id: pieza._id }, { $set: { soldCount: pieza.soldCount || 0 } }, { timestamps: false });
+});
+
 console.log("\nEl pedido: una línea, con los códigos de cada pieza");
 console.log("─".repeat(50));
 

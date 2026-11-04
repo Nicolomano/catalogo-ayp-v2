@@ -237,6 +237,9 @@ export async function getProductByCode(req, res) {
       { $inc: { views: 1 } },
       {
         new: true,
+        // Una visita no es una modificación: si renovaba updatedAt, el sitemap le
+        // decía a Google que el producto había cambiado cada vez que alguien lo miraba.
+        timestamps: false,
         projection:
           "productCode name description brand image priceARS inStock categories subcategories componentes",
       }
@@ -770,7 +773,8 @@ export const toggleFeatured = async (req, res) => {
       product.featuredOrder = await productModel.countDocuments({ featured: true });
     }
     product.featured = !product.featured;
-    await product.save();
+    // Destacar cambia la home, no la página del producto: no es una modificación.
+    await product.save({ timestamps: false });
     res.json({ message: `Producto ${product.featured ? "destacado" : "quitado de destacados"}`, product });
   } catch (error) {
     console.error(error);
@@ -803,7 +807,9 @@ export const reorderFeatured = async (req, res) => {
       return res.status(400).json({ message: "Lista de orden inválida o demasiado larga." });
     }
     await Promise.all(
-      ids.map((id, idx) => productModel.findByIdAndUpdate(id, { featuredOrder: idx }))
+      ids.map((id, idx) =>
+        productModel.findByIdAndUpdate(id, { featuredOrder: idx }, { timestamps: false })
+      )
     );
     res.json({ ok: true });
   } catch (error) {

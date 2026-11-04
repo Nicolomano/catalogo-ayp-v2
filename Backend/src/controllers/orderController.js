@@ -184,7 +184,13 @@ export const createOrder = async (req, res) => {
     // detrás (y "Más vendidos" ordena por este campo).
     await Promise.all(
       orderProducts.map((p) =>
-        Product.updateOne({ _id: p.productId }, { $inc: { soldCount: p.quantity } })
+        // timestamps: false — una venta no modifica la página del producto, y
+        // updatedAt es la fecha que el sitemap le da a Google.
+        Product.updateOne(
+          { _id: p.productId },
+          { $inc: { soldCount: p.quantity } },
+          { timestamps: false }
+        )
       )
     ).catch((e) => console.error("No se pudo actualizar soldCount:", e.message));
 

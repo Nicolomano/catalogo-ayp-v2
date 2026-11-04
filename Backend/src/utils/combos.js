@@ -132,10 +132,20 @@ export async function recalcularCombosGuardados() {
     .lean();
   if (!combos.length) return 0;
 
+  // resolverCombos pisa priceARS e inStock en el mismo objeto: se guardan antes
+  // para escribir solo los que cambiaron. Escribir todos renovaba el updatedAt de
+  // cada combo en cada edición de cualquier producto, y esa es la fecha del sitemap.
+  const antes = new Map(combos.map((c) => [String(c._id), { priceARS: c.priceARS, inStock: c.inStock }]));
   await resolverCombos(combos);
 
+  const cambiados = combos.filter((c) => {
+    const a = antes.get(String(c._id));
+    return a.priceARS !== c.priceARS || a.inStock !== c.inStock;
+  });
+  if (!cambiados.length) return 0;
+
   const res = await productModel.bulkWrite(
-    combos.map((c) => ({
+    cambiados.map((c) => ({
       updateOne: {
         filter: { _id: c._id },
         update: { $set: { priceARS: c.priceARS, inStock: c.inStock } },
