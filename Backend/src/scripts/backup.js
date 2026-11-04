@@ -15,6 +15,13 @@
  * Restaurar (pide confirmación explícita):
  *   MONGO_URI="..." node src/scripts/backup.js --restaurar backups/2026-09-12.json --confirmar
  *
+ * Para restaurar, MONGO_URI tiene que venir escrita en el comando: no se toma
+ * de los archivos .env, para no restaurar sobre producción sin querer.
+ *
+ * El archivo va en Extended JSON (EJSON), no en JSON común: el JSON común guarda
+ * los ObjectId y las fechas como texto, y al restaurar no coincidía ningún _id
+ * (duplicaba todo) y las referencias entre colecciones quedaban rotas.
+ *
  * OJO: el archivo tiene datos personales (teléfonos de clientes, CUIT de
  * técnicos). Guardalo en un lugar privado y NO lo subas al repositorio.
  */
@@ -22,6 +29,14 @@ import mongoose from "mongoose";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+
+const { EJSON } = mongoose.mongo.BSON;
+// Formato canónico: conserva también si un número era entero o decimal.
+const EJSON_OPCIONES = { relaxed: false };
+const FORMATO = "ejson-v1";
+
+// Antes de leer los .env: para restaurar solo vale la que se escribió a mano.
+const uriEscritaAMano = process.env.MONGO_URI;
 
 // No se importa config.js: usa commander, que rechaza los argumentos de acá.
 dotenv.config({ path: "./src/config/.env.production" });
@@ -44,6 +59,14 @@ const salida = valorDe("--salida") || "backups";
 // descubrir que el archivo no está.
 if (restaurarDesde && !fs.existsSync(restaurarDesde)) {
   console.error(`\nNo encuentro el archivo: ${restaurarDesde}\n`);
+  process.exit(1);
+}
+
+if (restaurarDesde && !uriEscritaAMano) {
+  console.error(
+    "\nPara restaurar, escribí MONGO_URI en el mismo comando (no se toma de los .env):\n" +
+      '  MONGO_URI="mongodb+srv://..." node src/scripts/backup.js --restaurar ARCHIVO\n'
+  );
   process.exit(1);
 }
 
@@ -76,7 +99,10 @@ async function hacerBackup(db) {
   const sello = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   const archivo = path.join(carpeta, `backup-${sello}.json`);
 
-  const contenido = JSON.stringify({ fecha: new Date().toISOString(), datos }, null, 0);
+  const contenido = EJSON.stringify(
+    { formato: FORMATO, fecha: new Date().toISOString(), datos },
+    EJSON_OPCIONES
+  );
   fs.writeFileSync(archivo, contenido);
 
   console.log(`\n  Guardado en: ${archivo}`);
@@ -86,9 +112,25 @@ async function hacerBackup(db) {
 }
 
 async function restaurar(db) {
-  const { fecha, datos } = JSON.parse(fs.readFileSync(restaurarDesde, "utf8"));
+  const { formato, fecha, datos } = EJSON.parse(
+    fs.readFileSync(restaurarDesde, "utf8"),
+    EJSON_OPCIONES
+  );
+  // Los backups hechos antes del arreglo tienen los _id y las fechas como texto:
+  // restaurarlos duplicaría los documentos en vez de recuperarlos.
+  if (formato !== FORMATO) {
+    console.error(
+      "\n  Este backup es del formato viejo (JSON común) y no se puede restaurar bien:\n" +
+        "  los _id y las fechas quedaron guardados como texto. Hacé un backup nuevo.\n"
+    );
+    process.exitCode = 1;
+    return;
+  }
 
-  console.log(`\n  Backup del ${new Date(fecha).toLocaleString("es-AR")}`);
+  // Solo el servidor, sin usuario ni contraseña.
+  const destino = mongoUri.replace(/^mongodb(\+srv)?:\/\/([^@/]*@)?/, "").split(/[/?]/)[0];
+  console.log(`\n  Base de destino: ${destino}`);
+  console.log(`  Backup del ${new Date(fecha).toLocaleString("es-AR")}`);
   for (const [nombre, docs] of Object.entries(datos)) {
     console.log(`  ${nombre.padEnd(20)} ${String(docs.length).padStart(6)} documentos`);
   }

@@ -757,7 +757,7 @@ Aparecen tres secciones con un resumen arriba (*nuevos · a actualizar · faltan
 
 > **Seguridad:** por defecto **no se borra nada**. Solo se eliminan o desactivan los productos que marcaste explícitamente. **"Desactivar" es reversible** (el producto se oculta pero se puede reactivar); "Eliminar" es permanente. Si el Excel es una lista parcial, dejá los faltantes en "Mantener".
 
-> **Freno al borrado masivo:** si el archivo dejaría fuera **más del 20% del catálogo**, el sistema **no aplica el borrado** y pide una confirmación extra. Casi siempre eso significa que el Excel está incompleto o se cortó al exportarlo. Ante la duda, cancelá y volvé a exportar el archivo: **eliminar no se puede deshacer y no hay copia de seguridad**.
+> **Freno al borrado masivo:** si el archivo dejaría fuera **más del 20% del catálogo**, el sistema **no aplica el borrado** y pide una confirmación extra. Casi siempre eso significa que el Excel está incompleto o se cortó al exportarlo. Ante la duda, cancelá y volvé a exportar el archivo: **eliminar no se puede deshacer**. Por eso, antes de importar, hacé una copia de seguridad (ver [Copia de seguridad](#copia-de-seguridad-de-la-base-de-datos)).
 
 > ⚠️ **Importá solo archivos del sistema contable.** Un Excel de origen desconocido (uno que llegó por mail de alguien que no conocés, o descargado de internet) puede aprovechar una falla conocida de la librería que lee los archivos y afectar el funcionamiento del servidor hasta que se reinicie. La falla no tiene arreglo disponible todavía. Si tenés dudas sobre un archivo, no lo subas.
 
@@ -937,6 +937,11 @@ Para restaurar:
 MONGO_URI="..." node src/scripts/backup.js --restaurar backups/el-archivo.json
 ```
 Así solo **muestra** qué haría, sin tocar nada. Se aplica agregando `--confirmar` al final.
+
+- **La cadena de conexión tiene que ir escrita en el comando**, como arriba. Para restaurar no se toma la de los archivos de configuración, así no se restaura sobre la tienda real por accidente. Antes de aplicar, el script muestra a qué servidor se va a conectar: revisalo.
+- Por defecto **agrega y actualiza**, pero no borra nada. Con `--reemplazar` además borra lo que hoy exista y no esté en la copia.
+
+> ⚠️ **Las copias hechas antes del 04/11/2026 no sirven para restaurar.** Guardaban los identificadores y las fechas como texto, y al restaurarlas se duplicaban los datos. El script ahora las rechaza. **Hacé una copia nueva.**
 
 > El archivo tiene **datos personales** (teléfonos de clientes, CUIT de técnicos). Guardalo en un lugar privado y no lo subas a ningún repositorio.
 

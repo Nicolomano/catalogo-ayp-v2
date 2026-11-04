@@ -106,42 +106,80 @@ await check("Avisa si el usuario no existe", async () => {
 console.log("\nCopia de seguridad (ida y vuelta)");
 console.log("─".repeat(38));
 
-await check("El backup guarda y la restauración devuelve los datos", async () => {
+// Se corre el script de verdad, contra la base en memoria: antes la prueba copiaba
+// su lógica sin pasar por el archivo, y por eso no vio que el JSON común convertía
+// los _id y las fechas en texto.
+const { execFile } = await import("node:child_process");
+const fs = await import("node:fs");
+const os = await import("node:os");
+const path = await import("node:path");
+const SCRIPT = new URL("./backup.js", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const carpetaBackups = fs.mkdtempSync(path.join(os.tmpdir(), "backup-prueba-"));
+
+/** Corre backup.js con estos argumentos. Devuelve { code, salida }. */
+function correrBackup(args, env = process.env) {
+  return new Promise((resolve) => {
+    execFile(process.execPath, [SCRIPT, ...args], { env }, (err, stdout, stderr) => {
+      resolve({ code: err ? err.code ?? 1 : 0, salida: stdout + stderr });
+    });
+  });
+}
+
+await check("El backup y la restauración devuelven los datos con sus tipos", async () => {
   const db = mongoose.connection.db;
+  const productoId = new mongoose.Types.ObjectId();
+  const fecha = new Date("2026-10-01T12:00:00Z");
   await db.collection("orders").insertMany([
-    { customerName: "Cliente A", totalARS: 1000 },
-    { customerName: "Cliente B", totalARS: 2000 },
+    { customerName: "Cliente A", totalARS: 1000, createdAt: fecha, items: [{ productId: productoId, quantity: 2 }] },
+    { customerName: "Cliente B", totalARS: 2000, createdAt: fecha, items: [] },
   ]);
   // Telemetría: NO debe entrar en el backup.
   await db.collection("pageviews").insertOne({ path: "/", sid: "x" });
 
-  const EXCLUIDAS = new Set(["searchlogs", "pageviews", "sessions"]);
-  const nombres = (await db.listCollections().toArray())
-    .map((c) => c.name)
-    .filter((n) => !EXCLUIDAS.has(n) && !n.startsWith("system."));
-
-  const datos = {};
-  for (const n of nombres) datos[n] = await db.collection(n).find({}).toArray();
-
-  if (datos.pageviews) throw new Error("la telemetría entró en el backup");
-  if (datos.orders.length !== 2) throw new Error("faltan órdenes en el backup");
-
-  // Se simula la pérdida y se restaura, como hace el script.
-  await db.collection("orders").deleteMany({});
-  esperar(await db.collection("orders").countDocuments(), 0, "tras el borrado");
-
-  for (const [n, docs] of Object.entries(datos)) {
-    if (!docs.length) continue;
-    await db.collection(n).bulkWrite(
-      docs.map((d) => ({ replaceOne: { filter: { _id: d._id }, replacement: d, upsert: true } })),
-      { ordered: false }
-    );
+  const r = await correrBackup(["--salida", carpetaBackups]);
+  esperar(r.code, 0, `el backup terminó con error:\n${r.salida}`);
+  const archivo = path.join(carpetaBackups, fs.readdirSync(carpetaBackups)[0]);
+  if (fs.readFileSync(archivo, "utf8").includes("pageviews")) {
+    throw new Error("la telemetría entró en el backup");
   }
 
-  esperar(await db.collection("orders").countDocuments(), 2, "tras restaurar");
+  // Se simula la pérdida: una orden borrada y otra modificada.
+  await db.collection("orders").deleteOne({ customerName: "Cliente B" });
+  await db.collection("orders").updateOne({ customerName: "Cliente A" }, { $set: { totalARS: 1 } });
+
+  // Sin --confirmar no escribe nada.
+  await correrBackup(["--restaurar", archivo]);
+  esperar(await db.collection("orders").countDocuments(), 1, "una simulación escribió");
+
+  const r2 = await correrBackup(["--restaurar", archivo, "--confirmar"]);
+  esperar(r2.code, 0, `la restauración terminó con error:\n${r2.salida}`);
+
+  // 2, no 3: con el formato viejo cada documento volvía duplicado con un _id de texto.
+  esperar(await db.collection("orders").countDocuments(), 2, "órdenes tras restaurar");
   const a = await db.collection("orders").findOne({ customerName: "Cliente A" });
-  esperar(a?.totalARS, 1000, "datos del documento");
-  return "2 órdenes borradas y recuperadas intactas";
+  esperar(a?.totalARS, 1000, "el dato modificado");
+  esperar(a._id instanceof mongoose.mongo.ObjectId, true, "_id es ObjectId");
+  esperar(a.createdAt instanceof Date, true, "la fecha es Date");
+  esperar(a.items[0].productId.equals(productoId), true, "la referencia al producto");
+  return "2 órdenes recuperadas, sin duplicar, con _id, fechas y referencias intactas";
+});
+
+await check("Para restaurar exige MONGO_URI escrita en el comando", async () => {
+  const archivo = path.join(carpetaBackups, fs.readdirSync(carpetaBackups)[0]);
+  const { MONGO_URI: _sacada, ...sinUri } = process.env;
+  const r = await correrBackup(["--restaurar", archivo, "--confirmar"], sinUri);
+  esperar(r.code, 1, "código de salida");
+  if (!r.salida.includes("escribí MONGO_URI")) throw new Error(`mensaje: ${r.salida}`);
+});
+
+await check("Un backup del formato viejo no se restaura", async () => {
+  const viejo = path.join(carpetaBackups, "viejo.json");
+  fs.writeFileSync(viejo, JSON.stringify({ fecha: "2026-09-01", datos: { orders: [{ _id: "x" }] } }));
+  const antes = await mongoose.connection.db.collection("orders").countDocuments();
+  const r = await correrBackup(["--restaurar", viejo, "--confirmar"]);
+  esperar(r.code, 1, "código de salida");
+  esperar(await mongoose.connection.db.collection("orders").countDocuments(), antes, "órdenes");
+  fs.rmSync(carpetaBackups, { recursive: true, force: true });
 });
 
 console.log("\nNiveles de administrador");
