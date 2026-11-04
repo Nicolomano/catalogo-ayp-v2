@@ -12,7 +12,6 @@ import {
   getProductsAdmin,
   getCategoriesMeta,
   exportProductsExcel,
-  importProductsExcel,
   previewImportExcel,
   commitImportExcel,
   getLandingProducts,
@@ -61,7 +60,6 @@ productRouter.patch("/featured/reorder",    protect, requireAdmin, reorderFeatur
 // El controller sigue en productsController.js por si hay que volver a correrlo.
 // La importación de Excel reescribe precios y stock de todo el catálogo y el
 // borrado es irreversible: nivel total. El resto es el día a día.
-productRouter.post("/import/excel",         protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), importProductsExcel);
 productRouter.post("/import/preview",        protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), previewImportExcel);
 productRouter.post("/import/commit",         protect, requireAdmin, requireNivelTotal, uploadExcel.single("file"), commitImportExcel);
 productRouter.post("/upload",         protect, requireAdmin, uploadCloud.single("image"), uploadImage);
