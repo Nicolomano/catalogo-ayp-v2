@@ -58,10 +58,13 @@ const uploadCloud = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+// Es la única subida pública (el registro de técnicos): además del tamaño del
+// archivo se limita el resto del formulario, que se guarda en memoria. Sin esto
+// se podían mandar miles de campos de 1 MB cada uno.
 export const uploadMatricula = multer({
   storage,
   fileFilter: matriculaFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 20, fieldSize: 16 * 1024 },
 });
 
 export const uploadExcel = multer({

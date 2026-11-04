@@ -759,7 +759,7 @@ Aparecen tres secciones con un resumen arriba (*nuevos · a actualizar · faltan
 
 > **Freno al borrado masivo:** si el archivo dejaría fuera **más del 20% del catálogo**, el sistema **no aplica el borrado** y pide una confirmación extra. Casi siempre eso significa que el Excel está incompleto o se cortó al exportarlo. Ante la duda, cancelá y volvé a exportar el archivo: **eliminar no se puede deshacer**. Por eso, antes de importar, hacé una copia de seguridad (ver [Copia de seguridad](#copia-de-seguridad-de-la-base-de-datos)).
 
-> ⚠️ **Importá solo archivos del sistema contable.** Un Excel de origen desconocido (uno que llegó por mail de alguien que no conocés, o descargado de internet) puede aprovechar una falla conocida de la librería que lee los archivos y afectar el funcionamiento del servidor hasta que se reinicie. La falla no tiene arreglo disponible todavía. Si tenés dudas sobre un archivo, no lo subas.
+> ⚠️ **Importá solo archivos del sistema contable.** La librería que lee los Excel se actualizó el 04/11/2026 a una versión sin las fallas conocidas, pero un archivo de origen desconocido (uno que llegó por mail de alguien que no conocés, o descargado de internet) sigue siendo un riesgo innecesario. Si tenés dudas sobre un archivo, no lo subas.
 
 ---
 
