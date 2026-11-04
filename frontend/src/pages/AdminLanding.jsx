@@ -57,6 +57,10 @@ function Section({ title, children }) {
 
 export default function AdminLanding() {
   const [config, setConfig]       = useState(DEFAULT);
+  // "cargando" | "ok" | "error". El formulario solo aparece con la config real:
+  // si la carga fallaba quedaban los valores por defecto (WhatsApp, dirección y
+  // mapa vacíos) y "Guardar" los pisaba en todo el sitio.
+  const [carga, setCarga]         = useState("cargando");
   const [saving, setSaving]       = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg]             = useState(null);
@@ -68,11 +72,17 @@ export default function AdminLanding() {
 
   const [categoriasDisponibles, setCategoriasDisponibles] = useState([]);
 
-  useEffect(() => {
-    API.get("/site-config").then((r) => {
+  const cargarConfig = () => {
+    setCarga("cargando");
+    getFresco("/site-config").then((r) => {
       setConfig((p) => ({ ...p, ...r.data }));
       setHeroPos(parsePos(r.data.heroImagePosition));
-    }).catch(() => {});
+      setCarga("ok");
+    }).catch(() => setCarga("error"));
+  };
+
+  useEffect(() => {
+    cargarConfig();
     // Las categorías reales salen de los productos cargados, no de una lista fija.
     getFresco("/products/meta/categories")
       .then((r) => {
@@ -158,17 +168,42 @@ export default function AdminLanding() {
   };
 
   const save = async () => {
+    if (carga !== "ok") return;
     setSaving(true); setMsg(null);
     try {
       await API.put("/site-config", config);
       setMsg({ type: "ok", text: "¡Cambios guardados!" });
-    } catch {
-      setMsg({ type: "err", text: "Error al guardar. Intentá de nuevo." });
+    } catch (err) {
+      // El backend explica qué está mal (ej. "El mapa tiene que ser una URL de Google Maps").
+      setMsg({ type: "err", text: err.response?.data?.message || "Error al guardar. Intentá de nuevo." });
     } finally {
       setSaving(false); }
   };
 
   const currentImage = preview || config.heroImage;
+
+  if (carga !== "ok") {
+    return (
+      <div className="max-w-3xl bento p-6 space-y-3" style={{ borderRadius: "16px" }}>
+        <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>Página de inicio</h1>
+        {carga === "cargando" ? (
+          <p className="text-sm" style={{ color: "var(--muted)" }}>Cargando la configuración…</p>
+        ) : (
+          <>
+            <p className="text-sm" style={{ color: "var(--text)" }}>
+              No se pudo cargar la configuración actual. Para no pisar los datos del sitio
+              (WhatsApp, dirección, mapa), no se puede editar hasta que cargue.
+            </p>
+            <button onClick={cargarConfig}
+              className="px-5 py-2 rounded-xl text-sm font-semibold text-white"
+              style={{ background: "var(--brand)" }}>
+              Reintentar
+            </button>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
