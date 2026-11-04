@@ -1,6 +1,6 @@
 # Estado del trabajo
 
-> Última actualización: **23/10/2026**
+> Última actualización: **04/11/2026**
 > Este archivo viaja con el repositorio: en cualquier computadora, `git pull` y está acá.
 
 ---
@@ -27,6 +27,14 @@ Lo último que se terminó, todo desplegado y verificado contra producción:
    se podía bajar entero de un pedido y que en el celular no se podía ordenar;
 4. **SEO** (`905a875`, `5a0f798`) — falta tu parte: Search Console y el Perfil de Empresa
    (ver abajo).
+5. **Importación del Excel agrupado** (`1aae9bb`): el sistema contable ya solo exporta ese.
+6. **Auditoría completa del 04/11** — se arreglaron los 8 puntos críticos (backup que no
+   restauraba, config del sitio que se podía borrar, error tras cada deploy, dependencias
+   con fallas, niveles de admin, fechas del sitemap). **El resto quedó anotado, en orden,
+   en [PLAN-MEJORAS.md](PLAN-MEJORAS.md): seguir por ahí.**
+
+> ⚠️ **Hacé una copia de seguridad nueva.** Las anteriores al 04/11 no se pueden
+> restaurar (ver el manual, sección 11).
 
 ---
 
@@ -227,20 +235,20 @@ Con subcategorías `Condensadores` (10) y `Evaporadores` (20).
 # las suites del backend (necesitan mongodb-memory-server)
 cd Backend
 npm install --no-save mongodb-memory-server
-node src/scripts/__test-importacion.mjs    # 10 pruebas — importación de Excel
+node src/scripts/__test-importacion.mjs    # 13 pruebas — importación de Excel
 node src/scripts/__test-catalogo.mjs       # 11 pruebas — parámetros del catálogo
-node src/scripts/__test-combos.mjs         # 29 pruebas — combos
+node src/scripts/__test-combos.mjs         # 32 pruebas — combos y fecha del sitemap
 node src/scripts/__test-busqueda.mjs       # 36 pruebas — buscador
 node src/scripts/__test-marcas.mjs         # 13 pruebas — script de marcas
 node src/scripts/__test-registro.mjs       # 39 pruebas — registro de técnicos
-node src/scripts/__test-recuperacion.mjs   # 18 pruebas — contraseñas y backup
+node src/scripts/__test-recuperacion.mjs   # 21 pruebas — contraseñas, backup y niveles
 node src/scripts/__test-categorias.mjs     #  6 pruebas — menú de categorías
 
 # el frontend
 cd ../frontend
 npm run lint    # 15 problemas es el valor normal, no sumar ninguno
 npm run build
-node scripts/__test-seo.mjs   # 27 pruebas — lo que ve Google (lee la API de producción)
+node scripts/__test-seo.mjs   # 28 pruebas — lo que ve Google (lee la API de producción)
 
 # contra producción (pide el token de admin: F12 → Application → Local Storage → token)
 node scripts/test-produccion.mjs TU_TOKEN
