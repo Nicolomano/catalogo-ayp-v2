@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
-import { ClipboardList, Phone, Calendar, BadgeCheck, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { ClipboardList, Phone, Calendar, BadgeCheck, Clock, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { descargarCsvParaSistema } from "../utils/csvSistema";
 
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -134,6 +135,16 @@ function AdminOrders() {
 
                     {/* Acciones — el botón de estado no dispara el desplegado */}
                     <div className="flex items-center gap-2 shrink-0">
+                      {hasProducts && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); descargarCsvParaSistema(order); }}
+                          title="CSV para cargar en la proforma: Importar detalle desde archivo CSV → Usar IdArticulo"
+                          className="px-3 py-2 rounded-xl text-xs font-medium transition-colors inline-flex items-center gap-1.5"
+                          style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                          <Download size={13} />
+                          CSV para el sistema
+                        </button>
+                      )}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStatus(order._id, order.status); }}
                         className="px-3 py-2 rounded-xl text-xs font-medium transition-colors"
