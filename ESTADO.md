@@ -1,6 +1,6 @@
 # Estado del trabajo
 
-> Última actualización: **04/11/2026**
+> Última actualización: **10/11/2026**
 > Este archivo viaja con el repositorio: en cualquier computadora, `git pull` y está acá.
 
 ---
@@ -11,13 +11,13 @@ El sitio está **en producción y funcionando**: www.refrigeracionayp.com
 
 | | |
 |---|---:|
-| Productos publicados | 3665 |
-| **Sin categoría** | **~1150 (31%)** |
-| Categorías creadas | 27 |
+| Productos publicados | 3973 |
+| **Sin categoría** | **1426 (36%)** |
+| Categorías principales | 29 |
 
-> Los productos publicados se midieron hoy contra producción. El número de los que no
-> tienen categoría es del 20/10: para volver a contarlos hay que correr
-> `asignarCategorias.mjs`, que lo informa antes de tocar nada.
+> Medido el 10/11 contra el catálogo publicado. Subió porque las importaciones trajeron
+> productos nuevos, que entran sin categoría. **El script ya asignaría 988 de esos 1426**:
+> ver "Lo próximo → 1".
 
 Lo último que se terminó, todo desplegado y verificado contra producción:
 
@@ -188,36 +188,68 @@ forma silenciosa de reescribirle el precio).
 
 ### 1. Terminar de categorizar — lo que más impacto tiene
 
-**1159 productos (33%) no están en ninguna categoría**: solo se encuentran con el buscador.
+**1426 productos (36%) no están en ninguna categoría** (10/11): solo se encuentran con el
+buscador. Simulando las reglas contra el catálogo de hoy, **el script asigna solo 988**
+(Electricidad 136, Lavarropas 108, Plaquetas 108, Motocompresores 77, Herramientas 73,
+Refrigeración comercial 68, Caños 66, Aire acondicionado 56…). Quedan unos 440 para
+revisar a mano o con reglas nuevas.
 
-Hay un script que los asigna solo, por las palabras del nombre. **Simula por defecto** y
-deja un CSV para revisar; recién con `--confirmar` escribe:
+Los dos scripts **simulan por defecto**; recién con `--confirmar` escriben, y dejan un
+registro para deshacer. Correrlos en este orden:
 
 ```powershell
 cd Backend
 $env:MONGO_URI = 'la-cadena-de-conexión-de-Atlas'
 
-# ver qué haría (no escribe nada)
+# 1) Cámaras frigoríficas: crea la categoría con sus 5 subcategorías y ubica 29 productos
+node src/scripts/categoriaCamaras.mjs               # ver qué haría
+node src/scripts/categoriaCamaras.mjs --confirmar
+
+# 2) El resto, por las palabras del nombre (deja un CSV para revisar)
 node src/scripts/asignarCategorias.mjs
+node src/scripts/asignarCategorias.mjs --categoria "Termostatos" --confirmar   # de a una, para empezar
+node src/scripts/asignarCategorias.mjs --confirmar                              # todo junto
 
-# una categoría a la vez, recomendado para empezar
-node src/scripts/asignarCategorias.mjs --categoria "Termostatos"
-node src/scripts/asignarCategorias.mjs --categoria "Termostatos" --confirmar
-
-# deshacer una corrida
+# deshacer
+node src/scripts/categoriaCamaras.mjs --deshacer camaras-FECHA-HORA.json --confirmar
 node src/scripts/asignarCategorias.mjs --deshacer asignacion-FECHA-HORA.json --confirmar
 ```
 
-**Falta crear una categoría** para que el script pueda usarla (Panel → Categorías):
+**Cámaras frigoríficas** (nueva, decidido el 10/11): es una categoría propia, en vez de
+quedar escondida dentro de Refrigeración comercial.
 
-| Nombre | Slug | Productos |
-|---|---|---:|
-| `Condensadores y evaporadores` | `cond-evap` | 30 |
+| Subcategoría | Qué lleva |
+|---|---|
+| Paneles y perfiles | paneles de poliuretano 60/100 mm, cenefas, chapas U, ángulo, esquinero |
+| Puertas y herrajes | manijas, enganches, cierre 1810 |
+| Cortinas | cortina de PVC cristal y su soporte |
+| Evaporadores | cúbicos y de baja silueta |
+| Tableros y controladores | tableros A&P de cámara (siguen también en Electricidad) y controladores con defrost |
 
-Con subcategorías `Condensadores` (10) y `Evaporadores` (20).
+Va por código: la lista está en `categoriaCamaras.mjs`. Además, `asignarCategorias.mjs`
+tiene una regla para que los productos de cámara que entren en futuras importaciones
+caigan en la categoría (la subcategoría se elige a mano).
 
-> El script **no inventa categorías**: si no existe, avisa cuál falta y la saltea.
-> Tampoco toca productos que ya tengan categoría.
+**Después de correrlo, limpiar en Panel → Categorías:**
+
+- Borrar **Evaporadores** (Cúbicos / De techo): está vacía y los cúbicos pasan a Cámaras.
+- Borrar **Refrigeración comercial → Accesorios cámara frigorífica**: su único producto
+  (la cenefa de 100 mm) pasa a Cámaras.
+- Subcategorías sin ningún producto: Aire acondicionado → Punteras y tapas, Soportes y
+  ménsulas; Autógena → Válvulas reguladoras de flujo; Condensadoras y evaporadoras →
+  Evaporadoras; Dispensers → Condensadores; Electricidad → Sensores, Termocontraíbles;
+  Filtros → Bidireccionales; Plaquetas → Display e interfaces; Motores → Motor
+  microondas; Materiales → Mangueras y flexibles. Borrarlas o cargarles productos.
+- Nombres a emprolijar: `r404a` y `r600a` (el resto va R134a, R22…), `lavarropas` en
+  Plaquetas, `Cubicos`, `Hasta 2hp`.
+
+> Se arregló de paso: la regla de condensadores buscaba "Condensadores y evaporadores",
+> pero en el panel la categoría se llama **"Condensadoras y evaporadoras"**, así que el
+> script salteaba esos 26 productos. Ahora coincide.
+>
+> `asignarCategorias.mjs` **no inventa categorías**: si una no existe en el panel, avisa
+> y la saltea. Ninguno de los dos le saca la categoría a un producto que ya la tiene
+> (salvo la cenefa de 100 mm, que se mueve a propósito).
 
 ### 2. Que los productos llamen más la atención
 

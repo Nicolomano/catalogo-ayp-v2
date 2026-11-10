@@ -34,6 +34,12 @@ import path from "path";
  * o-rings.
  */
 const REGLAS = [
+  // Primero: un evaporador cúbico es de cámara antes que un intercambiador
+  // cualquiera, y "CAMARA" en el nombre no aparece en otra cosa del catálogo
+  // (verificado el 10/11/2026). La subcategoría se elige a mano o con
+  // categoriaCamaras.mjs: este script solo pone la categoría.
+  ["Cámaras frigoríficas",        /CAMARA|PANEL\s+POLIURETANO|CENEFA|CORTINA CRISTAL|EVAP.*(CUBICO|BAJA SIL)/],
+
   // Familias de electrodoméstico
   ["Microondas",                  /MAGNETRON|MICROONDA/],
   ["Dispensers de agua",          /DISPENSER|PELTIER/],
@@ -63,7 +69,7 @@ const REGLAS = [
    * Va DESPUÉS de Aire acondicionado a propósito: una "Turbina Evaporadora AA"
    * o un "SOPORTE EVAPORADOR SPLIT" son de aire, no intercambiadores.
    */
-  ["Condensadores y evaporadores",
+  ["Condensadoras y evaporadoras",
     /\bCONDENSADOR\b|\bEVAP\b|\bEVAP\.|\bEVAPORADOR\b/,
     /UNIDAD CONDENSADORA|FORZADOR|PEINE|SENSOR|ELEVADOR|TURBINA|SOPORTE|MANGUERA|MOTOR|LIMPIA/],
 
